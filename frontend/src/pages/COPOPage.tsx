@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AssessmentsSidebar } from "@/components/assessments/AssessmentsSidebar";
 import { AssessmentsHeader } from "@/components/assessments/AssessmentsHeader";
-import { COPOMapping } from "@/components/assessments/COPOMapping";
+import { COPOMapping } from "@/components/copo";
 import { Toaster } from "@/components/ui/sonner";
 import { apiService } from "@/services/api";
 import type { User, Course } from "@/services/api";

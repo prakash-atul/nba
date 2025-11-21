@@ -1,0 +1,615 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { apiService } from "@/services/api";
+import { toast } from "sonner";
+import { Settings } from "lucide-react";
+import { AttainmentSettingsPanel } from "./AttainmentSettingsPanel";
+import { AttainmentCriteriaCard } from "./AttainmentCriteriaCard";
+import { PassingMarksCard } from "./PassingMarksCard";
+import type {
+	StudentMarks,
+	AttainmentThreshold,
+	AttainmentData,
+	COPOMatrixState,
+} from "./types";
+import {
+	getLevelColor,
+	getPercentageColor,
+	getAttainmentCriteria,
+	getAttainmentLevel,
+} from "./utils";
+
+// Import the table components (to be created)
+import { StudentMarksTable } from "./StudentMarksTable";
+import { COAttainmentTable } from "./COAttainmentTable";
+import { COPOMatrixTable } from "./COPOMatrixTable";
+
+interface COPOMappingProps {
+	courseCode: string;
+	courseName: string;
+	courseId: number;
+	facultyName: string;
+	departmentName: string;
+	year: number;
+	semester: number;
+}
+
+export function COPOMapping({
+	courseCode,
+	courseName,
+	courseId,
+	facultyName,
+	departmentName,
+	year,
+	semester,
+}: COPOMappingProps) {
+	const [loading, setLoading] = useState(true);
+	const [studentsData, setStudentsData] = useState<StudentMarks[]>([]);
+	const [maxMarks, setMaxMarks] = useState<{
+		[testName: string]: {
+			total: number;
+			CO1: number;
+			CO2: number;
+			CO3: number;
+			CO4: number;
+			CO5: number;
+			CO6: number;
+		};
+	}>({});
+
+	// Attainment settings state
+	const [showSettings, setShowSettings] = useState(false);
+	const [attainmentThresholds, setAttainmentThresholds] = useState<
+		AttainmentThreshold[]
+	>([
+		{ id: 1, percentage: 70 },
+		{ id: 2, percentage: 60 },
+		{ id: 3, percentage: 50 },
+	]);
+	const [coThreshold, setCoThreshold] = useState(40);
+	const [passingThreshold, setPassingThreshold] = useState(60);
+	const [zeroLevelThreshold, setZeroLevelThreshold] = useState(40);
+
+	// CO-PO-PSO Mapping Matrix State
+	const [copoMatrix, setCopoMatrix] = useState<COPOMatrixState>({
+		CO1: {
+			PO1: 0,
+			PO2: 0,
+			PO3: 0,
+			PO4: 0,
+			PO5: 0,
+			PO6: 0,
+			PO7: 0,
+			PO8: 0,
+			PO9: 0,
+			PO10: 0,
+			PO11: 0,
+			PO12: 0,
+			PSO1: 0,
+			PSO2: 0,
+			PSO3: 0,
+		},
+		CO2: {
+			PO1: 0,
+			PO2: 0,
+			PO3: 0,
+			PO4: 0,
+			PO5: 0,
+			PO6: 0,
+			PO7: 0,
+			PO8: 0,
+			PO9: 0,
+			PO10: 0,
+			PO11: 0,
+			PO12: 0,
+			PSO1: 0,
+			PSO2: 0,
+			PSO3: 0,
+		},
+		CO3: {
+			PO1: 0,
+			PO2: 0,
+			PO3: 0,
+			PO4: 0,
+			PO5: 0,
+			PO6: 0,
+			PO7: 0,
+			PO8: 0,
+			PO9: 0,
+			PO10: 0,
+			PO11: 0,
+			PO12: 0,
+			PSO1: 0,
+			PSO2: 0,
+			PSO3: 0,
+		},
+		CO4: {
+			PO1: 0,
+			PO2: 0,
+			PO3: 0,
+			PO4: 0,
+			PO5: 0,
+			PO6: 0,
+			PO7: 0,
+			PO8: 0,
+			PO9: 0,
+			PO10: 0,
+			PO11: 0,
+			PO12: 0,
+			PSO1: 0,
+			PSO2: 0,
+			PSO3: 0,
+		},
+		CO5: {
+			PO1: 0,
+			PO2: 0,
+			PO3: 0,
+			PO4: 0,
+			PO5: 0,
+			PO6: 0,
+			PO7: 0,
+			PO8: 0,
+			PO9: 0,
+			PO10: 0,
+			PO11: 0,
+			PO12: 0,
+			PSO1: 0,
+			PSO2: 0,
+			PSO3: 0,
+		},
+		CO6: {
+			PO1: 0,
+			PO2: 0,
+			PO3: 0,
+			PO4: 0,
+			PO5: 0,
+			PO6: 0,
+			PO7: 0,
+			PO8: 0,
+			PO9: 0,
+			PO10: 0,
+			PO11: 0,
+			PO12: 0,
+			PSO1: 0,
+			PSO2: 0,
+			PSO3: 0,
+		},
+	});
+
+	// Load COPO data
+	useEffect(() => {
+		loadCOPOData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [courseId]);
+
+	const loadCOPOData = async () => {
+		try {
+			setLoading(true);
+			const testsData = await apiService.getCourseTests(courseId);
+
+			if (testsData.length === 0) {
+				setStudentsData([]);
+				setLoading(false);
+				return;
+			}
+
+			// Fetch marks for all tests
+			const allMarksPromises = testsData.map((test) =>
+				apiService
+					.getTestMarks(test.id)
+					.then((data) => ({ test, marksData: data }))
+					.catch(() => ({ test, marksData: null }))
+			);
+
+			const allMarksResults = await Promise.all(allMarksPromises);
+
+			// Process and structure the data
+			const studentMap = new Map<string, StudentMarks>();
+			const maxMarksMap: {
+				[testName: string]: {
+					total: number;
+					CO1: number;
+					CO2: number;
+					CO3: number;
+					CO4: number;
+					CO5: number;
+					CO6: number;
+				};
+			} = {};
+
+			// Initialize max marks from tests
+			testsData.forEach((test) => {
+				maxMarksMap[test.name] = {
+					total: test.full_marks,
+					CO1: 0,
+					CO2: 0,
+					CO3: 0,
+					CO4: 0,
+					CO5: 0,
+					CO6: 0,
+				};
+			});
+
+			// Process marks data
+			allMarksResults.forEach(({ test, marksData }) => {
+				if (!marksData || !marksData.marks) return;
+
+				marksData.marks.forEach((markRecord) => {
+					const studentId = markRecord.student_id;
+					const studentName = markRecord.student_name || studentId;
+
+					if (!studentMap.has(studentId)) {
+						studentMap.set(studentId, {
+							rollNo: studentId,
+							name: studentName,
+							absentee: "",
+							tests: {},
+							total: 0,
+							coTotals: {
+								CO1: 0,
+								CO2: 0,
+								CO3: 0,
+								CO4: 0,
+								CO5: 0,
+								CO6: 0,
+								ΣCO: 0,
+							},
+						});
+					}
+
+					const student = studentMap.get(studentId)!;
+					student.tests[test.name] = {
+						CO1: Number(markRecord.CO1) || 0,
+						CO2: Number(markRecord.CO2) || 0,
+						CO3: Number(markRecord.CO3) || 0,
+						CO4: Number(markRecord.CO4) || 0,
+						CO5: Number(markRecord.CO5) || 0,
+						CO6: Number(markRecord.CO6) || 0,
+					};
+				});
+			});
+
+			// Fetch questions for each test to calculate max marks per CO
+			for (const test of testsData) {
+				try {
+					const assessmentData = await apiService.getAssessment(
+						test.id
+					);
+					const questions = assessmentData.questions;
+
+					questions.forEach((q) => {
+						const coKey =
+							`CO${q.co}` as keyof (typeof maxMarksMap)[string];
+						if (maxMarksMap[test.name][coKey] !== undefined) {
+							maxMarksMap[test.name][coKey] += q.max_marks;
+						}
+					});
+				} catch (error) {
+					console.error(
+						`Failed to load questions for test ${test.name}:`,
+						error
+					);
+				}
+			}
+
+			// Calculate totals and percentages for each student
+			studentMap.forEach((student) => {
+				let totalMarks = 0;
+				const coTotals = {
+					CO1: 0,
+					CO2: 0,
+					CO3: 0,
+					CO4: 0,
+					CO5: 0,
+					CO6: 0,
+				};
+				const coMaxTotals = {
+					CO1: 0,
+					CO2: 0,
+					CO3: 0,
+					CO4: 0,
+					CO5: 0,
+					CO6: 0,
+				};
+
+				Object.keys(student.tests).forEach((testName) => {
+					const testMarks = student.tests[testName];
+					const testMaxMarks = maxMarksMap[testName];
+
+					Object.keys(testMarks).forEach((co) => {
+						const coKey = co as keyof typeof coTotals;
+						const coMarks = testMarks[coKey];
+						const coMax = testMaxMarks[coKey] || 0;
+
+						coTotals[coKey] += coMarks;
+						coMaxTotals[coKey] += coMax;
+						totalMarks += coMarks;
+					});
+				});
+
+				let totalMaxMarks = 0;
+				Object.keys(coTotals).forEach((co) => {
+					const coKey = co as keyof typeof coTotals;
+					const coMax = coMaxTotals[coKey];
+					totalMaxMarks += coMax;
+					student.coTotals[coKey] =
+						coMax > 0 ? (coTotals[coKey] / coMax) * 100 : 0;
+				});
+
+				const nonZeroCOs = Object.keys(coTotals).filter(
+					(co) => coMaxTotals[co as keyof typeof coMaxTotals] > 0
+				);
+				const sumCO =
+					nonZeroCOs.reduce(
+						(sum, co) =>
+							sum + student.coTotals[co as keyof typeof coTotals],
+						0
+					) / (nonZeroCOs.length || 1);
+
+				student.coTotals.ΣCO = sumCO;
+				student.total =
+					totalMaxMarks > 0 ? (totalMarks / totalMaxMarks) * 100 : 0;
+			});
+
+			setMaxMarks(maxMarksMap);
+			setStudentsData(Array.from(studentMap.values()));
+
+			setLoading(false);
+		} catch (error) {
+			console.error("Failed to load CO-PO data:", error);
+			toast.error("Failed to load CO-PO data");
+			setLoading(false);
+		}
+	};
+
+	// Threshold management functions
+	const addThreshold = () => {
+		const newId = Math.max(...attainmentThresholds.map((t) => t.id), 0) + 1;
+		const lowestPercentage = Math.min(
+			...attainmentThresholds.map((t) => t.percentage)
+		);
+		const newPercentage = Math.max(lowestPercentage - 10, 0);
+		setAttainmentThresholds([
+			...attainmentThresholds,
+			{ id: newId, percentage: newPercentage },
+		]);
+	};
+
+	const updateThreshold = (id: number, value: number) => {
+		setAttainmentThresholds(
+			attainmentThresholds.map((t) =>
+				t.id === id ? { ...t, percentage: value } : t
+			)
+		);
+	};
+
+	const removeThreshold = (id: number) => {
+		if (attainmentThresholds.length <= 1) {
+			toast.error("At least one threshold is required");
+			return;
+		}
+		setAttainmentThresholds(
+			attainmentThresholds.filter((t) => t.id !== id)
+		);
+	};
+
+	const saveSettings = () => {
+		const percentages = attainmentThresholds.map((t) => t.percentage);
+		const hasDuplicates = new Set(percentages).size !== percentages.length;
+		if (hasDuplicates) {
+			toast.error("Threshold percentages must be unique");
+			return;
+		}
+		const allValid = percentages.every((p) => p >= 0 && p <= 100);
+		if (!allValid) {
+			toast.error("All percentages must be between 0 and 100");
+			return;
+		}
+		toast.success("Settings saved successfully");
+	};
+
+	// Update CO-PO-PSO mapping value
+	const updateCOPOMapping = (co: string, po: string, value: number) => {
+		setCopoMatrix((prev) => ({
+			...prev,
+			[co]: {
+				...prev[co],
+				[po]: Math.max(0, Math.min(value, attainmentThresholds.length)),
+			},
+		}));
+	};
+
+	// Calculate attainment data
+	const calculateCOAttainment = (): AttainmentData => {
+		const totalStudents = studentsData.length;
+		let absentees = 0;
+
+		const coStats = {
+			CO1: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
+			CO2: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
+			CO3: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
+			CO4: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
+			CO5: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
+			CO6: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
+		};
+
+		studentsData.forEach((student) => {
+			if (student.absentee === "AB" || student.absentee === "UR") {
+				absentees++;
+				return;
+			}
+
+			Object.keys(coStats).forEach((co) => {
+				const percentage =
+					student.coTotals[co as keyof typeof student.coTotals];
+				if (percentage >= 70)
+					coStats[co as keyof typeof coStats].above70++;
+				if (percentage >= 60)
+					coStats[co as keyof typeof coStats].above60++;
+				if (percentage >= 50)
+					coStats[co as keyof typeof coStats].above50++;
+				if (percentage >= passingThreshold)
+					coStats[co as keyof typeof coStats].abovePass++;
+			});
+		});
+
+		const presentStudents = totalStudents - absentees;
+		return { totalStudents, absentees, presentStudents, coStats };
+	};
+
+	const attainmentData =
+		studentsData.length > 0 ? calculateCOAttainment() : null;
+
+	// Helper function wrappers
+	const getLevel = (percentage: number) =>
+		getAttainmentLevel(
+			percentage,
+			attainmentThresholds,
+			zeroLevelThreshold
+		);
+
+	const getLevelColorFn = (level: number) =>
+		getLevelColor(level, attainmentThresholds.length);
+
+	const getPercentageColorFn = (percentage: number) =>
+		getPercentageColor(percentage, getLevel, attainmentThresholds.length);
+
+	const attainmentCriteria = getAttainmentCriteria(
+		attainmentThresholds,
+		zeroLevelThreshold
+	);
+
+	// Calculate PO/PSO attainment
+	const calculatePOAttainment = (po: string): number => {
+		if (!attainmentData) return 0;
+
+		const cos = ["CO1", "CO2", "CO3", "CO4", "CO5", "CO6"];
+		const attainmentPointsScale = attainmentThresholds.length;
+		let sum = 0;
+		let mappedCount = 0;
+
+		cos.forEach((co) => {
+			const percentage =
+				attainmentData.presentStudents > 0
+					? (attainmentData.coStats[
+							co as keyof typeof attainmentData.coStats
+					  ].abovePass /
+							attainmentData.presentStudents) *
+					  100
+					: 0;
+
+			const coLevel = getLevel(percentage);
+			const poMapping = copoMatrix[co]?.[po] || 0;
+
+			if (poMapping > 0) {
+				sum += (coLevel * poMapping) / attainmentPointsScale;
+				mappedCount++;
+			}
+		});
+
+		return mappedCount > 0 ? sum / mappedCount : 0;
+	};
+
+	return (
+		<div className="space-y-6 pb-8">
+			{/* Header Section */}
+			<div className="flex justify-between items-center">
+				<div>
+					<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+						CO-PO Mapping
+					</h2>
+					<p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+						Course: {courseCode} - {courseName}
+					</p>
+				</div>
+				<Button
+					onClick={() => setShowSettings(!showSettings)}
+					variant="outline"
+					size="sm"
+					className="flex items-center gap-2"
+				>
+					<Settings className="h-4 w-4" />
+					Attainment Settings
+				</Button>
+			</div>
+
+			{/* Settings Panel */}
+			<AttainmentSettingsPanel
+				showSettings={showSettings}
+				zeroLevelThreshold={zeroLevelThreshold}
+				setZeroLevelThreshold={setZeroLevelThreshold}
+				coThreshold={coThreshold}
+				setCoThreshold={setCoThreshold}
+				passingThreshold={passingThreshold}
+				setPassingThreshold={setPassingThreshold}
+				attainmentThresholds={attainmentThresholds}
+				addThreshold={addThreshold}
+				updateThreshold={updateThreshold}
+				removeThreshold={removeThreshold}
+				saveSettings={saveSettings}
+			/>
+
+			{/* Attainment Criteria Card */}
+			<AttainmentCriteriaCard
+				attainmentCriteria={attainmentCriteria}
+				getLevelColor={getLevelColorFn}
+			/>
+
+			{/* Passing Marks Card */}
+			<PassingMarksCard
+				coThreshold={coThreshold}
+				passingThreshold={passingThreshold}
+			/>
+
+			{/* Student Marks Table */}
+			<StudentMarksTable
+				studentsData={studentsData}
+				maxMarks={maxMarks}
+				facultyName={facultyName}
+				departmentName={departmentName}
+				courseName={courseName}
+				courseCode={courseCode}
+				year={year}
+				semester={semester}
+				loading={loading}
+				getPercentageColor={getPercentageColorFn}
+			/>
+
+			{/* CO Attainment Tables */}
+			{attainmentData && (
+				<COAttainmentTable
+					attainmentData={attainmentData}
+					getAttainmentLevel={getLevel}
+					getPercentageColor={getPercentageColorFn}
+				/>
+			)}
+
+			{/* CO-PO-PSO Matrix Table */}
+			<COPOMatrixTable
+				copoMatrix={copoMatrix}
+				courseInfo={{
+					university_name: "TEZPUR UNIVERSITY",
+					faculty_name: facultyName,
+					branch: departmentName,
+					programme_name: "B. Tech",
+					year: year.toString(),
+					semester: semester.toString(),
+					course_name: courseName,
+					course_code: courseCode,
+					session: `${new Date().getFullYear()}-${(
+						new Date().getFullYear() + 1
+					)
+						.toString()
+						.slice(-2)}`,
+				}}
+				updateCOPOMapping={updateCOPOMapping}
+				calculatePOAttainment={calculatePOAttainment}
+				getPercentageColor={getPercentageColorFn}
+				attainmentData={attainmentData}
+				getAttainmentLevel={getLevel}
+				getLevelColor={getLevelColorFn}
+				attainmentThresholds={attainmentThresholds}
+			/>
+		</div>
+	);
+}
