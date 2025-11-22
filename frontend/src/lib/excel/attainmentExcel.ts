@@ -10,6 +10,10 @@ import {
 } from "./headerSections";
 import { createTableHeaders } from "./tableHeaders";
 import { fillStudentData } from "./studentRows";
+import {
+	createCOAttainmentPointScaleTable,
+	createCOAttainmentAbsoluteScaleTable,
+} from "./coAttainmentTables";
 
 // Re-export types for backward compatibility
 export type {
@@ -43,7 +47,7 @@ export async function exportAttainmentExcel(opts: AttainmentExportOptions) {
 	const ws = wb.addWorksheet("Attainment");
 
 	// Set column widths
-	ws.getColumn(1).width = 14;
+	ws.getColumn(1).width = 50; // Wider for attainment table labels
 	ws.getColumn(2).width = 14;
 	ws.getColumn(3).width = 12;
 	ws.getColumn(4).width = 12;
@@ -96,6 +100,30 @@ export async function exportAttainmentExcel(opts: AttainmentExportOptions) {
 		totalStartCol,
 		coStartCol,
 		sigmaCoCol
+	);
+
+	// Add CO Attainment tables
+	const studentDataEndRow = tableStartRow + 4 + studentsData.length;
+	const attainmentTablesStartRow = studentDataEndRow + 3; // Leave 2 empty rows
+
+	// Create CO Attainment in x.0 Point Scale table
+	const pointScaleEndRow = createCOAttainmentPointScaleTable(
+		ws,
+		attainmentTablesStartRow,
+		studentsData,
+		passingThreshold,
+		coThreshold,
+		attainmentThresholds
+	);
+
+	// Create CO Attainment in Absolute Scale table
+	createCOAttainmentAbsoluteScaleTable(
+		ws,
+		pointScaleEndRow + 2, // Leave 1 empty row between tables
+		studentsData,
+		passingThreshold,
+		coThreshold,
+		attainmentThresholds
 	);
 
 	// Finalize and save
