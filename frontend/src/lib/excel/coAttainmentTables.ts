@@ -128,7 +128,7 @@ export function createCOAttainmentPointScaleTable(
 		pattern: "solid",
 		fgColor: { argb: "FFFFC0CB" }, // Pink
 	};
-	ws.mergeCells(currentRow, 1, currentRow, 7);
+	ws.mergeCells(currentRow, 1, currentRow, 10);
 	currentRow++;
 
 	// Header row 1
@@ -147,8 +147,9 @@ export function createCOAttainmentPointScaleTable(
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 
-	const header1Span = ws.getCell(currentRow, 2);
+	const header1Span = ws.getCell(currentRow, 5);
 	header1Span.value = "CO1 to CO6";
 	header1Span.font = { bold: true };
 	header1Span.alignment = { horizontal: "center", vertical: "middle" };
@@ -163,12 +164,12 @@ export function createCOAttainmentPointScaleTable(
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
-	ws.mergeCells(currentRow, 2, currentRow, 7);
+	ws.mergeCells(currentRow, 5, currentRow, 10);
 	currentRow++;
 
 	// Header row 2 - CO columns
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value = co;
 		cell.font = { bold: true };
 		cell.alignment = { horizontal: "center", vertical: "middle" };
@@ -187,16 +188,19 @@ export function createCOAttainmentPointScaleTable(
 	currentRow++;
 
 	// Row 1: ABSENTEE+NOT ATTEMPT
-	ws.getCell(currentRow, 1).value = "ABSENTEE+NOT ATTEMPT";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	const absenteeCell = ws.getCell(currentRow, 1);
+	absenteeCell.value = "ABSENTEE+NOT ATTEMPT";
+	absenteeCell.font = { bold: true };
+	absenteeCell.alignment = { horizontal: "left", vertical: "middle" };
+	absenteeCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((_, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value = attainment.absentees;
 		cell.alignment = { horizontal: "center" };
 		cell.border = {
@@ -209,16 +213,19 @@ export function createCOAttainmentPointScaleTable(
 	currentRow++;
 
 	// Row 2: PRESENT STUDENT OR ATTEMPT
-	ws.getCell(currentRow, 1).value = "PRESENT STUDENT OR ATTEMPT";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	const presentCell = ws.getCell(currentRow, 1);
+	presentCell.value = "PRESENT STUDENT OR ATTEMPT";
+	presentCell.font = { bold: true };
+	presentCell.alignment = { horizontal: "left", vertical: "middle" };
+	presentCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((_, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value = attainment.presentStudents;
 		cell.alignment = { horizontal: "center" };
 		cell.border = {
@@ -231,17 +238,20 @@ export function createCOAttainmentPointScaleTable(
 	currentRow++;
 
 	// Row 3: NO. OF STUDENTS SECURE MARKS > THRESHOLD % FOR CO ATTAINMENT
-	ws.getCell(currentRow, 1).value =
+	const thresholdCountCell = ws.getCell(currentRow, 1);
+	thresholdCountCell.value =
 		"NO. OF STUDENTS SECURE MARKS > THRESHOLD % FOR CO ATTAINMENT";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	thresholdCountCell.font = { bold: true };
+	thresholdCountCell.alignment = { horizontal: "left", vertical: "middle" };
+	thresholdCountCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value =
 			attainment.coStats[co as keyof typeof attainment.coStats].above70;
 		cell.alignment = { horizontal: "center" };
@@ -261,17 +271,20 @@ export function createCOAttainmentPointScaleTable(
 	currentRow++;
 
 	// Row 4: PC. OF STUDENTS SECURE MARKS > THRESHOLD % FOR CO ATTAINMENT
-	ws.getCell(currentRow, 1).value =
+	const thresholdPctCell = ws.getCell(currentRow, 1);
+	thresholdPctCell.value =
 		"PC. OF STUDENTS SECURE MARKS > THRESHOLD % FOR CO ATTAINMENT";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	thresholdPctCell.font = { bold: true };
+	thresholdPctCell.alignment = { horizontal: "left", vertical: "middle" };
+	thresholdPctCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		const percentage =
 			attainment.presentStudents > 0
 				? (attainment.coStats[co as keyof typeof attainment.coStats]
@@ -291,16 +304,19 @@ export function createCOAttainmentPointScaleTable(
 	currentRow++;
 
 	// Row 5: CO Attainment Level (Based on Criteria)
-	ws.getCell(currentRow, 1).value = "CO Attainment Level (Based on Criteria)";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	const attainmentLevelCell = ws.getCell(currentRow, 1);
+	attainmentLevelCell.value = "CO Attainment Level (Based on Criteria)";
+	attainmentLevelCell.font = { bold: true };
+	attainmentLevelCell.alignment = { horizontal: "left", vertical: "middle" };
+	attainmentLevelCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		const percentage =
 			attainment.presentStudents > 0
 				? (attainment.coStats[co as keyof typeof attainment.coStats]
@@ -329,22 +345,24 @@ export function createCOAttainmentPointScaleTable(
 	currentRow++;
 
 	// Row 6: Final attainment level CO (by Direct Assessment)
-	ws.getCell(currentRow, 1).value =
-		"Final attainment level CO (by Direct Assessment):";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).fill = {
+	const finalDirectCell = ws.getCell(currentRow, 1);
+	finalDirectCell.value = "Final attainment level CO (by Direct Assessment):";
+	finalDirectCell.font = { bold: true };
+	finalDirectCell.alignment = { horizontal: "left", vertical: "middle" };
+	finalDirectCell.fill = {
 		type: "pattern",
 		pattern: "solid",
 		fgColor: { argb: "FFFFA500" }, // Orange
 	};
-	ws.getCell(currentRow, 1).border = {
+	finalDirectCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		const percentage =
 			attainment.presentStudents > 0
 				? (attainment.coStats[co as keyof typeof attainment.coStats]
@@ -405,7 +423,7 @@ export function createCOAttainmentAbsoluteScaleTable(
 		pattern: "solid",
 		fgColor: { argb: "FFFFC0CB" }, // Pink
 	};
-	ws.mergeCells(currentRow, 1, currentRow, 7);
+	ws.mergeCells(currentRow, 1, currentRow, 10);
 	currentRow++;
 
 	// Header row 1
@@ -424,8 +442,9 @@ export function createCOAttainmentAbsoluteScaleTable(
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 
-	const header1Span = ws.getCell(currentRow, 2);
+	const header1Span = ws.getCell(currentRow, 5);
 	header1Span.value = "CO1 to CO6";
 	header1Span.font = { bold: true };
 	header1Span.alignment = { horizontal: "center", vertical: "middle" };
@@ -440,12 +459,12 @@ export function createCOAttainmentAbsoluteScaleTable(
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
-	ws.mergeCells(currentRow, 2, currentRow, 7);
+	ws.mergeCells(currentRow, 5, currentRow, 10);
 	currentRow++;
 
 	// Header row 2 - CO columns
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value = co;
 		cell.font = { bold: true };
 		cell.alignment = { horizontal: "center", vertical: "middle" };
@@ -464,16 +483,19 @@ export function createCOAttainmentAbsoluteScaleTable(
 	currentRow++;
 
 	// Row 1: ABSENTEE+NOT ATTEMPT
-	ws.getCell(currentRow, 1).value = "ABSENTEE+NOT ATTEMPT";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	const absenteeCell = ws.getCell(currentRow, 1);
+	absenteeCell.value = "ABSENTEE+NOT ATTEMPT";
+	absenteeCell.font = { bold: true };
+	absenteeCell.alignment = { horizontal: "left", vertical: "middle" };
+	absenteeCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((_, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value = attainment.absentees;
 		cell.alignment = { horizontal: "center" };
 		cell.border = {
@@ -486,16 +508,19 @@ export function createCOAttainmentAbsoluteScaleTable(
 	currentRow++;
 
 	// Row 2: PRESENT STUDENT OR ATTEMPT
-	ws.getCell(currentRow, 1).value = "PRESENT STUDENT OR ATTEMPT";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	const presentCell = ws.getCell(currentRow, 1);
+	presentCell.value = "PRESENT STUDENT OR ATTEMPT";
+	presentCell.font = { bold: true };
+	presentCell.alignment = { horizontal: "left", vertical: "middle" };
+	presentCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((_, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value = attainment.presentStudents;
 		cell.alignment = { horizontal: "center" };
 		cell.border = {
@@ -508,17 +533,19 @@ export function createCOAttainmentAbsoluteScaleTable(
 	currentRow++;
 
 	// Row 3: NO. OF STUDENTS SECURE MARKS > PASSING MARKS
-	ws.getCell(currentRow, 1).value =
-		"NO. OF STUDENTS SECURE MARKS > PASSING MARKS";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	const passingCountCell = ws.getCell(currentRow, 1);
+	passingCountCell.value = "NO. OF STUDENTS SECURE MARKS > PASSING MARKS";
+	passingCountCell.font = { bold: true };
+	passingCountCell.alignment = { horizontal: "left", vertical: "middle" };
+	passingCountCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		cell.value =
 			attainment.coStats[co as keyof typeof attainment.coStats].abovePass;
 		cell.alignment = { horizontal: "center" };
@@ -538,17 +565,19 @@ export function createCOAttainmentAbsoluteScaleTable(
 	currentRow++;
 
 	// Row 4: PC. OF STUDENTS SECURE MARKS > PASSING MARKS
-	ws.getCell(currentRow, 1).value =
-		"PC. OF STUDENTS SECURE MARKS > PASSING MARKS";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	const passingPctCell = ws.getCell(currentRow, 1);
+	passingPctCell.value = "PC. OF STUDENTS SECURE MARKS > PASSING MARKS";
+	passingPctCell.font = { bold: true };
+	passingPctCell.alignment = { horizontal: "left", vertical: "middle" };
+	passingPctCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		const percentage =
 			attainment.presentStudents > 0
 				? (attainment.coStats[co as keyof typeof attainment.coStats]
@@ -568,17 +597,20 @@ export function createCOAttainmentAbsoluteScaleTable(
 	currentRow++;
 
 	// Row 5: CO Attainment (AVERAGE OF PERCENTAGE ATTAINMENTS)
-	ws.getCell(currentRow, 1).value =
+	const avgAttainmentCell = ws.getCell(currentRow, 1);
+	avgAttainmentCell.value =
 		"CO Attainment (AVERAGE OF PERCENTAGE ATTAINMENTS)";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).border = {
+	avgAttainmentCell.font = { bold: true };
+	avgAttainmentCell.alignment = { horizontal: "left", vertical: "middle" };
+	avgAttainmentCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		const percentage =
 			attainment.presentStudents > 0
 				? (attainment.coStats[co as keyof typeof attainment.coStats]
@@ -606,22 +638,24 @@ export function createCOAttainmentAbsoluteScaleTable(
 	currentRow++;
 
 	// Row 6: Final attainment level CO (IN ABSOLUTE SCALE)
-	ws.getCell(currentRow, 1).value =
-		"Final attainment level CO (IN ABSOLUTE SCALE):";
-	ws.getCell(currentRow, 1).font = { bold: true };
-	ws.getCell(currentRow, 1).fill = {
+	const finalAbsoluteCell = ws.getCell(currentRow, 1);
+	finalAbsoluteCell.value = "Final attainment level CO (IN ABSOLUTE SCALE):";
+	finalAbsoluteCell.font = { bold: true };
+	finalAbsoluteCell.alignment = { horizontal: "left", vertical: "middle" };
+	finalAbsoluteCell.fill = {
 		type: "pattern",
 		pattern: "solid",
 		fgColor: { argb: "FFFFA500" }, // Orange
 	};
-	ws.getCell(currentRow, 1).border = {
+	finalAbsoluteCell.border = {
 		top: { style: "thin" },
 		left: { style: "thin" },
 		bottom: { style: "thin" },
 		right: { style: "thin" },
 	};
+	ws.mergeCells(currentRow, 1, currentRow, 4);
 	coList.forEach((co, idx) => {
-		const cell = ws.getCell(currentRow, idx + 2);
+		const cell = ws.getCell(currentRow, idx + 5);
 		const percentage =
 			attainment.presentStudents > 0
 				? (attainment.coStats[co as keyof typeof attainment.coStats]

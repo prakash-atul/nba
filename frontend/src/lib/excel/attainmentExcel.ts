@@ -47,10 +47,10 @@ export async function exportAttainmentExcel(opts: AttainmentExportOptions) {
 	const ws = wb.addWorksheet("Attainment");
 
 	// Set column widths
-	ws.getColumn(1).width = 50; // Wider for attainment table labels
-	ws.getColumn(2).width = 14;
-	ws.getColumn(3).width = 12;
-	ws.getColumn(4).width = 12;
+	ws.getColumn(1).width = 6;
+	ws.getColumn(2).width = 10;
+	ws.getColumn(3).width = 30;
+	ws.getColumn(4).width = 20;
 
 	// Columns E onwards (5-28) = width 4.5
 	for (let col = 5; col <= 28; col++) {

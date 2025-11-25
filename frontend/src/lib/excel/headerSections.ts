@@ -221,7 +221,7 @@ export function createFacultyInfoSection(
 		left: { style: "thin" },
 	};
 
-	ws.mergeCells(infoRow1, 3, infoRow1, 8);
+	ws.mergeCells(infoRow1, 3, infoRow1, 4);
 	const facultyValue = ws.getCell(infoRow1, 3);
 	facultyValue.value = options.facultyName;
 	facultyValue.alignment = { horizontal: "center", vertical: "middle" };
@@ -232,20 +232,21 @@ export function createFacultyInfoSection(
 		left: { style: "thin" },
 	};
 
-	ws.getCell(infoRow1, 9).value = "BRANCH";
-	ws.getCell(infoRow1, 9).alignment = {
+	ws.mergeCells(infoRow1, 5, infoRow1, 6);
+	ws.getCell(infoRow1, 5).value = "BRANCH";
+	ws.getCell(infoRow1, 5).alignment = {
 		horizontal: "center",
 		vertical: "middle",
 	};
-	ws.getCell(infoRow1, 9).font = { bold: true };
-	ws.getCell(infoRow1, 9).border = {
+	ws.getCell(infoRow1, 5).font = { bold: true };
+	ws.getCell(infoRow1, 5).border = {
 		top: { style: "thin" },
 		right: { style: "thin" },
 		bottom: { style: "thin" },
 		left: { style: "thin" },
 	};
 
-	ws.mergeCells(infoRow1, 10, infoRow1, 14);
+	ws.mergeCells(infoRow1, 7, infoRow1, 14);
 	const branchValue = ws.getCell(infoRow1, 10);
 	branchValue.value = options.branch;
 	branchValue.alignment = { horizontal: "center", vertical: "middle" };
@@ -296,7 +297,7 @@ export function createFacultyInfoSection(
 		left: { style: "thin" },
 	};
 
-	ws.mergeCells(infoRow2, 3, infoRow2, 5);
+	ws.mergeCells(infoRow2, 3, infoRow2, 4);
 	const programmeValue = ws.getCell(infoRow2, 3);
 	programmeValue.value = options.programme;
 	programmeValue.alignment = { horizontal: "center", vertical: "middle" };
@@ -307,32 +308,36 @@ export function createFacultyInfoSection(
 		left: { style: "thin" },
 	};
 
-	ws.getCell(infoRow2, 6).border = {
+	ws.mergeCells(infoRow2, 5, infoRow2, 6);
+
+	ws.getCell(infoRow2, 5).border = {
 		top: { style: "thin" },
 		right: { style: "thin" },
 		bottom: { style: "thin" },
 		left: { style: "thin" },
 	};
 
-	ws.getCell(infoRow2, 7).value = "YEAR";
+	ws.getCell(infoRow2, 5).value = "YEAR";
+	ws.getCell(infoRow2, 5).alignment = {
+		horizontal: "center",
+		vertical: "middle",
+	};
+	ws.getCell(infoRow2, 5).font = { bold: true };
+	ws.getCell(infoRow2, 5).border = {
+		top: { style: "thin" },
+		right: { style: "thin" },
+		bottom: { style: "thin" },
+		left: { style: "thin" },
+	};
+
+	ws.mergeCells(infoRow2, 7, infoRow2, 8);
+
+	ws.getCell(infoRow2, 7).value = options.year;
 	ws.getCell(infoRow2, 7).alignment = {
 		horizontal: "center",
 		vertical: "middle",
 	};
-	ws.getCell(infoRow2, 7).font = { bold: true };
 	ws.getCell(infoRow2, 7).border = {
-		top: { style: "thin" },
-		right: { style: "thin" },
-		bottom: { style: "thin" },
-		left: { style: "thin" },
-	};
-
-	ws.getCell(infoRow2, 8).value = options.year;
-	ws.getCell(infoRow2, 8).alignment = {
-		horizontal: "center",
-		vertical: "middle",
-	};
-	ws.getCell(infoRow2, 8).border = {
 		top: { style: "thin" },
 		right: { style: "thin" },
 		bottom: { style: "thin" },
