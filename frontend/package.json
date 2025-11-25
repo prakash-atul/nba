@@ -20,7 +20,6 @@
     "@tailwindcss/vite": "^4.1.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "exceljs": "^4.4.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.552.0",
     "motion": "^12.23.24",
@@ -30,8 +29,7 @@
     "react-router-dom": "^7.9.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.16",
-    "xlsx": "^0.18.5"
+    "tailwindcss": "^4.1.16"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
