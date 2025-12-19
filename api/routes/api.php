@@ -38,6 +38,7 @@ require_once __DIR__ . '/../controllers/MarksController.php';
 require_once __DIR__ . '/../controllers/EnrollmentController.php';
 require_once __DIR__ . '/../controllers/AttainmentController.php';
 require_once __DIR__ . '/../controllers/AdminController.php';
+require_once __DIR__ . '/../controllers/HODController.php';
 
 /**
  * Router Class
@@ -53,6 +54,7 @@ class Router
     private $enrollmentController;
     private $attainmentController;
     private $adminController;
+    private $hodController;
 
     public function __construct()
     {
@@ -87,6 +89,7 @@ class Router
         $this->enrollmentController = new EnrollmentController($db);
         $this->attainmentController = new AttainmentController($courseRepository, $attainmentScaleRepository);
         $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository);
+        $this->hodController = new HODController($userRepository, $courseRepository, $departmentRepository, $validationMiddleware);
     }
 
     /**
@@ -221,6 +224,41 @@ class Router
                     $user = $this->authMiddleware->requireAuth();
                     $_REQUEST['authenticated_user'] = $user;
                     $this->adminController->getAllTests();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            // HOD routes
+            case 'hod/stats':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getStats();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'hod/courses':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getDepartmentCourses();
+                } elseif ($method === 'POST') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->createCourse();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'hod/faculty':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getDepartmentFaculty();
                 } else {
                     $this->sendMethodNotAllowed();
                 }
@@ -390,6 +428,19 @@ class Router
                         $user = $this->authMiddleware->requireAuth();
                         $_REQUEST['authenticated_user'] = $user;
                         $this->userController->deleteUser($employeeId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^hod/courses/(\d+)$#', $path, $matches)) {
+                    $courseId = $matches[1];
+                    if ($method === 'PUT') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->hodController->updateCourse($courseId);
+                    } elseif ($method === 'DELETE') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->hodController->deleteCourse($courseId);
                     } else {
                         $this->sendMethodNotAllowed();
                     }

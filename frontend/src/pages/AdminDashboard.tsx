@@ -46,12 +46,30 @@ export function AdminDashboard() {
 	const [refreshing, setRefreshing] = useState(false);
 
 	// Get current user
-	const currentUser = apiService.getStoredUser();
+	const [currentUser, setCurrentUser] = useState<User | null>(null);
 
 	useEffect(() => {
+		const storedUser = apiService.getStoredUser();
+		if (!storedUser) {
+			navigate("/login");
+			return;
+		}
+		// Only allow admin role
+		if (storedUser.role !== "admin") {
+			// Redirect based on role
+			if (storedUser.role === "hod") {
+				navigate("/hod");
+			} else if (storedUser.role === "faculty") {
+				navigate("/assessments");
+			} else {
+				navigate("/login");
+			}
+			return;
+		}
+		setCurrentUser(storedUser);
 		fetchAllData();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [navigate]);
 
 	const fetchAllData = async () => {
 		setLoading(true);
@@ -181,6 +199,11 @@ export function AdminDashboard() {
 				);
 		}
 	};
+
+	// Don't render until user is verified
+	if (!currentUser) {
+		return null;
+	}
 
 	return (
 		<div className="flex h-screen bg-gray-50 dark:bg-gray-950">

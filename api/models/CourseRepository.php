@@ -243,4 +243,153 @@ class CourseRepository
             throw new Exception("Database error: " . $e->getMessage());
         }
     }
+
+    /**
+     * Find course by course code
+     * @param string $courseCode
+     * @return Course|null
+     */
+    public function findByCourseCode($courseCode)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM course WHERE course_code = ?");
+            $stmt->execute([$courseCode]);
+            $data = $stmt->fetch();
+
+            if ($data) {
+                return new Course(
+                    $data['id'],
+                    $data['course_code'],
+                    $data['name'],
+                    $data['credit'],
+                    $data['faculty_id'],
+                    $data['year'],
+                    $data['semester'],
+                    $data['syllabus_pdf'],
+                    $data['co_threshold'] ?? 40.00,
+                    $data['passing_threshold'] ?? 60.00
+                );
+            }
+            return null;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Find course by ID with faculty info
+     * @param int $id
+     * @return array|null
+     */
+    public function findByIdWithFaculty($id)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT c.*, u.username as faculty_name 
+                FROM course c 
+                LEFT JOIN users u ON c.faculty_id = u.employee_id 
+                WHERE c.id = ?
+            ");
+            $stmt->execute([$id]);
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($data) {
+                return [
+                    'id' => $data['id'],
+                    'course_code' => $data['course_code'],
+                    'name' => $data['name'],
+                    'credit' => $data['credit'],
+                    'faculty_id' => $data['faculty_id'],
+                    'faculty_name' => $data['faculty_name'],
+                    'year' => $data['year'],
+                    'semester' => $data['semester'],
+                    'co_threshold' => $data['co_threshold'],
+                    'passing_threshold' => $data['passing_threshold']
+                ];
+            }
+            return null;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Find courses by department (through faculty)
+     * @param int $departmentId
+     * @return array
+     */
+    public function findByDepartment($departmentId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT c.*, u.username as faculty_name 
+                FROM course c 
+                INNER JOIN users u ON c.faculty_id = u.employee_id 
+                WHERE u.department_id = ?
+                ORDER BY c.year DESC, c.semester, c.course_code
+            ");
+            $stmt->execute([$departmentId]);
+            $courses = [];
+
+            while ($data = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $courses[] = [
+                    'id' => $data['id'],
+                    'course_code' => $data['course_code'],
+                    'name' => $data['name'],
+                    'credit' => $data['credit'],
+                    'faculty_id' => $data['faculty_id'],
+                    'faculty_name' => $data['faculty_name'],
+                    'year' => $data['year'],
+                    'semester' => $data['semester'],
+                    'co_threshold' => $data['co_threshold'],
+                    'passing_threshold' => $data['passing_threshold']
+                ];
+            }
+
+            return $courses;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count courses by department
+     * @param int $departmentId
+     * @return int
+     */
+    public function countByDepartment($departmentId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) FROM course c 
+                INNER JOIN users u ON c.faculty_id = u.employee_id 
+                WHERE u.department_id = ?
+            ");
+            $stmt->execute([$departmentId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count assessments (tests) by department
+     * @param int $departmentId
+     * @return int
+     */
+    public function countAssessmentsByDepartment($departmentId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) FROM test t
+                INNER JOIN course c ON t.course_id = c.id
+                INNER JOIN users u ON c.faculty_id = u.employee_id 
+                WHERE u.department_id = ?
+            ");
+            $stmt->execute([$departmentId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
 }

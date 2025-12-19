@@ -668,11 +668,11 @@ class MarksController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty') {
+            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty can update marks.'
+                    'message' => 'Access denied. Only faculty and HOD can update marks.'
                 ]);
                 return;
             }
@@ -761,11 +761,11 @@ class MarksController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty') {
+            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty can delete marks.'
+                    'message' => 'Access denied. Only faculty and HOD can delete marks.'
                 ]);
                 return;
             }
@@ -827,11 +827,11 @@ class MarksController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty') {
+            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty can delete marks.'
+                    'message' => 'Access denied. Only faculty and HOD can delete marks.'
                 ]);
                 return;
             }

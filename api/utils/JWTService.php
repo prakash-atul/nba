@@ -31,6 +31,7 @@ class JWTService
             'username' => $user->getUsername(),
             'email' => $user->getEmail(),
             'role' => $user->getRole(),
+            'department_id' => $user->getDepartmentId(),
             'iat' => time(),
             'exp' => time() + $this->tokenExpiry
         ]);
@@ -95,7 +96,8 @@ class JWTService
             'employee_id' => $payload['employee_id'],
             'username' => $payload['username'],
             'email' => $payload['email'],
-            'role' => $payload['role']
+            'role' => $payload['role'],
+            'department_id' => isset($payload['department_id']) ? $payload['department_id'] : null
         ];
     }
 

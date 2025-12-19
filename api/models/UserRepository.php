@@ -273,4 +273,72 @@ class UserRepository
             throw new Exception("Database error: " . $e->getMessage());
         }
     }
+
+    /**
+     * Find faculty by department
+     * @param int $departmentId
+     * @return array
+     */
+    public function findFacultyByDepartment($departmentId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT employee_id, username, email, role, department_id 
+                FROM users 
+                WHERE department_id = ? AND role IN ('faculty', 'hod')
+                ORDER BY username
+            ");
+            $stmt->execute([$departmentId]);
+            $faculty = [];
+
+            while ($userData = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $faculty[] = [
+                    'employee_id' => $userData['employee_id'],
+                    'username' => $userData['username'],
+                    'email' => $userData['email'],
+                    'role' => $userData['role'],
+                    'department_id' => $userData['department_id']
+                ];
+            }
+
+            return $faculty;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count faculty by department
+     * @param int $departmentId
+     * @return int
+     */
+    public function countFacultyByDepartment($departmentId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) FROM users 
+                WHERE department_id = ? AND role IN ('faculty', 'hod')
+            ");
+            $stmt->execute([$departmentId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count students by department
+     * @param int $departmentId
+     * @return int
+     */
+    public function countStudentsByDepartment($departmentId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM student WHERE dept = ?");
+            $stmt->execute([$departmentId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
 }
