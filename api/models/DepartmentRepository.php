@@ -75,12 +75,12 @@ class DepartmentRepository
             $stmt->execute();
             $departments = [];
 
-            while ($deptData = $stmt->fetch()) {
-                $departments[] = new Department(
-                    $deptData['department_id'],
-                    $deptData['department_name'],
-                    $deptData['department_code']
-                );
+            while ($deptData = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $departments[] = [
+                    'department_id' => $deptData['department_id'],
+                    'department_name' => $deptData['department_name'],
+                    'department_code' => $deptData['department_code']
+                ];
             }
 
             return $departments;

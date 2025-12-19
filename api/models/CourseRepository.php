@@ -191,4 +191,56 @@ class CourseRepository
             throw new Exception("Database error: " . $e->getMessage());
         }
     }
+
+    /**
+     * Get all courses with faculty info
+     * @return array
+     */
+    public function findAll()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT c.*, u.username as faculty_name 
+                FROM course c 
+                LEFT JOIN users u ON c.faculty_id = u.employee_id 
+                ORDER BY c.year DESC, c.semester, c.course_code
+            ");
+            $stmt->execute();
+            $courses = [];
+
+            while ($data = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $courses[] = [
+                    'id' => $data['id'],
+                    'course_code' => $data['course_code'],
+                    'name' => $data['name'],
+                    'credit' => $data['credit'],
+                    'faculty_id' => $data['faculty_id'],
+                    'faculty_name' => $data['faculty_name'],
+                    'year' => $data['year'],
+                    'semester' => $data['semester'],
+                    'co_threshold' => $data['co_threshold'],
+                    'passing_threshold' => $data['passing_threshold']
+                ];
+            }
+
+            return $courses;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count all courses
+     * @return int
+     */
+    public function countAll()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM course");
+            $stmt->execute();
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
 }

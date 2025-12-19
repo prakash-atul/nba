@@ -78,4 +78,51 @@ class StudentRepository
         $stmt->execute([$rollno]);
         return $stmt->fetchColumn() > 0;
     }
+
+    /**
+     * Get all students with department info
+     * @return array
+     */
+    public function findAll()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT s.*, d.department_name, d.department_code 
+                FROM student s 
+                LEFT JOIN departments d ON s.dept = d.department_id 
+                ORDER BY s.rollno
+            ");
+            $stmt->execute();
+            $students = [];
+
+            while ($data = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $students[] = [
+                    'rollno' => $data['rollno'],
+                    'name' => $data['name'],
+                    'dept' => $data['dept'],
+                    'department_name' => $data['department_name'],
+                    'department_code' => $data['department_code']
+                ];
+            }
+
+            return $students;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count all students
+     * @return int
+     */
+    public function countAll()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM student");
+            $stmt->execute();
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
 }

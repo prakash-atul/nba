@@ -151,6 +151,55 @@ export interface Student {
 	rollno: string;
 	name: string;
 	dept: number;
+	department_name?: string;
+	department_code?: string;
+}
+
+export interface Department {
+	department_id: number;
+	department_name: string;
+	department_code: string;
+}
+
+export interface AdminStats {
+	totalUsers: number;
+	totalCourses: number;
+	totalStudents: number;
+	totalAssessments: number;
+}
+
+export interface AdminCourse {
+	id: number;
+	course_code: string;
+	name: string;
+	credit: number;
+	faculty_id: number;
+	faculty_name: string;
+	year: number;
+	semester: number;
+	co_threshold: number;
+	passing_threshold: number;
+}
+
+export interface AdminTest {
+	id: number;
+	course_id: number;
+	course_code: string;
+	course_name: string;
+	name: string;
+	full_marks: number;
+	pass_marks: number;
+	year: number;
+	semester: number;
+}
+
+export interface CreateUserRequest {
+	employee_id: number;
+	username: string;
+	email: string;
+	password: string;
+	role: "admin" | "dean" | "hod" | "faculty" | "staff";
+	department_id?: number | null;
 }
 
 export interface Enrollment {
@@ -575,6 +624,141 @@ class ApiService {
 		}
 
 		return data;
+	}
+
+	// Admin APIs
+
+	async getAdminStats(): Promise<AdminStats> {
+		const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+			},
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to fetch admin stats");
+		}
+
+		return data.data;
+	}
+
+	async getAllUsers(): Promise<User[]> {
+		const response = await fetch(`${API_BASE_URL}/admin/users`, {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+			},
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to fetch users");
+		}
+
+		return data.data;
+	}
+
+	async createUser(userData: CreateUserRequest): Promise<User> {
+		const response = await fetch(`${API_BASE_URL}/admin/users`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${this.token}`,
+			},
+			body: JSON.stringify(userData),
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to create user");
+		}
+
+		return data.data;
+	}
+
+	async deleteUser(employeeId: number): Promise<void> {
+		const response = await fetch(
+			`${API_BASE_URL}/admin/users/${employeeId}`,
+			{
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${this.token}`,
+				},
+			}
+		);
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to delete user");
+		}
+	}
+
+	async getAllDepartments(): Promise<Department[]> {
+		const response = await fetch(`${API_BASE_URL}/departments`, {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+			},
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to fetch departments");
+		}
+
+		return data.data;
+	}
+
+	async getAllCoursesAdmin(): Promise<AdminCourse[]> {
+		const response = await fetch(`${API_BASE_URL}/admin/courses`, {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+			},
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to fetch courses");
+		}
+
+		return data.data;
+	}
+
+	async getAllStudentsAdmin(): Promise<Student[]> {
+		const response = await fetch(`${API_BASE_URL}/admin/students`, {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+			},
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to fetch students");
+		}
+
+		return data.data;
+	}
+
+	async getAllTestsAdmin(): Promise<AdminTest[]> {
+		const response = await fetch(`${API_BASE_URL}/admin/tests`, {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+			},
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to fetch tests");
+		}
+
+		return data.data;
 	}
 }
 

@@ -224,4 +224,53 @@ class UserRepository
             throw new Exception("Database error: " . $e->getMessage());
         }
     }
+
+    /**
+     * Get all users with department info
+     * @return array
+     */
+    public function findAll()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.*, d.department_name, d.department_code 
+                FROM users u 
+                LEFT JOIN departments d ON u.department_id = d.department_id 
+                ORDER BY u.employee_id
+            ");
+            $stmt->execute();
+            $users = [];
+
+            while ($userData = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $users[] = [
+                    'employee_id' => $userData['employee_id'],
+                    'username' => $userData['username'],
+                    'email' => $userData['email'],
+                    'role' => $userData['role'],
+                    'department_id' => $userData['department_id'],
+                    'department_name' => $userData['department_name'],
+                    'department_code' => $userData['department_code']
+                ];
+            }
+
+            return $users;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count all users
+     * @return int
+     */
+    public function countAll()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM users");
+            $stmt->execute();
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
 }

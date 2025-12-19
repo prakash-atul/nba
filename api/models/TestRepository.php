@@ -136,4 +136,55 @@ class TestRepository
             throw new Exception("Database error: " . $e->getMessage());
         }
     }
+
+    /**
+     * Get all tests with course info
+     * @return array
+     */
+    public function findAll()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT t.*, c.course_code, c.name as course_name, c.year, c.semester 
+                FROM test t 
+                JOIN course c ON t.course_id = c.id 
+                ORDER BY t.id DESC
+            ");
+            $stmt->execute();
+            $tests = [];
+
+            while ($data = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $tests[] = [
+                    'id' => $data['id'],
+                    'course_id' => $data['course_id'],
+                    'course_code' => $data['course_code'],
+                    'course_name' => $data['course_name'],
+                    'name' => $data['name'],
+                    'full_marks' => $data['full_marks'],
+                    'pass_marks' => $data['pass_marks'],
+                    'year' => $data['year'],
+                    'semester' => $data['semester']
+                ];
+            }
+
+            return $tests;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count all tests
+     * @return int
+     */
+    public function countAll()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM test");
+            $stmt->execute();
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
 }

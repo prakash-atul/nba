@@ -37,6 +37,7 @@ require_once __DIR__ . '/../controllers/AssessmentController.php';
 require_once __DIR__ . '/../controllers/MarksController.php';
 require_once __DIR__ . '/../controllers/EnrollmentController.php';
 require_once __DIR__ . '/../controllers/AttainmentController.php';
+require_once __DIR__ . '/../controllers/AdminController.php';
 
 /**
  * Router Class
@@ -51,6 +52,7 @@ class Router
     private $marksController;
     private $enrollmentController;
     private $attainmentController;
+    private $adminController;
 
     public function __construct()
     {
@@ -84,6 +86,7 @@ class Router
         $this->marksController = new MarksController($studentRepository, $rawMarksRepository, $marksRepository, $questionRepository, $testRepository, $validationMiddleware, $courseRepository);
         $this->enrollmentController = new EnrollmentController($db);
         $this->attainmentController = new AttainmentController($courseRepository, $attainmentScaleRepository);
+        $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository);
     }
 
     /**
@@ -153,6 +156,71 @@ class Router
                     $user = $this->authMiddleware->requireAuth();
                     $_REQUEST['authenticated_user'] = $user;
                     $this->userController->getDepartmentByEmployeeId();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'departments':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->userController->getAllDepartments();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            // Admin routes
+            case 'admin/stats':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->getStats();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'admin/users':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->userController->getAllUsers();
+                } elseif ($method === 'POST') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->userController->createUser();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'admin/courses':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->getAllCourses();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'admin/students':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->getAllStudents();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'admin/tests':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->getAllTests();
                 } else {
                     $this->sendMethodNotAllowed();
                 }
@@ -313,6 +381,15 @@ class Router
                         $user = $this->authMiddleware->requireAuth();
                         $_REQUEST['authenticated_user'] = $user;
                         $this->marksController->deleteStudentMarks($testId, $studentId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^admin/users/(\d+)$#', $path, $matches)) {
+                    $employeeId = $matches[1];
+                    if ($method === 'DELETE') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->userController->deleteUser($employeeId);
                     } else {
                         $this->sendMethodNotAllowed();
                     }

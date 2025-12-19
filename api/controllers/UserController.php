@@ -240,4 +240,223 @@ class UserController
             ]);
         }
     }
+
+    /**
+     * Get all users (Admin only)
+     */
+    public function getAllUsers()
+    {
+        try {
+            $userData = $_REQUEST['authenticated_user'];
+            
+            // Check if user is admin
+            if ($userData['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Access denied. Admin privileges required.'
+                ]);
+                return;
+            }
+
+            $users = $this->userRepository->findAll();
+            
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Users retrieved successfully',
+                'data' => $users
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to retrieve users',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get all departments
+     */
+    public function getAllDepartments()
+    {
+        try {
+            $departments = $this->departmentRepository->findAll();
+            
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Departments retrieved successfully',
+                'data' => $departments
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to retrieve departments',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Create a new user (Admin only)
+     */
+    public function createUser()
+    {
+        try {
+            $userData = $_REQUEST['authenticated_user'];
+            
+            // Check if user is admin
+            if ($userData['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Access denied. Admin privileges required.'
+                ]);
+                return;
+            }
+
+            $data = $this->validationMiddleware->getJsonInput();
+
+            if (!$data) {
+                throw new Exception("Invalid JSON input");
+            }
+
+            // Validate required fields
+            $requiredFields = ['employee_id', 'username', 'email', 'password', 'role'];
+            $errors = [];
+            foreach ($requiredFields as $field) {
+                if (empty($data[$field])) {
+                    $errors[] = "$field is required";
+                }
+            }
+
+            if (!empty($errors)) {
+                $this->validationMiddleware->sendValidationErrorResponse($errors);
+                return;
+            }
+
+            // Validate role
+            $validRoles = ['admin', 'dean', 'hod', 'faculty', 'staff'];
+            if (!in_array($data['role'], $validRoles)) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Invalid role. Valid roles are: ' . implode(', ', $validRoles)
+                ]);
+                return;
+            }
+
+            // Check if employee_id already exists
+            if ($this->userRepository->findByEmployeeId($data['employee_id'])) {
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Employee ID already exists'
+                ]);
+                return;
+            }
+
+            // Check if email already exists
+            if ($this->userRepository->emailExists($data['email'])) {
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Email already exists'
+                ]);
+                return;
+            }
+
+            // Create new user
+            $newUser = new User(
+                (int)$data['employee_id'],
+                $data['username'],
+                $data['email'],
+                password_hash($data['password'], PASSWORD_DEFAULT),
+                $data['role'],
+                isset($data['department_id']) ? (int)$data['department_id'] : null
+            );
+
+            if ($this->userRepository->save($newUser)) {
+                http_response_code(201);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'User created successfully',
+                    'data' => $newUser->toArray()
+                ]);
+            } else {
+                throw new Exception("Failed to create user");
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to create user',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete a user (Admin only)
+     */
+    public function deleteUser($employeeId)
+    {
+        try {
+            $userData = $_REQUEST['authenticated_user'];
+            
+            // Check if user is admin
+            if ($userData['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Access denied. Admin privileges required.'
+                ]);
+                return;
+            }
+
+            // Prevent deleting self
+            if ($userData['employee_id'] == $employeeId) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Cannot delete your own account'
+                ]);
+                return;
+            }
+
+            // Check if user exists
+            $user = $this->userRepository->findByEmployeeId($employeeId);
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User not found'
+                ]);
+                return;
+            }
+
+            if ($this->userRepository->delete($employeeId)) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'User deleted successfully'
+                ]);
+            } else {
+                throw new Exception("Failed to delete user");
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to delete user',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
 }
