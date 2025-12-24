@@ -1,5 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+	StatsGrid,
+	StatsGridSkeleton,
+	type StatItem,
+} from "@/components/shared";
+import {
 	Building2,
 	Users,
 	BookOpen,
@@ -16,26 +21,10 @@ interface DeanStatsCardsProps {
 
 export function DeanStatsCards({ stats, isLoading }: DeanStatsCardsProps) {
 	if (isLoading) {
-		return (
-			<div className="space-y-6">
-				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-					{[...Array(5)].map((_, i) => (
-						<Card key={i}>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-								<div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-							</CardHeader>
-							<CardContent>
-								<div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-							</CardContent>
-						</Card>
-					))}
-				</div>
-			</div>
-		);
+		return <StatsGridSkeleton count={5} />;
 	}
 
-	const statItems = [
+	const statItems: StatItem[] = [
 		{
 			label: "Departments",
 			value: stats.totalDepartments,
@@ -75,28 +64,7 @@ export function DeanStatsCards({ stats, isLoading }: DeanStatsCardsProps) {
 
 	return (
 		<div className="space-y-6">
-			{/* Main Stats */}
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-				{statItems.map((item) => (
-					<Card key={item.label}>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-								{item.label}
-							</CardTitle>
-							<div className={`p-2 rounded-lg ${item.bgColor}`}>
-								<item.icon
-									className={`w-4 h-4 ${item.color}`}
-								/>
-							</div>
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold text-gray-900 dark:text-white">
-								{item.value}
-							</div>
-						</CardContent>
-					</Card>
-				))}
-			</div>
+			<StatsGrid stats={statItems} variant="outline" columns={5} />
 
 			{/* Users by Role Card */}
 			<Card>

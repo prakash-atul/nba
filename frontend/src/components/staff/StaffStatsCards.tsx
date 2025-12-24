@@ -1,6 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatsGrid, type StatItem } from "@/components/shared";
 import { BookOpen, GraduationCap, UserPlus } from "lucide-react";
-import { NumberTicker } from "@/components/ui/number-ticker";
 import type { StaffStats } from "@/services/api";
 
 interface StaffStatsCardsProps {
@@ -9,9 +8,9 @@ interface StaffStatsCardsProps {
 }
 
 export function StaffStatsCards({ stats, isLoading }: StaffStatsCardsProps) {
-	const statsData = [
+	const statItems: StatItem[] = [
 		{
-			title: "Department Courses",
+			label: "Department Courses",
 			value: stats.totalCourses,
 			icon: BookOpen,
 			gradient: "from-blue-500 to-indigo-600",
@@ -19,7 +18,7 @@ export function StaffStatsCards({ stats, isLoading }: StaffStatsCardsProps) {
 				"from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30",
 		},
 		{
-			title: "Students",
+			label: "Students",
 			value: stats.totalStudents,
 			icon: GraduationCap,
 			gradient: "from-purple-500 to-pink-600",
@@ -27,7 +26,7 @@ export function StaffStatsCards({ stats, isLoading }: StaffStatsCardsProps) {
 				"from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30",
 		},
 		{
-			title: "Total Enrollments",
+			label: "Total Enrollments",
 			value: stats.totalEnrollments,
 			icon: UserPlus,
 			gradient: "from-emerald-500 to-teal-600",
@@ -37,33 +36,11 @@ export function StaffStatsCards({ stats, isLoading }: StaffStatsCardsProps) {
 	];
 
 	return (
-		<div className="grid gap-4 md:grid-cols-3">
-			{statsData.map((stat) => (
-				<Card
-					key={stat.title}
-					className={`bg-linear-to-br ${stat.bgGradient} border-0 shadow-sm hover:shadow-md transition-shadow`}
-				>
-					<CardHeader className="flex flex-row items-center justify-between pb-2">
-						<CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-							{stat.title}
-						</CardTitle>
-						<div
-							className={`w-10 h-10 rounded-lg bg-linear-to-br ${stat.gradient} flex items-center justify-center`}
-						>
-							<stat.icon className="w-5 h-5 text-white" />
-						</div>
-					</CardHeader>
-					<CardContent>
-						<div className="text-3xl font-bold text-gray-900 dark:text-white">
-							{isLoading ? (
-								<span className="animate-pulse">--</span>
-							) : (
-								<NumberTicker value={stat.value} />
-							)}
-						</div>
-					</CardContent>
-				</Card>
-			))}
-		</div>
+		<StatsGrid
+			stats={statItems}
+			isLoading={isLoading}
+			variant="solid"
+			columns={3}
+		/>
 	);
 }

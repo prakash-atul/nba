@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { QuickAccessGrid, type QuickAccessItem } from "@/components/shared";
 import { BookOpen, UserPlus } from "lucide-react";
 
 type StaffPage = "courses" | "enrollments";
@@ -8,46 +8,29 @@ interface StaffQuickAccessProps {
 }
 
 export function StaffQuickAccess({ onNavigate }: StaffQuickAccessProps) {
-	const quickAccessItems = [
+	const quickAccessItems: QuickAccessItem[] = [
 		{
+			id: "courses",
 			title: "View Courses",
 			description: "Browse all department courses and their details",
 			icon: BookOpen,
-			page: "courses" as StaffPage,
 			gradient: "from-blue-500 to-indigo-600",
 		},
 		{
+			id: "enrollments",
 			title: "Enroll Students",
 			description: "Add students to courses via CSV upload",
 			icon: UserPlus,
-			page: "enrollments" as StaffPage,
 			gradient: "from-emerald-500 to-teal-600",
 		},
 	];
 
 	return (
-		<div className="grid gap-4 md:grid-cols-2">
-			{quickAccessItems.map((item) => (
-				<Card
-					key={item.title}
-					className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
-					onClick={() => onNavigate(item.page)}
-				>
-					<CardHeader className="pb-2">
-						<div
-							className={`w-12 h-12 rounded-lg bg-linear-to-br ${item.gradient} flex items-center justify-center mb-3`}
-						>
-							<item.icon className="w-6 h-6 text-white" />
-						</div>
-						<CardTitle className="text-lg">{item.title}</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-sm text-muted-foreground">
-							{item.description}
-						</p>
-					</CardContent>
-				</Card>
-			))}
-		</div>
+		<QuickAccessGrid
+			items={quickAccessItems}
+			onItemClick={(id) => onNavigate(id as StaffPage)}
+			variant="elevated"
+			columns={2}
+		/>
 	);
 }

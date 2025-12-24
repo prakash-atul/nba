@@ -1,10 +1,4 @@
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { QuickAccessGrid, type QuickAccessItem } from "@/components/shared";
 import { Users, BookOpen, GraduationCap, FileText } from "lucide-react";
 import type { AdminStats } from "@/services/api";
 
@@ -17,87 +11,44 @@ export function QuickAccessCards({
 	stats,
 	onNavChange,
 }: QuickAccessCardsProps) {
+	const items: QuickAccessItem[] = [
+		{
+			id: "users",
+			title: "Manage Users",
+			description: "View, add, or remove system users",
+			icon: Users,
+			value: `${stats.totalUsers} Users`,
+		},
+		{
+			id: "courses",
+			title: "View Courses",
+			description: "Browse all courses in the system",
+			icon: BookOpen,
+			value: `${stats.totalCourses} Courses`,
+		},
+		{
+			id: "students",
+			title: "View Students",
+			description: "Browse all registered students",
+			icon: GraduationCap,
+			value: `${stats.totalStudents} Students`,
+		},
+		{
+			id: "tests",
+			title: "View Tests",
+			description: "Browse all assessments/tests",
+			icon: FileText,
+			value: `${stats.totalAssessments} Tests`,
+		},
+	];
+
 	return (
-		<div className="grid gap-6 lg:grid-cols-2">
-			<Card
-				className="cursor-pointer hover:shadow-lg transition-shadow"
-				onClick={() => onNavChange("users")}
-			>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<Users className="h-5 w-5 text-blue-500" />
-						Manage Users
-					</CardTitle>
-					<CardDescription>
-						View, add, or remove system users
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<p className="text-2xl font-bold">
-						{stats.totalUsers} Users
-					</p>
-				</CardContent>
-			</Card>
-
-			<Card
-				className="cursor-pointer hover:shadow-lg transition-shadow"
-				onClick={() => onNavChange("courses")}
-			>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<BookOpen className="h-5 w-5 text-purple-500" />
-						View Courses
-					</CardTitle>
-					<CardDescription>
-						Browse all courses in the system
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<p className="text-2xl font-bold">
-						{stats.totalCourses} Courses
-					</p>
-				</CardContent>
-			</Card>
-
-			<Card
-				className="cursor-pointer hover:shadow-lg transition-shadow"
-				onClick={() => onNavChange("students")}
-			>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<GraduationCap className="h-5 w-5 text-green-500" />
-						View Students
-					</CardTitle>
-					<CardDescription>
-						Browse all registered students
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<p className="text-2xl font-bold">
-						{stats.totalStudents} Students
-					</p>
-				</CardContent>
-			</Card>
-
-			<Card
-				className="cursor-pointer hover:shadow-lg transition-shadow"
-				onClick={() => onNavChange("tests")}
-			>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<FileText className="h-5 w-5 text-orange-500" />
-						View Tests
-					</CardTitle>
-					<CardDescription>
-						Browse all assessments/tests
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<p className="text-2xl font-bold">
-						{stats.totalAssessments} Tests
-					</p>
-				</CardContent>
-			</Card>
-		</div>
+		<QuickAccessGrid
+			items={items}
+			onItemClick={onNavChange}
+			variant="default"
+			columns={2}
+			accentColor="blue"
+		/>
 	);
 }
