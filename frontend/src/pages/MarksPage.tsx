@@ -28,7 +28,7 @@ export function MarksPage() {
 			navigate("/login");
 			return;
 		}
-		if (storedUser.role !== "faculty") {
+		if (storedUser.role !== "faculty" && storedUser.role !== "hod") {
 			navigate("/dashboard");
 			return;
 		}
