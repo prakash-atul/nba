@@ -5,9 +5,7 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { DeanDashboard } from "./pages/DeanDashboard";
 import { HODDashboard } from "./pages/HODDashboard";
 import { StaffDashboard } from "./pages/StaffDashboard";
-import { AssessmentsPage } from "./pages/AssessmentsPage";
-import { MarksPage } from "./pages/MarksPage";
-import { COPOPage } from "./pages/COPOPage";
+import { FacultyDashboard } from "./pages/FacultyDashboard";
 
 function App() {
 	return (
@@ -18,9 +16,7 @@ function App() {
 				<Route path="/dean" element={<DeanDashboard />} />
 				<Route path="/hod" element={<HODDashboard />} />
 				<Route path="/staff" element={<StaffDashboard />} />
-				<Route path="/assessments" element={<AssessmentsPage />} />
-				<Route path="/marks" element={<MarksPage />} />
-				<Route path="/copo" element={<COPOPage />} />
+				<Route path="/faculty" element={<FacultyDashboard />} />
 				<Route path="/" element={<Navigate to="/login" replace />} />
 				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>

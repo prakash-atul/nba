@@ -1,37 +1,58 @@
 import { Button } from "@/components/ui/button";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, X, Plus, ChevronDown, Users } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import type { Course } from "@/services/api";
 
-interface AssessmentsHeaderProps {
+interface FacultyHeaderProps {
 	sidebarOpen: boolean;
 	onToggleSidebar: () => void;
 	courses: Course[];
 	selectedCourse: Course | null;
 	onCourseChange: (course: Course | null) => void;
-	onCreateNew: () => void;
-	onEnrollStudents?: () => void;
-	isMarksPage?: boolean;
+	activeView: "assessments" | "marks" | "copo";
 }
 
-export function AssessmentsHeader({
+export function FacultyHeader({
 	sidebarOpen,
 	onToggleSidebar,
 	courses,
 	selectedCourse,
 	onCourseChange,
-	onCreateNew,
-	onEnrollStudents,
-	isMarksPage = false,
-}: AssessmentsHeaderProps) {
+	activeView,
+}: FacultyHeaderProps) {
+	const getTitle = () => {
+		switch (activeView) {
+			case "assessments":
+				return "Assessment Management";
+			case "marks":
+				return "Marks Management";
+			case "copo":
+				return "CO-PO Mapping";
+			default:
+				return "Faculty Dashboard";
+		}
+	};
+
+	const getDescription = () => {
+		switch (activeView) {
+			case "assessments":
+				return "Create and manage course assessments";
+			case "marks":
+				return "Enter and manage student marks";
+			case "copo":
+				return "Map Course Outcomes to Program Outcomes";
+			default:
+				return "Manage your academic activities";
+		}
+	};
+
 	return (
-		<header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6">
+		<header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 flex-shrink-0">
 			<div className="flex items-center gap-4">
 				<Button
 					variant="ghost"
@@ -47,14 +68,10 @@ export function AssessmentsHeader({
 				</Button>
 				<div>
 					<h1 className="text-xl font-bold text-gray-900 dark:text-white">
-						{isMarksPage
-							? "Marks Management"
-							: "Assessment Management"}
+						{getTitle()}
 					</h1>
 					<p className="text-sm text-gray-500 dark:text-gray-400">
-						{isMarksPage
-							? "Enter and manage student marks"
-							: "Create and manage course assessments"}
+						{getDescription()}
 					</p>
 				</div>
 			</div>
@@ -97,28 +114,6 @@ export function AssessmentsHeader({
 						))}
 					</DropdownMenuContent>
 				</DropdownMenu>
-
-				{/* Action Buttons - Only show on assessments page */}
-				{!isMarksPage && (
-					<>
-						{selectedCourse && onEnrollStudents && (
-							<Button
-								onClick={onEnrollStudents}
-								variant="outline"
-								className="gap-2"
-							>
-								<Users className="w-4 h-4" />
-								Enroll Students
-							</Button>
-						)}
-						<Button onClick={onCreateNew} className="gap-2">
-							<Plus className="w-4 h-4" />
-							Create Assessment
-						</Button>
-					</>
-				)}
-
-				<AnimatedThemeToggler />
 			</div>
 		</header>
 	);

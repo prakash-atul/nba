@@ -28,7 +28,7 @@ export function LoginPage() {
 
 				// Route based on role
 				if (user.role === "faculty") {
-					navigate("/assessments");
+					navigate("/faculty");
 				} else if (user.role === "hod") {
 					navigate("/hod");
 				} else if (user.role === "staff") {
