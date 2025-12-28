@@ -445,6 +445,7 @@ export function COPOMapping({
 				})),
 			});
 			toast.success("Settings saved successfully");
+			setShowSettings(false);
 		} catch (error) {
 			console.error("Failed to save settings:", error);
 			toast.error(

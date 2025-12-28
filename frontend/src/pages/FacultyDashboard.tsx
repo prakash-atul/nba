@@ -165,10 +165,12 @@ export function FacultyDashboard() {
 											variant="outline"
 											className="w-[250px] justify-between"
 										>
-											{selectedCourse
-												? `${selectedCourse.course_code} - ${selectedCourse.name}`
-												: "Select Course"}
-											<ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+											<span className="truncate text-left">
+												{selectedCourse
+													? `${selectedCourse.course_code} - ${selectedCourse.name}`
+													: "Select Course"}
+											</span>
+											<ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent className="w-[250px]">

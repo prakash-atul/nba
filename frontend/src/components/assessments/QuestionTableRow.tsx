@@ -39,6 +39,7 @@ export function QuestionTableRow({
 							question_number: parseInt(e.target.value) || 1,
 						})
 					}
+					onFocus={(e) => e.target.select()}
 					className="w-20"
 					required
 				/>
@@ -101,6 +102,7 @@ export function QuestionTableRow({
 							max_marks: parseFloat(e.target.value) || 1,
 						})
 					}
+					onFocus={(e) => e.target.select()}
 					className="w-24"
 					required
 				/>

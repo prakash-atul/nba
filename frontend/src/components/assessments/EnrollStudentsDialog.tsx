@@ -42,7 +42,7 @@ export function EnrollStudentsDialog({
 	onOpenChange,
 	course,
 }: EnrollStudentsDialogProps) {
-	const [file, setFile] = useState<File | null>(null);
+	// const [file, setFile] = useState<File | null>(null);
 	const [students, setStudents] = useState<StudentEntry[]>([]);
 	const [uploading, setUploading] = useState(false);
 	const [enrolling, setEnrolling] = useState(false);
@@ -61,7 +61,7 @@ export function EnrollStudentsDialog({
 			return;
 		}
 
-		setFile(selectedFile);
+		// setFile(selectedFile);
 		parseCSV(selectedFile);
 	};
 
@@ -151,7 +151,7 @@ export function EnrollStudentsDialog({
 			}
 
 			// Reset and close
-			setFile(null);
+			// setFile(null);
 			setStudents([]);
 			if (fileInputRef.current) {
 				fileInputRef.current.value = "";
@@ -170,7 +170,7 @@ export function EnrollStudentsDialog({
 	};
 
 	const handleClose = () => {
-		setFile(null);
+		// setFile(null);
 		setStudents([]);
 		setManualRollno("");
 		setManualName("");
@@ -211,7 +211,7 @@ export function EnrollStudentsDialog({
 	};
 
 	const clearAllStudents = () => {
-		setFile(null);
+		// setFile(null);
 		setStudents([]);
 		if (fileInputRef.current) {
 			fileInputRef.current.value = "";

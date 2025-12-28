@@ -226,14 +226,14 @@ export function HODDashboard() {
 								<DropdownMenuTrigger asChild>
 									<Button
 										variant="outline"
-										className="min-w-[200px] justify-between"
+										className="w-[250px] justify-between"
 									>
-										<span className="truncate">
+										<span className="truncate text-left">
 											{selectedCourse
 												? `${selectedCourse.course_code} - ${selectedCourse.name}`
 												: "All Courses"}
 										</span>
-										<ChevronDown className="w-4 h-4 ml-2" />
+										<ChevronDown className="w-4 h-4 ml-2 shrink-0" />
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent

@@ -202,6 +202,9 @@ export function COPOMatrixTable({
 																)
 															)
 														}
+														onFocus={(e) =>
+															e.target.select()
+														}
 														className="w-16 h-8 text-center"
 													/>
 												</TableCell>
@@ -233,6 +236,9 @@ export function COPOMatrixTable({
 																			.value
 																	)
 																)
+															}
+															onFocus={(e) =>
+																e.target.select()
 															}
 															className="w-16 h-8 text-center"
 														/>

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
-import { Menu, X } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface AppHeaderProps {
 	sidebarOpen: boolean;
@@ -27,9 +27,9 @@ export function AppHeader({
 					className="text-gray-700 dark:text-gray-300"
 				>
 					{sidebarOpen ? (
-						<X className="w-5 h-5" />
+						<ChevronLeft className="w-5 h-5" />
 					) : (
-						<Menu className="w-5 h-5" />
+						<ChevronRight className="w-5 h-5" />
 					)}
 				</Button>
 				<div>

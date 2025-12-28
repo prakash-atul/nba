@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-	Table,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -171,6 +170,9 @@ export function BulkMarksTable({
 															q.question_identifier,
 															e.target.value
 														)
+													}
+													onFocus={(e) =>
+														e.target.select()
 													}
 													placeholder="0"
 													className="w-20 text-center"
