@@ -1,7 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, GraduationCap } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { User } from "@/services/api";
 
 export interface NavItem {
@@ -41,8 +41,12 @@ export function AppSidebar({
 				{/* Header / Logo */}
 				<div className="p-6 border-b border-gray-200 dark:border-gray-800">
 					<div className="flex items-center gap-3">
-						<div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shrink-0">
-							<GraduationCap className="w-6 h-6" />
+						<div className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shrink-0 overflow-hidden">
+							<img
+								src="/tulogo.png"
+								alt="Tezpur University Logo"
+								className="w-full h-full object-contain"
+							/>
 						</div>
 						<div className="flex-1 min-w-0">
 							<h2 className="text-sm font-bold text-gray-900 dark:text-white truncate">
