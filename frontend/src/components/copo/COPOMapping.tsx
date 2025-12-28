@@ -472,12 +472,48 @@ export function COPOMapping({
 		let absentees = 0;
 
 		const coStats = {
-			CO1: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
-			CO2: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
-			CO3: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
-			CO4: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
-			CO5: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
-			CO6: { above70: 0, above60: 0, above50: 0, abovePass: 0 },
+			CO1: {
+				above70: 0,
+				above60: 0,
+				above50: 0,
+				abovePass: 0,
+				aboveCOThreshold: 0,
+			},
+			CO2: {
+				above70: 0,
+				above60: 0,
+				above50: 0,
+				abovePass: 0,
+				aboveCOThreshold: 0,
+			},
+			CO3: {
+				above70: 0,
+				above60: 0,
+				above50: 0,
+				abovePass: 0,
+				aboveCOThreshold: 0,
+			},
+			CO4: {
+				above70: 0,
+				above60: 0,
+				above50: 0,
+				abovePass: 0,
+				aboveCOThreshold: 0,
+			},
+			CO5: {
+				above70: 0,
+				above60: 0,
+				above50: 0,
+				abovePass: 0,
+				aboveCOThreshold: 0,
+			},
+			CO6: {
+				above70: 0,
+				above60: 0,
+				above50: 0,
+				abovePass: 0,
+				aboveCOThreshold: 0,
+			},
 		};
 
 		studentsData.forEach((student) => {
@@ -497,6 +533,9 @@ export function COPOMapping({
 					coStats[co as keyof typeof coStats].above50++;
 				if (percentage >= passingThreshold)
 					coStats[co as keyof typeof coStats].abovePass++;
+				// Use configured CO threshold for 3-point scale attainment
+				if (percentage >= coThreshold)
+					coStats[co as keyof typeof coStats].aboveCOThreshold++;
 			});
 		});
 
@@ -633,7 +672,7 @@ export function COPOMapping({
 				attainmentData.presentStudents > 0
 					? (attainmentData.coStats[
 							co as keyof typeof attainmentData.coStats
-					  ].abovePass /
+					  ].aboveCOThreshold /
 							attainmentData.presentStudents) *
 					  100
 					: 0;
@@ -729,6 +768,7 @@ export function COPOMapping({
 					attainmentData={attainmentData}
 					getAttainmentLevel={getLevel}
 					getPercentageColor={getPercentageColorFn}
+					coThreshold={coThreshold}
 				/>
 			)}
 

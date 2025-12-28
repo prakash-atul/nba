@@ -125,7 +125,7 @@ export function COPOMatrixTable({
 													0
 													? (attainmentData.coStats[
 															co as keyof typeof attainmentData.coStats
-													  ].abovePass /
+													  ].aboveCOThreshold /
 															attainmentData.presentStudents) *
 															100
 													: 0

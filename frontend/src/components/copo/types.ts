@@ -39,36 +39,42 @@ export interface AttainmentData {
 			above60: number;
 			above50: number;
 			abovePass: number;
+			aboveCOThreshold: number;
 		};
 		CO2: {
 			above70: number;
 			above60: number;
 			above50: number;
 			abovePass: number;
+			aboveCOThreshold: number;
 		};
 		CO3: {
 			above70: number;
 			above60: number;
 			above50: number;
 			abovePass: number;
+			aboveCOThreshold: number;
 		};
 		CO4: {
 			above70: number;
 			above60: number;
 			above50: number;
 			abovePass: number;
+			aboveCOThreshold: number;
 		};
 		CO5: {
 			above70: number;
 			above60: number;
 			above50: number;
 			abovePass: number;
+			aboveCOThreshold: number;
 		};
 		CO6: {
 			above70: number;
 			above60: number;
 			above50: number;
 			abovePass: number;
+			aboveCOThreshold: number;
 		};
 	};
 }

@@ -11,12 +11,14 @@ import type { AttainmentData } from "./types";
 
 interface COAttainmentTableProps {
 	attainmentData: AttainmentData;
+	coThreshold: number;
 	getAttainmentLevel: (percentage: number) => number;
 	getPercentageColor: (percentage: number) => string;
 }
 
 export function COAttainmentTable({
 	attainmentData,
+	coThreshold,
 	getAttainmentLevel,
 	getPercentageColor,
 }: COAttainmentTableProps) {
@@ -89,8 +91,8 @@ export function COAttainmentTable({
 								</TableRow>
 								<TableRow>
 									<TableCell className="border border-gray-300 dark:border-gray-700 font-medium">
-										NO. OF STUDENTS SECURE MARKS &gt;
-										THRESHOLD % FOR CO ATTAINMENT
+										NO. OF STUDENTS SECURE MARKS &gt;{" "}
+										{coThreshold}% (CO THRESHOLD)
 									</TableCell>
 									{coList.map((co) => (
 										<TableCell
@@ -100,22 +102,22 @@ export function COAttainmentTable({
 											{
 												attainmentData.coStats[
 													co as keyof typeof attainmentData.coStats
-												].above70
+												].aboveCOThreshold
 											}
 										</TableCell>
 									))}
 								</TableRow>
 								<TableRow>
 									<TableCell className="border border-gray-300 dark:border-gray-700 font-medium">
-										PC. OF STUDENTS SECURE MARKS &gt;
-										THRESHOLD % FOR CO ATTAINMENT
+										PC. OF STUDENTS SECURE MARKS &gt;{" "}
+										{coThreshold}% (CO THRESHOLD)
 									</TableCell>
 									{coList.map((co) => {
 										const percentage =
 											attainmentData.presentStudents > 0
 												? (attainmentData.coStats[
 														co as keyof typeof attainmentData.coStats
-												  ].above70 /
+												  ].aboveCOThreshold /
 														attainmentData.presentStudents) *
 												  100
 												: 0;
@@ -138,7 +140,7 @@ export function COAttainmentTable({
 											attainmentData.presentStudents > 0
 												? (attainmentData.coStats[
 														co as keyof typeof attainmentData.coStats
-												  ].above70 /
+												  ].aboveCOThreshold /
 														attainmentData.presentStudents) *
 												  100
 												: 0;
@@ -166,7 +168,7 @@ export function COAttainmentTable({
 											attainmentData.presentStudents > 0
 												? (attainmentData.coStats[
 														co as keyof typeof attainmentData.coStats
-												  ].above70 /
+												  ].aboveCOThreshold /
 														attainmentData.presentStudents) *
 												  100
 												: 0;

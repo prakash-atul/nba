@@ -31,7 +31,7 @@ interface AttainmentCalculation {
  */
 function calculateCOAttainment(
 	studentsData: StudentMarksData[],
-	passingThreshold: number
+	coThreshold: number
 ): AttainmentCalculation {
 	const totalStudents = studentsData.length;
 	let absentees = 0;
@@ -53,7 +53,7 @@ function calculateCOAttainment(
 
 		(["CO1", "CO2", "CO3", "CO4", "CO5", "CO6"] as const).forEach((co) => {
 			const percentage = student.coTotals[co];
-			if (percentage >= passingThreshold) coStats[co].abovePass++;
+			if (percentage >= coThreshold) coStats[co].abovePass++;
 		});
 	});
 
@@ -88,7 +88,6 @@ function calculatePOAttainment(
 	po: string,
 	copoMatrix: COPOMatrix,
 	attainmentData: AttainmentCalculation,
-	passingThreshold: number,
 	attainmentThresholds: AttainmentThreshold[]
 ): number {
 	const cos = ["CO1", "CO2", "CO3", "CO4", "CO5", "CO6"];
@@ -125,11 +124,11 @@ export function createCOPOMappingTable(
 	ws: ExcelJS.Worksheet,
 	startRow: number,
 	studentsData: StudentMarksData[],
-	passingThreshold: number,
+	coThreshold: number,
 	attainmentThresholds: AttainmentThreshold[],
 	copoMatrix: COPOMatrix
 ): number {
-	const attainment = calculateCOAttainment(studentsData, passingThreshold);
+	const attainment = calculateCOAttainment(studentsData, coThreshold);
 	const coList = ["CO1", "CO2", "CO3", "CO4", "CO5", "CO6"];
 	const poList = [
 		"PO1",
@@ -273,7 +272,6 @@ export function createCOPOMappingTable(
 			po,
 			copoMatrix,
 			attainment,
-			passingThreshold,
 			attainmentThresholds
 		);
 

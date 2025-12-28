@@ -143,7 +143,7 @@ export async function exportAttainmentExcel(opts: AttainmentExportOptions) {
 			copoWs,
 			1, // Start from row 1 on the new sheet
 			studentsData,
-			passingThreshold,
+			coThreshold,
 			attainmentThresholds,
 			copoMatrix
 		);
