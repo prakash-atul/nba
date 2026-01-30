@@ -4,16 +4,97 @@ require_once __DIR__ . '/../models/Course.php';
 require_once __DIR__ . '/../models/CourseRepository.php';
 require_once __DIR__ . '/../models/AttainmentScale.php';
 require_once __DIR__ . '/../models/AttainmentScaleRepository.php';
+require_once __DIR__ . '/../models/CoPoRepository.php';
 
 class AttainmentController
 {
     private CourseRepository $courseRepo;
     private AttainmentScaleRepository $scaleRepo;
+    private CoPoRepository $coPoRepo;
 
-    public function __construct(CourseRepository $courseRepo, AttainmentScaleRepository $scaleRepo)
+    public function __construct(CourseRepository $courseRepo, AttainmentScaleRepository $scaleRepo, CoPoRepository $coPoRepo = null)
     {
         $this->courseRepo = $courseRepo;
         $this->scaleRepo = $scaleRepo;
+        $this->coPoRepo = $coPoRepo;
+    }
+
+    /**
+     * Get CO-PO Matrix
+     * GET /courses/{courseId}/copo-matrix
+     */
+    public function getCoPoMatrix(int $courseId): void
+    {
+        try {
+            if (!$this->coPoRepo) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Service not initialized']);
+                return;
+            }
+
+            // Check course access
+            $course = $this->courseRepo->findById($courseId);
+            if (!$course) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Course not found']);
+                return;
+            }
+
+            $rows = $this->coPoRepo->getMatrix($courseId);
+
+            // Transform sparse data into structured matrix if needed
+            // Currently returning generic list, frontend can map it
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'data' => $rows
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Save CO-PO Matrix
+     * POST /courses/{courseId}/copo-matrix
+     */
+    public function saveCoPoMatrix(int $courseId): void
+    {
+        try {
+            if (!$this->coPoRepo) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Service not initialized']);
+                return;
+            }
+
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            if (!isset($input['mappings']) || !is_array($input['mappings'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Invalid input format']);
+                return;
+            }
+
+            $course = $this->courseRepo->findById($courseId);
+            if (!$course) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Course not found']);
+                return;
+            }
+
+            $this->coPoRepo->saveMatrix($courseId, $input['mappings']);
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'CO-PO Matrix saved successfully'
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -33,7 +114,7 @@ class AttainmentController
 
             // Get attainment thresholds
             $scales = $this->scaleRepo->getByCourseId((int)$courseId);
-            
+
             $response = [
                 'success' => true,
                 'data' => [

@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
-import { Settings } from "lucide-react";
+import { Settings, Upload, Save } from "lucide-react";
 import { AttainmentSettingsPanel } from "./AttainmentSettingsPanel";
 import { AttainmentCriteriaCard } from "./AttainmentCriteriaCard";
 import { PassingMarksCard } from "./PassingMarksCard";
@@ -175,13 +175,37 @@ export function COPOMapping({
 			PSO3: 0,
 		},
 	});
+	
+	const [saving, setSaving] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	// Load COPO data
 	useEffect(() => {
 		loadCOPOData();
 		loadAttainmentConfig();
+		loadMatrix();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [courseId]);
+
+	const loadMatrix = async () => {
+		try {
+			const mappings = await apiService.getCoPoMatrix(courseId);
+			if (mappings && mappings.length > 0) {
+				const newMatrix = JSON.parse(JSON.stringify(copoMatrix)); // Deep clone
+				mappings.forEach((m) => {
+					const co = m.co_name as keyof COPOMatrixState;
+					const po = m.po_name;
+					if (newMatrix[co]) {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						(newMatrix[co] as any)[po] = m.value;
+					}
+				});
+				setCopoMatrix(newMatrix);
+			}
+		} catch (error) {
+			console.error("Failed to load CO-PO matrix:", error);
+		}
+	};
 
 	const loadAttainmentConfig = async () => {
 		try {
@@ -387,6 +411,105 @@ export function COPOMapping({
 			console.error("Failed to load CO-PO data:", error);
 			toast.error("Failed to load CO-PO data");
 			setLoading(false);
+		}
+	};
+
+	const saveMatrix = async () => {
+		setSaving(true);
+		try {
+			const mappings: Array<{
+				co: string;
+				po: string;
+				value: number;
+			}> = [];
+
+			Object.entries(copoMatrix).forEach(([co, pos]) => {
+				Object.entries(pos).forEach(([po, value]) => {
+					if (value > 0) {
+						mappings.push({ co, po, value });
+					}
+				});
+			});
+
+			await apiService.saveCoPoMatrix(courseId, mappings);
+			toast.success("CO-PO Matrix saved successfully");
+		} catch (error) {
+			console.error("Failed to save matrix:", error);
+			toast.error("Failed to save CO-PO Matrix");
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			const text = e.target?.result as string;
+			processCSV(text);
+		};
+		reader.readAsText(file);
+
+		// Reset input
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
+		}
+	};
+
+	const processCSV = (text: string) => {
+		const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
+		if (lines.length < 2) {
+			toast.error("CSV file contains no data rows");
+			return;
+		}
+
+		// Parse header to find column indices
+		const headers = lines[0].split(",").map((h) => h.trim().toUpperCase());
+		const poMap: Record<string, number> = {};
+
+		// Map headers to PO keys
+		headers.forEach((header, index) => {
+			if (header.startsWith("PO") || header.startsWith("PSO")) {
+				poMap[header] = index;
+			}
+		});
+
+		const newMatrix = JSON.parse(JSON.stringify(copoMatrix)); // Deep clone
+		let updateCount = 0;
+
+		lines.slice(1).forEach((line) => {
+			const values = line.split(",").map((v) => v.trim());
+			if (values.length === 0) return;
+
+			// First column should be CO Name (CO1, CO2 etc)
+			const coName = values[0].toUpperCase();
+			if (newMatrix[coName]) {
+				// Iterate through found PO columns
+				Object.entries(poMap).forEach(([po, index]) => {
+					if (index < values.length) {
+						const val = parseInt(values[index]) || 0;
+						if (val >= 0 && val <= 3) {
+							// @ts-ignore
+							if (newMatrix[coName][po] !== undefined) {
+								// @ts-ignore
+								newMatrix[coName][po] = val;
+								updateCount++;
+							}
+						}
+					}
+				});
+			}
+		});
+
+		if (updateCount > 0) {
+			setCopoMatrix(newMatrix);
+			toast.success(
+				`Imported metadata successfully (${updateCount} values updated). Click Save to persist.`
+			);
+		} else {
+			toast.warning("No valid data found in CSV matching CO/PO structure.");
 		}
 	};
 
@@ -716,6 +839,32 @@ export function COPOMapping({
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
+					<input
+						type="file"
+						ref={fileInputRef}
+						className="hidden"
+						accept=".csv"
+						onChange={handleFileUpload}
+					/>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => fileInputRef.current?.click()}
+						className="gap-2"
+					>
+						<Upload className="h-4 w-4" />
+						Import Matrix
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={saveMatrix}
+						disabled={saving}
+						className="gap-2"
+					>
+						<Save className="h-4 w-4" />
+						{saving ? "Saving..." : "Save Matrix"}
+					</Button>
 					<Button
 						onClick={() => setShowSettings(!showSettings)}
 						variant="outline"

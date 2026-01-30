@@ -73,6 +73,21 @@ CREATE TABLE `attainment_scale` (
     INDEX (`course_id`),
     FOREIGN KEY (`course_id`) REFERENCES `course`(`id`) ON DELETE CASCADE
 );
+-- Create CO-PO Mapping Table
+CREATE TABLE `co_po_mapping` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `course_id` BIGINT NOT NULL,
+    `co_name` VARCHAR(5) NOT NULL,
+    -- CO1, CO2, ... CO6
+    `po_name` VARCHAR(5) NOT NULL,
+    -- PO1..PO12, PSO1..PSO3
+    `value` TINYINT NOT NULL DEFAULT 0 CHECK (
+        `value` BETWEEN 0 AND 3
+    ),
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_mapping` (`course_id`, `co_name`, `po_name`),
+    FOREIGN KEY (`course_id`) REFERENCES `course`(`id`) ON DELETE CASCADE
+);
 -- Tests
 CREATE TABLE `test` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,

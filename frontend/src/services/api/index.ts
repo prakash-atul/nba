@@ -29,6 +29,8 @@ class ApiService {
   getCourseEnrollments = coursesApi.getCourseEnrollments;
   getAttainmentConfig = coursesApi.getAttainmentConfig;
   saveAttainmentConfig = coursesApi.saveAttainmentConfig;
+  getCoPoMatrix = coursesApi.getCoPoMatrix;
+  saveCoPoMatrix = coursesApi.saveCoPoMatrix;
   enrollStudents = coursesApi.enrollStudents;
 
   // Assessment methods

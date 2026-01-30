@@ -27,6 +27,7 @@ require_once __DIR__ . '/../models/Enrollment.php';
 require_once __DIR__ . '/../models/EnrollmentRepository.php';
 require_once __DIR__ . '/../models/AttainmentScale.php';
 require_once __DIR__ . '/../models/AttainmentScaleRepository.php';
+require_once __DIR__ . '/../models/CoPoRepository.php';
 require_once __DIR__ . '/../utils/JWTService.php';
 require_once __DIR__ . '/../utils/AuthService.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
@@ -78,6 +79,7 @@ class Router
         $rawMarksRepository = new RawMarksRepository($db);
         $marksRepository = new MarksRepository($db);
         $attainmentScaleRepository = new AttainmentScaleRepository($db);
+        $coPoRepository = new CoPoRepository($db);
         $jwtService = new JWTService();
         $authService = new AuthService($userRepository, $jwtService, $departmentRepository);
 
@@ -93,7 +95,7 @@ class Router
         $this->assessmentController = new AssessmentController($courseRepository, $testRepository, $questionRepository, $validationMiddleware, $db);
         $this->marksController = new MarksController($studentRepository, $rawMarksRepository, $marksRepository, $questionRepository, $testRepository, $validationMiddleware, $courseRepository);
         $this->enrollmentController = new EnrollmentController($db);
-        $this->attainmentController = new AttainmentController($courseRepository, $attainmentScaleRepository);
+        $this->attainmentController = new AttainmentController($courseRepository, $attainmentScaleRepository, $coPoRepository);
         $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository);
         $this->hodController = new HODController($userRepository, $courseRepository, $departmentRepository, $validationMiddleware);
 
@@ -564,6 +566,17 @@ class Router
                     } elseif ($method === 'POST') {
                         $user = $this->authMiddleware->requireAuth();
                         $this->attainmentController->saveConfig($courseId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^courses/(\d+)/copo-matrix$#', $path, $matches)) {
+                    $courseId = (int)$matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $this->attainmentController->getCoPoMatrix($courseId);
+                    } elseif ($method === 'POST') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $this->attainmentController->saveCoPoMatrix($courseId);
                     } else {
                         $this->sendMethodNotAllowed();
                     }
