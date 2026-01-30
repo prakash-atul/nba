@@ -9,6 +9,25 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
+// Basic Routing for Landing Page
+$requestUri = $_SERVER['REQUEST_URI'];
+$path = parse_url($requestUri, PHP_URL_PATH);
+
+// Normalize path to remove base directory if present
+$basePath = '/nba/api/';
+if (strpos($path, $basePath) === 0) {
+    $path = substr($path, strlen($basePath));
+} else if (strpos($path, '/api/') === 0) {
+    $path = substr($path, 5);
+}
+$path = ltrim($path, '/');
+
+// Serve Landing Page for root/index
+if ($path === '' || $path === 'index.php') {
+    require 'landing.php';
+    exit;
+}
+
 // Load CORS middleware and set headers FIRST (before any output)
 require_once __DIR__ . '/middleware/CorsMiddleware.php';
 $corsMiddleware = new CorsMiddleware();
