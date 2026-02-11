@@ -157,9 +157,8 @@ class UserController
                 $user->setPassword(password_hash($data['password'], PASSWORD_DEFAULT));
             }
 
-            if (isset($data['role'])) {
-                $user->setRole($data['role']);
-            }
+            // Note: Role changes are not allowed via self-profile update for security reasons
+            // Only admins can change user roles via dedicated endpoints
 
             // Save updated user
             if ($this->userRepository->save($user)) {
@@ -350,6 +349,39 @@ class UserController
                     'message' => 'Invalid role. Valid roles are: ' . implode(', ', $validRoles)
                 ]);
                 return;
+            }
+
+            // Check HOD uniqueness per department
+            if ($data['role'] === 'hod') {
+                if (empty($data['department_id'])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Department ID is required for HOD role'
+                    ]);
+                    return;
+                }
+
+                if ($this->userRepository->hodExistsForDepartment($data['department_id'])) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'An HOD already exists for this department'
+                    ]);
+                    return;
+                }
+            }
+
+            // Check Dean uniqueness in system
+            if ($data['role'] === 'dean') {
+                if ($this->userRepository->deanExists()) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'A Dean already exists in the system'
+                    ]);
+                    return;
+                }
             }
 
             // Check if employee_id already exists

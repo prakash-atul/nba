@@ -8,6 +8,18 @@ USE `nba_db`;
 -- TABLES
 -- =============================================
 -- Departments
+DROP TABLE IF EXISTS `rawMarks`;
+DROP TABLE IF EXISTS `marks`;
+DROP TABLE IF EXISTS `enrollment`;
+DROP TABLE IF EXISTS `question`;
+DROP TABLE IF EXISTS `test`;
+DROP TABLE IF EXISTS `co_po_mapping`;
+DROP TABLE IF EXISTS `attainment_scale`;
+DROP TABLE IF EXISTS `course`;
+DROP TABLE IF EXISTS `student`;
+DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `departments`;
+
 CREATE TABLE `departments` (
     `department_id` INT(11) NOT NULL AUTO_INCREMENT,
     `department_name` VARCHAR(100) NOT NULL,
@@ -29,6 +41,15 @@ CREATE TABLE `users` (
     INDEX (`department_id`),
     FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE
     SET NULL
+);
+-- Students
+CREATE TABLE `student` (
+    `rollno` VARCHAR(20) NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `dept` INT(11) NOT NULL,
+    PRIMARY KEY (`rollno`),
+    INDEX (`dept`),
+    FOREIGN KEY (`dept`) REFERENCES `departments`(`department_id`) ON DELETE RESTRICT
 );
 -- Courses
 CREATE TABLE `course` (
@@ -120,15 +141,6 @@ CREATE TABLE `question` (
     INDEX (`test_id`, `question_number`),
     UNIQUE KEY (`test_id`, `question_number`, `sub_question`),
     FOREIGN KEY (`test_id`) REFERENCES `test`(`id`) ON DELETE CASCADE
-);
--- Students
-CREATE TABLE `student` (
-    `rollno` VARCHAR(20) NOT NULL,
-    `name` VARCHAR(100) NOT NULL,
-    `dept` INT(11) NOT NULL,
-    PRIMARY KEY (`rollno`),
-    INDEX (`dept`),
-    FOREIGN KEY (`dept`) REFERENCES `departments`(`department_id`) ON DELETE RESTRICT
 );
 -- Course Enrollment (tracks which students are enrolled in which courses)
 CREATE TABLE `enrollment` (

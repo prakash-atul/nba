@@ -357,4 +357,53 @@ class UserRepository
             throw new Exception("Database error: " . $e->getMessage());
         }
     }
+
+    /**
+     * Check if HOD exists for a department
+     * @param int $departmentId
+     * @param int|null $excludeEmployeeId Optional employee ID to exclude from the check (for updates)
+     * @return bool
+     */
+    public function hodExistsForDepartment($departmentId, $excludeEmployeeId = null)
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM users WHERE role = 'hod' AND department_id = ?";
+            $params = [$departmentId];
+
+            if ($excludeEmployeeId) {
+                $sql .= " AND employee_id != ?";
+                $params[] = $excludeEmployeeId;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if Dean exists in the system
+     * @param int|null $excludeEmployeeId Optional employee ID to exclude from the check (for updates)
+     * @return bool
+     */
+    public function deanExists($excludeEmployeeId = null)
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM users WHERE role = 'dean'";
+            $params = [];
+
+            if ($excludeEmployeeId) {
+                $sql .= " AND employee_id != ?";
+                $params[] = $excludeEmployeeId;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
 }

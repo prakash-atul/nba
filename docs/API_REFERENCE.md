@@ -7,7 +7,7 @@
 
 ## Table of Contents
 
-1. [Authentication](#authentication) - 4 endpoints
+1. [Authentication & Common](#authentication--common) - 6 endpoints
 2. [Admin Endpoints](#admin-endpoints) - 11 endpoints
 3. [HOD Endpoints](#hod-endpoints) - 9 endpoints
 4. [Faculty Endpoints](#faculty-endpoints) - 1 endpoint
@@ -17,13 +17,13 @@
 8. [Assessment Management](#assessment-management) - 2 endpoints
 9. [Marks Management](#marks-management) - 6 endpoints
 10. [Question Management](#question-management) - 2 endpoints
-11. [Student Enrollment](#student-enrollment) - 2 endpoints
-12. [Attainment Configuration](#attainment-configuration) - 2 endpoints
+11. [Student Enrollment](#student-enrollment) - 3 endpoints
+12. [Attainment Configuration](#attainment-configuration) - 4 endpoints
 13. [Error Codes](#error-codes)
 
 ---
 
-## Authentication
+## Authentication & Common
 
 ### 1. Login
 
@@ -84,8 +84,7 @@
 {
   "username": "newusername",
   "email": "newemail@nba.edu",
-  "password": "newpassword",
-  "role": "faculty"
+  "password": "newpassword"
 }
 
 // RESPONSE (200)
@@ -94,6 +93,8 @@
   "message": "Profile updated successfully",
   "data": { /* updated user */ }
 }
+
+// NOTE: Role changes are not allowed via this endpoint for security reasons
 ```
 
 ---
@@ -105,6 +106,44 @@
 ```json
 // RESPONSE (200)
 { "success": true, "message": "Logout successful" }
+```
+
+---
+
+### 4.1. Get User's Department
+
+**GET** `/department`
+
+```json
+// RESPONSE (200)
+{
+	"success": true,
+	"data": {
+		"department_id": 1,
+		"department_name": "CSE",
+		"department_code": "CSE"
+	}
+}
+```
+
+---
+
+### 4.2. Get All Departments
+
+**GET** `/departments`
+
+```json
+// RESPONSE (200)
+{
+	"success": true,
+	"data": [
+		{
+			"department_id": 1,
+			"department_name": "CSE",
+			"department_code": "CSE"
+		}
+	]
+}
 ```
 
 ---
@@ -138,8 +177,22 @@
 	"email": "user@tezu.edu",
 	"password": "pass123",
 	"role": "faculty",
-	"department_id": 1
+	"department_id": 1  // Required if role is 'hod'
 }
+
+// ERROR (409) - HOD already exists
+{"success": false, "message": "An HOD already exists for this department"}
+
+// ERROR (409) - Dean already exists
+{"success": false, "message": "A Dean already exists in the system"}
+
+// ERROR (400) - HOD without department
+{"success": false, "message": "Department ID is required for HOD role"}
+
+// CONSTRAINTS:
+// - Only one HOD per department allowed
+// - Only one Dean allowed in the entire system
+// - HOD role requires department_id
 ```
 
 ### 7. Manage Departments
@@ -222,6 +275,15 @@
 	"totalStudents": 120,
 	"averageAttainment": 72.5
 }
+```
+
+### 12.1. Delete Test
+
+**DELETE** `/tests/{id}`
+
+```json
+// RESPONSE (200)
+{ "success": true, "message": "Test deleted successfully" }
 ```
 
 ---
@@ -730,6 +792,17 @@
 
 ---
 
+### 33.1. Remove Enrollment
+
+**DELETE** `/courses/{courseId}/enroll/{rollno}`
+
+```json
+// RESPONSE (200)
+{ "success": true, "message": "Enrollment removed successfully" }
+```
+
+---
+
 ## Attainment Configuration
 
 ### 34. Get Attainment Config
@@ -774,6 +847,42 @@
 
 ---
 
+### 36. Get CO-PO Matrix
+
+**GET** `/courses/{courseId}/copo-matrix`
+
+```json
+// RESPONSE (200)
+{
+	"success": true,
+	"data": [
+		{ "co_name": "CO1", "po_name": "PO1", "value": 3 },
+		{ "co_name": "CO1", "po_name": "PO2", "value": 2 }
+	]
+}
+```
+
+---
+
+### 37. Save CO-PO Matrix
+
+**POST** `/courses/{courseId}/copo-matrix`
+
+```json
+// REQUEST
+{
+  "matrix": [
+    {"co": "CO1", "po": "PO1", "value": 3},
+    {"co": "CO1", "po": "PO2", "value": 2}
+  ]
+}
+
+// RESPONSE (200)
+{"success": true, "message": "CO-PO mapping saved successfully"}
+```
+
+---
+
 ## Error Codes
 
 | Code | Meaning      | Common Fix                     |
@@ -788,7 +897,7 @@
 
 ---
 
-##Total Endpoints**: 35+ | **Version**: 2.0 | **Last Updated\*\*: December 27,
+## Total Endpoints: 40+ | Version: 2.1 | Last Updated: February 11, 2026
 
 ### Success
 
@@ -825,14 +934,14 @@
 
 ## Important Notes
 
--   **Authentication**: JWT token required (except login)
--   **Authorization**: Faculty can only modify their own courses
--   **CO Aggregation**: Automatic after marks changes
--   **Cascade Deletes**: Database handles related deletions
--   **Bulk Operations**: Partial failures don't stop operation
--   **PDF Filenames**: Format `courseCode_year_semester_testName.pdf`
--   **Question IDs**: Format `"1"` (main) or `"2a"` (sub-question)
+- **Authentication**: JWT token required (except login)
+- **Authorization**: Faculty can only modify their own courses
+- **CO Aggregation**: Automatic after marks changes
+- **Cascade Deletes**: Database handles related deletions
+- **Bulk Operations**: Partial failures don't stop operation
+- **PDF Filenames**: Format `courseCode_year_semester_testName.pdf`
+- **Question IDs**: Format `"1"` (main) or `"2a"` (sub-question)
 
 ---
 
-**Version**: 1.0 | **Last Updated**: January 2025
+**Version**: 2.1 | **Last Updated**: February 11, 2026

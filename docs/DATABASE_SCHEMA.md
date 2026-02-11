@@ -13,6 +13,7 @@ erDiagram
     test ||--o{ question : "contains"
     test ||--o{ rawMarks : "assesses"
     test ||--o{ marks : "aggregates"
+    course ||--o{ co_po_mapping : "defines_mapping"
     student ||--o{ enrollment : "enrolls_in"
     student ||--o{ rawMarks : "receives"
     student ||--o{ marks : "has"
@@ -60,6 +61,14 @@ erDiagram
         int full_marks "Maximum marks for test"
         int pass_marks "Minimum passing marks"
         blob question_paper_pdf "PDF stored in database (LONGBLOB)"
+    }
+
+    co_po_mapping {
+        bigint id PK
+        bigint course_id FK
+        string co_name "CO1-CO6"
+        string po_name "PO1-PO12, PSO1-PSO3"
+        tinyint value "0-3"
     }
 
     question {
@@ -184,20 +193,37 @@ Configurable attainment level thresholds per course.
 
 ---
 
+### 5. co_po_mapping
+
+Mapping between Course Outcomes (CO) and Program Outcomes (PO) / Program Specific Outcomes (PSO).
+
+| Column    | Type       | Constraints                 | Description                             |
+| --------- | ---------- | --------------------------- | --------------------------------------- |
+| id        | BIGINT     | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                       |
+| course_id | BIGINT     | FOREIGN KEY → course(id)    | Parent course                           |
+| co_name   | VARCHAR(5) | NOT NULL                    | CO identifier (CO1-CO6)                 |
+| po_name   | VARCHAR(5) | NOT NULL                    | PO/PSO identifier (PO1-PO12, PSO1-PSO3) |
+| value     | TINYINT    | DEFAULT 0, CHECK (0-3)      | Correlation level (0-3)                 |
+
+**Indexes**: PRIMARY KEY (id), UNIQUE KEY (course_id, co_name, po_name), INDEX (course_id)  
+**Foreign Keys**: course_id REFERENCES course(id) ON DELETE CASCADE
+
+---
+
 ### 6. test
 
 Assessments with question papers (Mid-sem, End-sem, etc.).
 
 | Column             | Type         | Constraints                 | Description                      |
 | ------------------ | ------------ | --------------------------- | -------------------------------- |
-| id                 | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                |
-| course_id          | INT          | FOREIGN KEY → course(id)    | Parent course                    |
-| test_name          | VARCHAR(255) | NOT NULL                    | Test name (e.g., "Mid Semester") |
+| id                 | BIGINT       | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                |
+| course_id          | BIGINT       | FOREIGN KEY → course(id)    | Parent course                    |
+| name               | VARCHAR(255) | NOT NULL                    | Test name (e.g., "Mid Semester") |
 | full_marks         | INT          | NOT NULL                    | Maximum marks                    |
 | pass_marks         | INT          | NOT NULL                    | Passing threshold                |
 | question_paper_pdf | LONGBLOB     | NULL                        | Question paper PDF (binary)      |
 
-**Indexes**: PRIMARY KEY (id), KEY (course_id)  
+**Indexes**: PRIMARY KEY (id), INDEX (course_id)  
 **Foreign Keys**: course_id REFERENCES course(id) ON DELETE CASCADE
 
 **PDF Filename**: Auto-generated as `{course_code}_{year}_{semester}_{test_name}.pdf`
@@ -256,8 +282,8 @@ Student-course enrollment relationship.
 **Indexes**: PRIMARY KEY (id), UNIQUE KEY (course_id, student_rollno), INDEX (course_id), INDEX (student_rollno)  
 **Foreign Keys**:
 
--   course_id REFERENCES course(id) ON DELETE CASCADE
--   student_rollno REFERENCES student(rollno) ON DELETE CASCADE
+- course_id REFERENCES course(id) ON DELETE CASCADE
+- student_rollno REFERENCES student(rollno) ON DELETE CASCADE
 
 **Constraint**: Prevents duplicate enrollments (same student in same course)
 
@@ -278,9 +304,9 @@ Per-question marks for each student.
 **Indexes**: PRIMARY KEY (id), UNIQUE KEY (test_id, student_id, question_id), INDEX (test_id, student_id), INDEX (student_id)  
 **Foreign Keys**:
 
--   test_id REFERENCES test(id) ON DELETE CASCADE
--   student_id REFERENCES student(rollno) ON DELETE CASCADE
--   question_id REFERENCES question(id) ON DELETE CASCADE
+- test_id REFERENCES test(id) ON DELETE CASCADE
+- student_id REFERENCES student(rollno) ON DELETE CASCADE
+- question_id REFERENCES question(id) ON DELETE CASCADE
 
 **Purpose**: Granular marks entry, used to calculate CO aggregates in `marks` table.
 
@@ -305,8 +331,8 @@ CO-aggregated marks for each student per test.
 **Indexes**: PRIMARY KEY (id), UNIQUE KEY (student_id, test_id), INDEX (test_id)  
 **Foreign Keys**:
 
--   student_id REFERENCES student(rollno) ON DELETE CASCADE
--   test_id REFERENCES test(id) ON DELETE CASCADE
+- student_id REFERENCES student(rollno) ON DELETE CASCADE
+- test_id REFERENCES test(id) ON DELETE CASCADE
 
 **Purpose**: NBA-ready CO aggregates. Auto-calculated from rawMarks based on question.co mapping.
 
@@ -314,23 +340,36 @@ CO-aggregated marks for each student per test.
 
 ## Schema Changes Log
 
+### v2.1 (February 2026) - CO-PO Mapping Implementation
+
+#### New Table: co_po_mapping
+
+- ✅ **Added**: Complete table for mapping COs to POs and PSOs with correlation values (0-3)
+
+#### Test Table
+
+- ✅ **Renamed**: `test_name` to `name` to match `db.sql` implementation
+- ✅ **Updated**: Corrected `id` and `course_id` types to `BIGINT`
+
+---
+
 ### v2.0 (December 2025) - Attainment Configuration & Dean Role
 
 #### Course Table
 
--   ✅ **Added**: `co_threshold DECIMAL(5,2)` - CO passing percentage (default 40%)
--   ✅ **Added**: `passing_threshold DECIMAL(5,2)` - Overall passing percentage (default 60%)
--   ❌ **Removed**: `dept_id` (courses only linked to faculty, not department)
+- ✅ **Added**: `co_threshold DECIMAL(5,2)` - CO passing percentage (default 40%)
+- ✅ **Added**: `passing_threshold DECIMAL(5,2)` - Overall passing percentage (default 60%)
+- ❌ **Removed**: `dept_id` (courses only linked to faculty, not department)
 
 #### New Table: attainment_scale
 
--   ✅ **Added**: Complete table for configurable attainment level thresholds per course
--   **Purpose**: Define custom scales (e.g., Level 0: 0%, Level 1: 40%, Level 2: 60%, Level 3: 80%)
+- ✅ **Added**: Complete table for configurable attainment level thresholds per course
+- **Purpose**: Define custom scales (e.g., Level 0: 0%, Level 1: 40%, Level 2: 60%, Level 3: 80%)
 
 #### Users Table
 
--   ✅ **Added**: `dean` role to ENUM values
--   **Purpose**: Read-only access to all department data for institutional oversight
+- ✅ **Added**: `dean` role to ENUM values
+- **Purpose**: Read-only access to all department data for institutional oversight
 
 ---
 
@@ -338,20 +377,20 @@ CO-aggregated marks for each student per test.
 
 #### Course Table
 
--   ❌ **Removed**: `syllabus VARCHAR(500)` (URL field)
--   ✅ **Added**: `syllabus_pdf LONGBLOB` (binary PDF storage)
--   **Filename**: Auto-generated as `{course_code}_{year}_{semester}.pdf`
+- ❌ **Removed**: `syllabus VARCHAR(500)` (URL field)
+- ✅ **Added**: `syllabus_pdf LONGBLOB` (binary PDF storage)
+- **Filename**: Auto-generated as `{course_code}_{year}_{semester}.pdf`
 
 #### Test Table
 
--   ❌ **Removed**: `question_link VARCHAR(500)` (URL field)
--   ✅ **Added**: `question_paper_pdf LONGBLOB` (binary PDF storage)
--   **Filename**: Auto-generated as `{course_code}_{year}_{semester}_{test_name}.pdf`
+- ❌ **Removed**: `question_link VARCHAR(500)` (URL field)
+- ✅ **Added**: `question_paper_pdf LONGBLOB` (binary PDF storage)
+- **Filename**: Auto-generated as `{course_code}_{year}_{semester}_{test_name}.pdf`
 
 #### Question Table
 
--   ❌ **Removed**: `description TEXT` (question text)
--   **Reason**: Question content is in the PDF, table only stores metadata
+- ❌ **Removed**: `description TEXT` (question text)
+- **Reason**: Question content is in the PDF, table only stores metadata
 
 ---
 
@@ -359,27 +398,27 @@ CO-aggregated marks for each student per test.
 
 ### One-to-Many
 
--   **departments → users**: One department has many users
--   **departments → student**: One department has many students
--   **users → course**: One faculty teaches many courses
--   **course → test**: One course has many tests
--   **course → attainment_scale**: One course has many attainment level configurations
--   **course → enrollment**: One course has many enrollments
--   **test → question**: One test contains many questions
--   **test → rawMarks**: One test has many raw marks entries
--   **test → marks**: One test has many aggregate marks entries
--   **student → enrollment**: One student enrolls in many courses
--   **student → rawMarks**: One student has many raw marks entries
--   **student → marks**: One student has many aggregate marks
--   **question → rawMarks**: One question has many marks entries
+- **departments → users**: One department has many users
+- **departments → student**: One department has many students
+- **users → course**: One faculty teaches many courses
+- **course → test**: One course has many tests
+- **course → attainment_scale**: One course has many attainment level configurations
+- **course → enrollment**: One course has many enrollments
+- **test → question**: One test contains many questions
+- **test → rawMarks**: One test has many raw marks entries
+- **test → marks**: One test has many aggregate marks entries
+- **student → enrollment**: One student enrolls in many courses
+- **student → rawMarks**: One student has many raw marks entries
+- **student → marks**: One student has many aggregate marks
+- **question → rawMarks**: One question has many marks entries
 
 ### Unique Constraints
 
--   **attainment_scale**: (course_id, level) - Prevents duplicate level configurations per course
--   **enrollment**: (course_id, student_rollno) - Prevents duplicate enrollments
--   **rawMarks**: (test_id, student_id, question_id) - One marks entry per question per student per test
--   **marks**: (student_id, test_id) - One CO aggregate per test per student
--   **question**: (test_id, question_number, sub_question) - Prevents duplicate questions
+- **attainment_scale**: (course_id, level) - Prevents duplicate level configurations per course
+- **enrollment**: (course_id, student_rollno) - Prevents duplicate enrollments
+- **rawMarks**: (test_id, student_id, question_id) - One marks entry per question per student per test
+- **marks**: (student_id, test_id) - One CO aggregate per test per student
+- **question**: (test_id, question_number, sub_question) - Prevents duplicate questions
 
 ---
 
@@ -387,17 +426,17 @@ CO-aggregated marks for each student per test.
 
 ### ON DELETE Behavior
 
--   **CASCADE**:
-    -   Delete department → Delete all students (users have SET NULL)
-    -   Delete course → Delete all tests, enrollments, attainment_scale entries
-    -   Delete test → Delete all questions, rawMarks, marks
-    -   Delete student → Delete all enrollments, rawMarks, marks
-    -   Delete question → Delete all rawMarks for that question
--   **RESTRICT**:
-    -   Delete faculty (user) → Blocked if they have courses assigned
-    -   Delete department → Blocked if it has students
--   **SET NULL**:
-    -   Delete department → Set department_id to NULL in users table (for admin compatibility)
+- **CASCADE**:
+    - Delete department → Delete all students (users have SET NULL)
+    - Delete course → Delete all tests, enrollments, attainment_scale entries
+    - Delete test → Delete all questions, rawMarks, marks
+    - Delete student → Delete all enrollments, rawMarks, marks
+    - Delete question → Delete all rawMarks for that question
+- **RESTRICT**:
+    - Delete faculty (user) → Blocked if they have courses assigned
+    - Delete department → Blocked if it has students
+- **SET NULL**:
+    - Delete department → Set department_id to NULL in users table (for admin compatibility)
 
 **Purpose**: Maintain referential integrity, clean up orphaned data
 
@@ -407,23 +446,23 @@ CO-aggregated marks for each student per test.
 
 ### Dual Marks Storage
 
--   **rawMarks**: Granular per-question data for marks entry
--   **marks**: CO aggregates for NBA reporting
--   **Sync**: marks table updated automatically when rawMarks change
+- **rawMarks**: Granular per-question data for marks entry
+- **marks**: CO aggregates for NBA reporting
+- **Sync**: marks table updated automatically when rawMarks change
 
 ### PDF Storage
 
--   **LONGBLOB**: Supports files up to ~4GB (recommend < 10MB)
--   **Base64**: API uses base64 encoding for transmission
--   **Auto-filenames**: Generated from course/test metadata for consistency
--   **Backup**: Single database dump includes all documents
+- **LONGBLOB**: Supports files up to ~4GB (recommend < 10MB)
+- **Base64**: API uses base64 encoding for transmission
+- **Auto-filenames**: Generated from course/test metadata for consistency
+- **Backup**: Single database dump includes all documents
 
 ### Authorization
 
--   **faculty_id in course**: Determines who can modify course/test/marks
--   **role in users**: Admin (system-wide), Dean (read-only all), HOD (department-wide), Faculty (own courses), Staff (enrollment management)
--   **JWT**: Token contains employee_id and role for authorization checks
--   **Department isolation**: HOD/Staff can only access their department's data
+- **faculty_id in course**: Determines who can modify course/test/marks
+- **role in users**: Admin (system-wide), Dean (read-only all), HOD (department-wide), Faculty (own courses), Staff (enrollment management)
+- **JWT**: Token contains employee_id and role for authorization checks
+- **Department isolation**: HOD/Staff can only access their department's data
 
 ---
 
@@ -431,23 +470,23 @@ CO-aggregated marks for each student per test.
 
 ### Indexes
 
--   Primary keys on all tables
--   Foreign keys indexed automatically
--   Unique constraints on business keys (rollno, email, course_code)
--   Composite unique keys prevent duplicates
+- Primary keys on all tables
+- Foreign keys indexed automatically
+- Unique constraints on business keys (rollno, email, course_code)
+- Composite unique keys prevent duplicates
 
 ### Query Optimization
 
--   SELECT excludes LONGBLOB columns by default
--   Use explicit column selection for large tables
--   JOIN queries use indexed foreign keys
--   Aggregate queries (CO totals) use indexed marks table
+- SELECT excludes LONGBLOB columns by default
+- Use explicit column selection for large tables
+- JOIN queries use indexed foreign keys
+- Aggregate queries (CO totals) use indexed marks table
 
 ### Storage
 
--   LONGBLOB adds ~100KB-2MB per document
--   For 100 courses + 500 tests: ~150MB additional storage
--   Recommend separate download endpoints for large PDFs
+- LONGBLOB adds ~100KB-2MB per document
+- For 100 courses + 500 tests: ~150MB additional storage
+- Recommend separate download endpoints for large PDFs
 
 ---
 
@@ -470,13 +509,13 @@ mysql -u username -p nba_db < docs/db.sql
 ```sql
 USE nba_db;
 SHOW TABLES;
--- Expected: 10 tables (departments, users, course, attainment_scale, test, question, student, enrollment, rawMarks, marks)
+-- Expected: 11 tables (departments, users, student, course, attainment_scale, co_po_mapping, test, question, enrollment, rawMarks, marks)
 ```
 
 ---
 
 **See Also**:
 
--   `db.sql` - Complete schema with sample data
--   `API_REFERENCE.md` - API endpoints that use this schema
--   `COMPLETE_GUIDE.md` - Full project documentation
+- `db.sql` - Complete schema with sample data
+- `API_REFERENCE.md` - API endpoints that use this schema
+- `COMPLETE_GUIDE.md` - Full project documentation
