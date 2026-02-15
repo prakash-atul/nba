@@ -17,7 +17,7 @@ class EnrollmentRepository
      */
     public function enrollStudent($courseId, $studentRollno)
     {
-        $sql = "INSERT INTO enrollment (course_id, student_rollno) VALUES (?, ?)";
+        $sql = "INSERT INTO enrollments (course_id, student_rollno) VALUES (?, ?)";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$courseId, $studentRollno]);
 
@@ -206,7 +206,7 @@ class EnrollmentRepository
      */
     private function findStudentByRollno($rollno)
     {
-        $sql = "SELECT * FROM student WHERE rollno = ?";
+        $sql = "SELECT * FROM students WHERE roll_no = ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$rollno]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -216,9 +216,9 @@ class EnrollmentRepository
         }
 
         return new Student(
-            $row['rollno'],
-            $row['name'],
-            $row['dept']
+            $row['roll_no'],
+            $row['student_name'],
+            $row['department_id']
         );
     }
 

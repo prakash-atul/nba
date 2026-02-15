@@ -340,8 +340,8 @@ class UserController
                 return;
             }
 
-            // Validate role
-            $validRoles = ['admin', 'dean', 'hod', 'faculty', 'staff'];
+            // Validate role (HOD and Dean are assignments, not base roles)
+            $validRoles = ['admin', 'faculty', 'staff'];
             if (!in_array($data['role'], $validRoles)) {
                 http_response_code(400);
                 echo json_encode([
@@ -351,38 +351,8 @@ class UserController
                 return;
             }
 
-            // Check HOD uniqueness per department
-            if ($data['role'] === 'hod') {
-                if (empty($data['department_id'])) {
-                    http_response_code(400);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Department ID is required for HOD role'
-                    ]);
-                    return;
-                }
-
-                if ($this->userRepository->hodExistsForDepartment($data['department_id'])) {
-                    http_response_code(409);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'An HOD already exists for this department'
-                    ]);
-                    return;
-                }
-            }
-
-            // Check Dean uniqueness in system
-            if ($data['role'] === 'dean') {
-                if ($this->userRepository->deanExists()) {
-                    http_response_code(409);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'A Dean already exists in the system'
-                    ]);
-                    return;
-                }
-            }
+            // HOD and Dean uniqueness is now managed via assignment tables, not user role
+            // Removed HOD/Dean uniqueness checks from user creation
 
             // Check if employee_id already exists
             if ($this->userRepository->findByEmployeeId($data['employee_id'])) {

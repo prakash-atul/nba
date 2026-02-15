@@ -21,12 +21,14 @@ class JWTService
     /**
      * Generate JWT token for user
      * @param User $user
+     * @param array $flags Optional array with keys: is_hod, is_dean, hod_department_id, school_id
      * @return string
      */
-    public function generateToken(User $user)
+    public function generateToken(User $user, array $flags = [])
     {
         $header = json_encode(['typ' => 'JWT', 'alg' => $this->algorithm]);
-        $payload = json_encode([
+        
+        $payloadData = [
             'employee_id' => $user->getEmployeeId(),
             'username' => $user->getUsername(),
             'email' => $user->getEmail(),
@@ -34,7 +36,23 @@ class JWTService
             'department_id' => $user->getDepartmentId(),
             'iat' => time(),
             'exp' => time() + $this->tokenExpiry
-        ]);
+        ];
+
+        // Add assignment flags if provided
+        if (isset($flags['is_hod'])) {
+            $payloadData['is_hod'] = $flags['is_hod'];
+        }
+        if (isset($flags['is_dean'])) {
+            $payloadData['is_dean'] = $flags['is_dean'];
+        }
+        if (isset($flags['hod_department_id'])) {
+            $payloadData['hod_department_id'] = $flags['hod_department_id'];
+        }
+        if (isset($flags['school_id'])) {
+            $payloadData['school_id'] = $flags['school_id'];
+        }
+
+        $payload = json_encode($payloadData);
 
         $headerEncoded = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
         $payloadEncoded = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
@@ -97,7 +115,11 @@ class JWTService
             'username' => $payload['username'],
             'email' => $payload['email'],
             'role' => $payload['role'],
-            'department_id' => isset($payload['department_id']) ? $payload['department_id'] : null
+            'department_id' => isset($payload['department_id']) ? $payload['department_id'] : null,
+            'is_hod' => isset($payload['is_hod']) ? $payload['is_hod'] : false,
+            'is_dean' => isset($payload['is_dean']) ? $payload['is_dean'] : false,
+            'hod_department_id' => isset($payload['hod_department_id']) ? $payload['hod_department_id'] : null,
+            'school_id' => isset($payload['school_id']) ? $payload['school_id'] : null
         ];
     }
 

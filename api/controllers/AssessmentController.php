@@ -34,12 +34,12 @@ class AssessmentController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            // Faculty and HOD can access their courses
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+            // Faculty can access their courses (HODs are faculty with is_hod flag)
+            if ($userData['role'] !== 'faculty') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty and HOD can access courses.'
+                    'message' => 'Access denied. Only faculty can access courses.'
                 ]);
                 return;
             }
@@ -71,11 +71,11 @@ class AssessmentController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+            if ($userData['role'] !== 'faculty') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty and HOD can create assessments.'
+                    'message' => 'Access denied. Only faculty can create assessments.'
                 ]);
                 return;
             }
@@ -130,6 +130,10 @@ class AssessmentController
                 $data['full_marks'],
                 $data['pass_marks'],
                 isset($data['question_paper_pdf']) ? base64_decode($data['question_paper_pdf']) : null,
+                $data['test_type'] ?? null,
+                $data['test_date'] ?? null,
+                $data['max_marks'] ?? null,
+                $data['weightage'] ?? null,
                 $course->getCourseCode(),
                 $course->getYear(),
                 $course->getSemester()
@@ -142,7 +146,7 @@ class AssessmentController
 
             try {
                 $this->testRepository->save($test);
-                $testId = $test->getId();
+                $testId = $test->getTestId();
 
                 // Create questions
                 $questions = [];
@@ -219,11 +223,11 @@ class AssessmentController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+            if ($userData['role'] !== 'faculty') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty and HOD can access assessments.'
+                    'message' => 'Access denied. Only faculty can access assessments.'
                 ]);
                 return;
             }
@@ -291,11 +295,11 @@ class AssessmentController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+            if ($userData['role'] !== 'faculty') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty and HOD can access tests.'
+                    'message' => 'Access denied. Only faculty can access tests.'
                 ]);
                 return;
             }
@@ -352,11 +356,11 @@ class AssessmentController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+            if ($userData['role'] !== 'faculty') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty and HOD can update questions.'
+                    'message' => 'Access denied. Only faculty can update questions.'
                 ]);
                 return;
             }
@@ -436,11 +440,11 @@ class AssessmentController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+            if ($userData['role'] !== 'faculty') {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied. Only faculty and HOD can delete questions.'
+                    'message' => 'Access denied. Only faculty can delete questions.'
                 ]);
                 return;
             }

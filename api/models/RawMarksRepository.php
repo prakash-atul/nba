@@ -20,8 +20,8 @@ class RawMarksRepository
     {
         $stmt = $this->db->prepare("
             SELECT r.*, q.question_number, q.sub_question, q.co 
-            FROM rawMarks r
-            JOIN question q ON r.question_id = q.id
+            FROM raw_marks r
+            JOIN questions q ON r.question_id = q.question_id
             WHERE r.test_id = ? AND r.student_id = ?
             ORDER BY q.question_number, q.sub_question
         ");
@@ -34,7 +34,7 @@ class RawMarksRepository
                     $row['test_id'],
                     $row['student_id'],
                     $row['question_id'],
-                    $row['marks'],
+                    $row['marks_obtained'],
                     $row['id']
                 ),
                 'question_number' => $row['question_number'],
@@ -104,9 +104,9 @@ class RawMarksRepository
     public function calculateCOTotals($testId, $studentId)
     {
         $stmt = $this->db->prepare("
-            SELECT q.co, SUM(r.marks) as total
-            FROM rawMarks r
-            JOIN question q ON r.question_id = q.id
+            SELECT q.co, SUM(r.marks_obtained) as total
+            FROM raw_marks r
+            JOIN questions q ON r.question_id = q.question_id
             WHERE r.test_id = ? AND r.student_id = ?
             GROUP BY q.co
         ");
@@ -142,7 +142,7 @@ class RawMarksRepository
                 $row['test_id'],
                 $row['student_id'],
                 $row['question_id'],
-                $row['marks'],
+                $row['marks_obtained'],
                 $row['id']
             );
         }

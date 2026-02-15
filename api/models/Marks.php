@@ -7,7 +7,7 @@
 class Marks
 {
     private $id;
-    private $studentId;
+    private $studentRollNo;
     private $testId;
     private $CO1;
     private $CO2;
@@ -16,10 +16,10 @@ class Marks
     private $CO5;
     private $CO6;
 
-    public function __construct($studentId, $testId, $CO1 = 0, $CO2 = 0, $CO3 = 0, $CO4 = 0, $CO5 = 0, $CO6 = 0, $id = null)
+    public function __construct($studentRollNo, $testId, $CO1 = 0, $CO2 = 0, $CO3 = 0, $CO4 = 0, $CO5 = 0, $CO6 = 0, $id = null)
     {
         $this->id = $id;
-        $this->studentId = $studentId;
+        $this->studentRollNo = $studentRollNo;
         $this->testId = $testId;
         $this->CO1 = $CO1;
         $this->CO2 = $CO2;
@@ -35,9 +35,9 @@ class Marks
         return $this->id;
     }
 
-    public function getStudentId()
+    public function getStudentRollNo()
     {
-        return $this->studentId;
+        return $this->studentRollNo;
     }
 
     public function getTestId()
@@ -145,7 +145,7 @@ class Marks
     {
         return [
             'id' => $this->id,
-            'student_id' => $this->studentId,
+            'student_roll_no' => $this->studentRollNo,
             'test_id' => $this->testId,
             'CO1' => $this->CO1,
             'CO2' => $this->CO2,

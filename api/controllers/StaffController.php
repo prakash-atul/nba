@@ -228,7 +228,7 @@ class StaffController
 
             // Verify faculty belongs to the same department
             $faculty = $this->userRepository->findByEmployeeId($input['faculty_id']);
-            if (!$faculty || ($faculty->getDepartmentId() != $departmentId && $faculty->getRole() !== 'hod')) {
+            if (!$faculty || $faculty->getDepartmentId() != $departmentId) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -265,7 +265,7 @@ class StaffController
             $this->courseRepository->save($course);
 
             // Get the created course with faculty info
-            $createdCourse = $this->courseRepository->findByIdWithFaculty($course->getId());
+            $createdCourse = $this->courseRepository->findByIdWithFaculty($course->getCourseId());
 
             http_response_code(201);
             header('Content-Type: application/json');
@@ -332,7 +332,7 @@ class StaffController
             if (isset($input['course_code'])) {
                 // Check if new code conflicts with another course
                 $conflictingCourse = $this->courseRepository->findByCourseCode($input['course_code']);
-                if ($conflictingCourse && $conflictingCourse->getId() != $courseId) {
+                if ($conflictingCourse && $conflictingCourse->getCourseId() != $courseId) {
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
@@ -342,7 +342,7 @@ class StaffController
                 }
                 $existingCourse->setCourseCode($input['course_code']);
             }
-            if (isset($input['name'])) $existingCourse->setName($input['name']);
+            if (isset($input['name'])) $existingCourse->setCourseName($input['name']);
             if (isset($input['credit'])) $existingCourse->setCredit($input['credit']);
             if (isset($input['faculty_id'])) {
                 // Verify new faculty belongs to department
@@ -486,7 +486,7 @@ class StaffController
                 'data' => [
                     'course_id' => $courseId,
                     'course_code' => $course->getCourseCode(),
-                    'course_name' => $course->getName(),
+                    'course_name' => $course->getCourseName(),
                     'enrollment_count' => $count,
                     'enrollments' => $enrollments
                 ]

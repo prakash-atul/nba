@@ -130,7 +130,7 @@ class MarksController
                     return;
                 }
 
-                $rawMarksArray[] = new RawMarks($testId, $studentId, $question->getId(), $marks);
+                $rawMarksArray[] = new RawMarks($testId, $studentId, $question->getQuestionId(), $marks);
             }
 
             // Save raw marks and calculate CO totals
@@ -281,7 +281,7 @@ class MarksController
                         }
                         return [
                             'question_identifier' => $questionIdentifier,
-                            'marks' => $item['raw_marks']->getMarks(),
+                            'marks' => $item['raw_marks']->getMarksObtained(),
                             'co' => $item['co']
                         ];
                     }, $rawMarks)
@@ -351,13 +351,13 @@ class MarksController
                 'data' => [
                     'test' => $test->toArray(),
                     'course' => [
-                        'id' => $course->getId(),
+                        'id' => $course->getCourseId(),
                         'course_code' => $course->getCourseCode(),
-                        'name' => $course->getName()
+                        'name' => $course->getCourseName()
                     ],
                     'marks' => array_map(function ($item) {
                         return [
-                            'student_id' => $item['marks']->getStudentId(),
+                            'student_id' => $item['marks']->getStudentRollNo(),
                             'student_name' => $item['student_name'],
                             'CO1' => $item['marks']->getCO1(),
                             'CO2' => $item['marks']->getCO2(),
@@ -376,13 +376,13 @@ class MarksController
                 $questions = $this->questionRepository->findByTestId($testId);
                 $questionMap = [];
                 foreach ($questions as $question) {
-                    $questionMap[$question->getId()] = $question;
+                    $questionMap[$question->getQuestionId()] = $question;
                 }
 
                 // Get raw marks for all students
                 $rawMarksData = [];
                 foreach ($marksList as $item) {
-                    $studentId = $item['marks']->getStudentId();
+                    $studentId = $item['marks']->getStudentRollNo();
                     $rawMarks = $this->rawMarksRepository->findByTestAndStudent($testId, $studentId);
 
                     $studentRawMarks = [];
@@ -397,7 +397,7 @@ class MarksController
                                 'question_number' => $rawMark['question_number'],
                                 'sub_question' => $rawMark['sub_question'],
                                 'question_identifier' => $question->getQuestionIdentifier(),
-                                'marks_obtained' => $rawMark['raw_marks']->getMarks(),
+                                'marks_obtained' => $rawMark['raw_marks']->getMarksObtained(),
                                 'max_marks' => $question->getMaxMarks(),
                                 'co' => $rawMark['co']
                             ];
@@ -414,7 +414,7 @@ class MarksController
                 $response['data']['raw_marks'] = $rawMarksData;
                 $response['data']['questions'] = array_map(function ($q) {
                     return [
-                        'id' => $q->getId(),
+                        'id' => $q->getQuestionId(),
                         'question_number' => $q->getQuestionNumber(),
                         'sub_question' => $q->getSubQuestion(),
                         'question_identifier' => $q->getQuestionIdentifier(),
@@ -605,7 +605,7 @@ class MarksController
                     $rawMarks = new RawMarks(
                         $testId,
                         $studentRollno,
-                        $question->getId(),
+                        $question->getQuestionId(),
                         $marksObtained,
                         null
                     );
@@ -728,7 +728,7 @@ class MarksController
             }
 
             // Update marks
-            $rawMarks->setMarks($marksObtained);
+            $rawMarks->setMarksObtained($marksObtained);
             $this->rawMarksRepository->update($rawMarks);
 
             // Re-aggregate CO marks for this student

@@ -11,19 +11,25 @@ class AdminController
     private $studentRepository;
     private $testRepository;
     private $departmentRepository;
+    private $deanAssignmentRepository;
+    private $schoolRepository;
 
     public function __construct(
         UserRepository $userRepository,
         CourseRepository $courseRepository,
         StudentRepository $studentRepository,
         TestRepository $testRepository,
-        DepartmentRepository $departmentRepository
+        DepartmentRepository $departmentRepository,
+        $deanAssignmentRepository = null,
+        $schoolRepository = null
     ) {
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
         $this->studentRepository = $studentRepository;
         $this->testRepository = $testRepository;
         $this->departmentRepository = $departmentRepository;
+        $this->deanAssignmentRepository = $deanAssignmentRepository;
+        $this->schoolRepository = $schoolRepository;
     }
 
     /**
@@ -113,15 +119,10 @@ class AdminController
         try {
             $userData = $_REQUEST['authenticated_user'];
 
-            // Allow admin, dean, and maybe others if needed (currently checking admin based on controller name)
-            // Ideally DeanController should handle dean requests, but if this is shared...
-            // For AdminController methods, let's enforce admin role or just use it as is if routed correctly.
-            // The route middleware auth checks for valid user.
-
-            if ($userData['role'] !== 'admin' && $userData['role'] !== 'dean') {
-                // Allowing Dean too since DeanController might not have this implemented separately yet 
-                // or if we want reuse. But 'admin/departments' route suggests admin specific.
-                // However, let's keep it consistent: check admin.
+            // Allow admin or dean (via is_dean flag)
+            // Dean functionality is now handled via assignment table, not role
+            if ($userData['role'] !== 'admin' && (!isset($userData['is_dean']) || $userData['is_dean'] !== true)) {
+                // Allow either admin role or dean assignment
             }
 
             // Since this is AdminController, let's enforce Admin.
@@ -455,6 +456,290 @@ class AdminController
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to delete department',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Appoint Dean for a school (Admin only)
+     * Creates assignment in dean_assignments table without changing user role
+     */
+    public function appointDean($schoolId)
+    {
+        if (!$this->requireAdmin()) return;
+
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            // Validate school exists
+            if (!$this->schoolRepository) {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'School repository not available'
+                ]);
+                return;
+            }
+
+            $school = $this->schoolRepository->findById($schoolId);
+            if (!$school) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'School not found'
+                ]);
+                return;
+            }
+
+            // Check if Dean already exists for this school via assignment table
+            if (!$this->deanAssignmentRepository) {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Dean assignment repository not available'
+                ]);
+                return;
+            }
+
+            $currentDean = $this->deanAssignmentRepository->getCurrentDean($schoolId);
+            if ($currentDean) {
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'A Dean already exists for this school. Please demote the current Dean first.',
+                    'current_dean' => [
+                        'employee_id' => $currentDean->getEmployeeId(),
+                        'start_date' => $currentDean->getStartDate()
+                    ]
+                ]);
+                return;
+            }
+
+            // Two scenarios: assign existing user (faculty/staff) OR create new user and assign
+            if (isset($data['employee_id']) && !isset($data['username'])) {
+                // Scenario 1: Assign existing user as Dean
+                $employeeId = (int)$data['employee_id'];
+                $user = $this->userRepository->findByEmployeeId($employeeId);
+                
+                if (!$user) {
+                    http_response_code(404);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'User not found'
+                    ]);
+                    return;
+                }
+
+                // Validate user is faculty or staff
+                if (!in_array($user->getRole(), ['faculty', 'staff'])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Only faculty or staff members can be appointed as Dean'
+                    ]);
+                    return;
+                }
+
+                // Create Dean assignment (do NOT change user role)
+                $assignmentObj = new DeanAssignment(
+                    null,
+                    $schoolId,
+                    $employeeId,
+                    date('Y-m-d'),
+                    null,
+                    1,
+                    isset($data['appointment_order']) ? $data['appointment_order'] : null
+                );
+                $assignmentId = $this->deanAssignmentRepository->create($assignmentObj);
+
+                if ($assignmentId) {
+                    http_response_code(200);
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'User assigned as Dean successfully',
+                        'data' => [
+                            'user' => $user->toArray(),
+                            'assignment_id' => $assignmentId
+                        ]
+                    ]);
+                } else {
+                    throw new Exception("Failed to create Dean assignment");
+                }
+            } else {
+                // Scenario 2: Create new user and assign as Dean
+                $requiredFields = ['employee_id', 'username', 'email', 'password', 'role'];
+                $errors = [];
+                foreach ($requiredFields as $field) {
+                    if (empty($data[$field])) {
+                        $errors[] = "$field is required";
+                    }
+                }
+
+                if (!empty($errors)) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Validation failed',
+                        'errors' => $errors
+                    ]);
+                    return;
+                }
+
+                // Validate role is faculty or staff
+                if (!in_array($data['role'], ['faculty', 'staff'])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Dean must have role of faculty or staff'
+                    ]);
+                    return;
+                }
+
+                // Check if employee_id already exists
+                if ($this->userRepository->findByEmployeeId($data['employee_id'])) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Employee ID already exists'
+                    ]);
+                    return;
+                }
+
+                // Check if email already exists
+                if ($this->userRepository->emailExists($data['email'])) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Email already exists'
+                    ]);
+                    return;
+                }
+
+                // Create new user
+                $newUser = new User(
+                    (int)$data['employee_id'],
+                    $data['username'],
+                    $data['email'],
+                    password_hash($data['password'], PASSWORD_DEFAULT),
+                    $data['role'],  // faculty or staff
+                    isset($data['department_id']) ? (int)$data['department_id'] : null,
+                    isset($data['designation']) ? $data['designation'] : 'Dean',
+                    isset($data['phone']) ? $data['phone'] : null
+                );
+
+                if ($this->userRepository->save($newUser)) {
+                    // Create Dean assignment
+                    $assignmentObj = new DeanAssignment(
+                        null,
+                        $schoolId,
+                        (int)$data['employee_id'],
+                        date('Y-m-d'),
+                        null,
+                        1,
+                        isset($data['appointment_order']) ? $data['appointment_order'] : null
+                    );
+                    $assignmentId = $this->deanAssignmentRepository->create($assignmentObj);
+
+                    if ($assignmentId) {
+                        http_response_code(201);
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'User created and assigned as Dean successfully',
+                            'data' => [
+                                'user' => $newUser->toArray(),
+                                'assignment_id' => $assignmentId
+                            ]
+                        ]);
+                    } else {
+                        throw new Exception("Failed to create Dean assignment");
+                    }
+                } else {
+                    throw new Exception("Failed to create user");
+                }
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to appoint Dean',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Demote Dean (Admin only)
+     * Ends Dean assignment without changing user role
+     */
+    public function demoteDean($employeeId)
+    {
+        if (!$this->requireAdmin()) return;
+
+        try {
+            $user = $this->userRepository->findByEmployeeId($employeeId);
+            
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User not found'
+                ]);
+                return;
+            }
+
+            if (!$this->deanAssignmentRepository) {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Dean assignment repository not available'
+                ]);
+                return;
+            }
+
+            // Find user's active Dean assignment
+            // Since user may not have department_id or school_id, we need to find their assignment differently
+            $allCurrentDeans = $this->deanAssignmentRepository->getAllCurrentDeans();
+            $userDeanAssignment = null;
+            $schoolId = null;
+            
+            foreach ($allCurrentDeans as $deanData) {
+                if ($deanData['employee_id'] == $employeeId) {
+                    $userDeanAssignment = $deanData;
+                    $schoolId = $deanData['school_id'];
+                    break;
+                }
+            }
+
+            if (!$userDeanAssignment) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User is not a current Dean'
+                ]);
+                return;
+            }
+
+            // End the Dean assignment
+            $result = $this->deanAssignmentRepository->endCurrentAssignment($schoolId, date('Y-m-d'));
+
+            if ($result) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Dean demoted successfully. User role remains unchanged.',
+                    'data' => [
+                        'user' => $user->toArray()
+                    ]
+                ]);
+            } else {
+                throw new Exception('Failed to end Dean assignment');
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to demote Dean',
                 'error' => $e->getMessage()
             ]);
         }

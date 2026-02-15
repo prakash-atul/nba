@@ -14,6 +14,7 @@ class DeanController
     private $departmentRepository;
     private $enrollmentRepository;
     private $marksRepository;
+    private $hodAssignmentRepository;
 
     public function __construct(
         UserRepository $userRepository,
@@ -22,7 +23,8 @@ class DeanController
         TestRepository $testRepository,
         DepartmentRepository $departmentRepository,
         EnrollmentRepository $enrollmentRepository,
-        MarksRepository $marksRepository
+        MarksRepository $marksRepository,
+        $hodAssignmentRepository = null
     ) {
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
@@ -31,6 +33,7 @@ class DeanController
         $this->departmentRepository = $departmentRepository;
         $this->enrollmentRepository = $enrollmentRepository;
         $this->marksRepository = $marksRepository;
+        $this->hodAssignmentRepository = $hodAssignmentRepository;
     }
 
     /**
@@ -40,7 +43,7 @@ class DeanController
     {
         $userData = $_REQUEST['authenticated_user'];
         
-        if ($userData['role'] !== 'dean') {
+        if (!isset($userData['is_dean']) || $userData['is_dean'] !== true) {
             http_response_code(403);
             echo json_encode([
                 'success' => false,
@@ -249,11 +252,11 @@ class DeanController
                 }
                 
                 // Get enrollment count
-                $enrollments = $this->enrollmentRepository->findByCourseId($course['id']);
+                $enrollments = $this->enrollmentRepository->findByCourseId($course['course_id']);
                 $courseArray['enrollment_count'] = count($enrollments);
                 
                 // Get test count
-                $tests = $this->testRepository->findByCourseId($course['id']);
+                $tests = $this->testRepository->findByCourseId($course['course_id']);
                 $courseArray['test_count'] = count($tests);
                 
                 $enrichedCourses[] = $courseArray;
@@ -291,7 +294,7 @@ class DeanController
             foreach ($students as $student) {
                 $studentArray = $student;
                 
-                $dept = $this->departmentRepository->findById($student['dept']);
+                $dept = $this->departmentRepository->findById($student['department_id']);
                 if ($dept) {
                     $studentArray['department_name'] = $dept->getDepartmentName();
                     $studentArray['department_code'] = $dept->getDepartmentCode();
@@ -336,7 +339,7 @@ class DeanController
                 $course = $this->courseRepository->findById($test['course_id']);
                 if ($course) {
                     $testArray['course_code'] = $course->getCourseCode();
-                    $testArray['course_name'] = $course->getName();
+                    $testArray['course_name'] = $course->getCourseName();
                     
                     // Get faculty info
                     $faculty = $this->userRepository->findByEmployeeId($course->getFacultyId());
@@ -442,6 +445,10 @@ class DeanController
      * Appoint HOD for a department (Dean only)
      * Can either promote existing faculty or create new HOD
      */
+    /**
+     * Appoint HOD for a department (Dean only)
+     * Creates assignment in hod_assignments table without changing user role
+     */
     public function appointHOD($departmentId)
     {
         if (!$this->requireDean()) return;
@@ -460,19 +467,30 @@ class DeanController
                 return;
             }
 
-            // Check if HOD already exists for this department
-            if ($this->userRepository->hodExistsForDepartment($departmentId)) {
-                http_response_code(409);
+            // Check if HOD already exists for this department via assignment table
+            if (!$this->hodAssignmentRepository) {
+                http_response_code(500);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'An HOD already exists for this department. Please demote the current HOD first.'
+                    'message' => 'HOD assignment repository not available'
                 ]);
                 return;
             }
 
-            // Two scenarios: promote existing faculty OR create new HOD
+            $currentHOD = $this->hodAssignmentRepository->getCurrentHOD($departmentId);
+            if ($currentHOD) {
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'An HOD already exists for this department. Please demote the current HOD first.',
+                    'current_hod' => $currentHOD
+                ]);
+                return;
+            }
+
+            // Two scenarios: assign existing faculty OR create new user and assign
             if (isset($data['employee_id']) && !isset($data['username'])) {
-                // Scenario 1: Promote existing faculty
+                // Scenario 1: Assign existing faculty as HOD
                 $employeeId = (int)$data['employee_id'];
                 $user = $this->userRepository->findByEmployeeId($employeeId);
                 
@@ -499,23 +517,38 @@ class DeanController
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
-                        'message' => 'Only faculty members can be promoted to HOD'
+                        'message' => 'Only faculty members can be appointed as HOD'
                     ]);
                     return;
                 }
 
-                // Promote to HOD
-                $user->setRole('hod');
-                $this->userRepository->save($user);
+                // Create HOD assignment (do NOT change user role)
+                $assignmentObj = new HODAssignment(
+                    null,
+                    $departmentId,
+                    $employeeId,
+                    date('Y-m-d'),
+                    null,
+                    1,
+                    isset($data['appointment_order']) ? $data['appointment_order'] : null
+                );
+                $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
 
-                http_response_code(200);
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Faculty promoted to HOD successfully',
-                    'data' => $user->toArray()
-                ]);
+                if ($assignmentId) {
+                    http_response_code(200);
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Faculty assigned as HOD successfully',
+                        'data' => [
+                            'user' => $user->toArray(),
+                            'assignment_id' => $assignmentId
+                        ]
+                    ]);
+                } else {
+                    throw new Exception("Failed to create HOD assignment");
+                }
             } else {
-                // Scenario 2: Create new HOD
+                // Scenario 2: Create new user as faculty and assign as HOD
                 $requiredFields = ['employee_id', 'username', 'email', 'password'];
                 $errors = [];
                 foreach ($requiredFields as $field) {
@@ -554,25 +587,46 @@ class DeanController
                     return;
                 }
 
-                // Create new HOD
-                $newHOD = new User(
+                // Create new user as faculty (not HOD role)
+                $newUser = new User(
                     (int)$data['employee_id'],
                     $data['username'],
                     $data['email'],
                     password_hash($data['password'], PASSWORD_DEFAULT),
-                    'hod',
-                    $departmentId
+                    'faculty',  // Base role is faculty
+                    $departmentId,
+                    isset($data['designation']) ? $data['designation'] : 'Professor',
+                    isset($data['phone']) ? $data['phone'] : null
                 );
 
-                if ($this->userRepository->save($newHOD)) {
-                    http_response_code(201);
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'HOD created successfully',
-                        'data' => $newHOD->toArray()
-                    ]);
+                if ($this->userRepository->save($newUser)) {
+                    // Create HOD assignment
+                    $assignmentObj = new HODAssignment(
+                        null,
+                        $departmentId,
+                        (int)$data['employee_id'],
+                        date('Y-m-d'),
+                        null,
+                        1,
+                        isset($data['appointment_order']) ? $data['appointment_order'] : null
+                    );
+                    $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
+
+                    if ($assignmentId) {
+                        http_response_code(201);
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'User created and assigned as HOD successfully',
+                            'data' => [
+                                'user' => $newUser->toArray(),
+                                'assignment_id' => $assignmentId
+                            ]
+                        ]);
+                    } else {
+                        throw new Exception("Failed to create HOD assignment");
+                    }
                 } else {
-                    throw new Exception("Failed to create HOD");
+                    throw new Exception("Failed to create user");
                 }
             }
         } catch (Exception $e) {
@@ -587,6 +641,10 @@ class DeanController
 
     /**
      * Demote HOD to faculty (Dean only)
+     */
+    /**
+     * Demote HOD (Dean only)
+     * Ends HOD assignment without changing user role (they remain faculty)
      */
     public function demoteHOD($employeeId)
     {
@@ -604,25 +662,41 @@ class DeanController
                 return;
             }
 
-            if ($user->getRole() !== 'hod') {
-                http_response_code(400);
+            if (!$this->hodAssignmentRepository) {
+                http_response_code(500);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'User is not an HOD'
+                    'message' => 'HOD assignment repository not available'
                 ]);
                 return;
             }
 
-            // Demote to faculty
-            $user->setRole('faculty');
-            $this->userRepository->save($user);
+            // Check if user has an active HOD assignment
+            $departmentId = $user->getDepartmentId();
+            $currentHOD = $this->hodAssignmentRepository->getCurrentHOD($departmentId);
+            
+            if (!$currentHOD || $currentHOD->getEmployeeId() != $employeeId) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User is not a current HOD'
+                ]);
+                return;
+            }
 
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'HOD demoted to faculty successfully',
-                'data' => $user->toArray()
-            ]);
+            // End the HOD assignment (do NOT change user role)
+            $result = $this->hodAssignmentRepository->endCurrentAssignment($departmentId);
+
+            if ($result) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'HOD assignment ended successfully. User remains as faculty.',
+                    'data' => $user->toArray()
+                ]);
+            } else {
+                throw new Exception("Failed to end HOD assignment");
+            }
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([

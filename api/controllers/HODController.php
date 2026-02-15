@@ -30,7 +30,7 @@ class HODController
     {
         $userData = $_REQUEST['authenticated_user'];
         
-        if ($userData['role'] !== 'hod') {
+        if (!isset($userData['is_hod']) || $userData['is_hod'] !== true) {
             http_response_code(403);
             echo json_encode([
                 'success' => false,
@@ -208,7 +208,7 @@ class HODController
             $this->courseRepository->save($course);
 
             // Get the created course with faculty info
-            $createdCourse = $this->courseRepository->findByIdWithFaculty($course->getId());
+            $createdCourse = $this->courseRepository->findByIdWithFaculty($course->getCourseId());
 
             http_response_code(201);
             header('Content-Type: application/json');
@@ -266,7 +266,7 @@ class HODController
             if (isset($input['course_code'])) {
                 // Check if new code conflicts with another course
                 $conflictingCourse = $this->courseRepository->findByCourseCode($input['course_code']);
-                if ($conflictingCourse && $conflictingCourse->getId() != $courseId) {
+                if ($conflictingCourse && $conflictingCourse->getCourseId() != $courseId) {
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
@@ -276,7 +276,7 @@ class HODController
                 }
                 $existingCourse->setCourseCode($input['course_code']);
             }
-            if (isset($input['name'])) $existingCourse->setName($input['name']);
+            if (isset($input['name'])) $existingCourse->setCourseName($input['name']);
             if (isset($input['credit'])) $existingCourse->setCredit($input['credit']);
             if (isset($input['faculty_id'])) {
                 // Verify new faculty belongs to department

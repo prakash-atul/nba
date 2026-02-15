@@ -301,7 +301,7 @@ class UserRepository
             $stmt = $this->db->prepare("
                 SELECT employee_id, username, email, role, department_id 
                 FROM users 
-                WHERE department_id = ? AND role IN ('faculty', 'hod', 'staff')
+                WHERE department_id = ? AND role IN ('faculty', 'staff')
                 ORDER BY role, username
             ");
             $stmt->execute([$departmentId]);
@@ -333,7 +333,7 @@ class UserRepository
         try {
             $stmt = $this->db->prepare("
                 SELECT COUNT(*) FROM users 
-                WHERE department_id = ? AND role IN ('faculty', 'hod')
+                WHERE department_id = ? AND role = 'faculty'
             ");
             $stmt->execute([$departmentId]);
             return (int)$stmt->fetchColumn();
@@ -366,7 +366,7 @@ class UserRepository
     public function countStudentsByDepartment($departmentId)
     {
         try {
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM student WHERE dept = ?");
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM students WHERE department_id = ?");
             $stmt->execute([$departmentId]);
             return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
@@ -376,6 +376,7 @@ class UserRepository
 
     /**
      * Check if HOD exists for a department
+     * Now queries hod_assignments table instead of users.role
      * @param int $departmentId
      * @param int|null $excludeEmployeeId Optional employee ID to exclude from the check (for updates)
      * @return bool
@@ -383,7 +384,7 @@ class UserRepository
     public function hodExistsForDepartment($departmentId, $excludeEmployeeId = null)
     {
         try {
-            $sql = "SELECT COUNT(*) FROM users WHERE role = 'hod' AND department_id = ?";
+            $sql = "SELECT COUNT(*) FROM hod_assignments WHERE department_id = ? AND is_current = 1";
             $params = [$departmentId];
 
             if ($excludeEmployeeId) {
@@ -401,13 +402,14 @@ class UserRepository
 
     /**
      * Check if Dean exists in the system
+     * Now queries dean_assignments table instead of users.role
      * @param int|null $excludeEmployeeId Optional employee ID to exclude from the check (for updates)
      * @return bool
      */
     public function deanExists($excludeEmployeeId = null)
     {
         try {
-            $sql = "SELECT COUNT(*) FROM users WHERE role = 'dean'";
+            $sql = "SELECT COUNT(*) FROM dean_assignments WHERE is_current = 1";
             $params = [];
 
             if ($excludeEmployeeId) {

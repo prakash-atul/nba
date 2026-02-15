@@ -118,7 +118,7 @@ class AttainmentController
             $response = [
                 'success' => true,
                 'data' => [
-                    'course_id' => $course->getId(),
+                    'course_id' => $course->getCourseId(),
                     'co_threshold' => $course->getCoThreshold(),
                     'passing_threshold' => $course->getPassingThreshold(),
                     'attainment_thresholds' => array_map(function ($scale) {

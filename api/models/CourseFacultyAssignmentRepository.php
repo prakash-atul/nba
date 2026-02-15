@@ -94,9 +94,9 @@ class CourseFacultyAssignmentRepository
                 SELECT 
                     cfa.*,
                     c.course_code,
-                    c.name as course_name
+                    c.course_name as course_name
                 FROM course_faculty_assignments cfa
-                JOIN course c ON cfa.course_id = c.id
+                JOIN courses c ON cfa.course_id = c.course_id
                 WHERE cfa.employee_id = ? AND cfa.is_active = 1
             ";
             
@@ -281,11 +281,11 @@ class CourseFacultyAssignmentRepository
                 SELECT 
                     cfa.*,
                     c.course_code,
-                    c.name as course_name,
+                    c.course_name as course_name,
                     u.username,
                     u.email
                 FROM course_faculty_assignments cfa
-                JOIN course c ON cfa.course_id = c.id
+                JOIN courses c ON cfa.course_id = c.course_id
                 JOIN users u ON cfa.employee_id = u.employee_id
                 WHERE c.department_id = ? AND cfa.year = ? AND cfa.semester = ? AND cfa.is_active = 1
                 ORDER BY c.course_code, cfa.assignment_type

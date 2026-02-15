@@ -28,6 +28,12 @@ require_once __DIR__ . '/../models/EnrollmentRepository.php';
 require_once __DIR__ . '/../models/AttainmentScale.php';
 require_once __DIR__ . '/../models/AttainmentScaleRepository.php';
 require_once __DIR__ . '/../models/CoPoRepository.php';
+require_once __DIR__ . '/../models/School.php';
+require_once __DIR__ . '/../models/SchoolRepository.php';
+require_once __DIR__ . '/../models/HODAssignment.php';
+require_once __DIR__ . '/../models/HODAssignmentRepository.php';
+require_once __DIR__ . '/../models/DeanAssignment.php';
+require_once __DIR__ . '/../models/DeanAssignmentRepository.php';
 require_once __DIR__ . '/../utils/JWTService.php';
 require_once __DIR__ . '/../utils/AuthService.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
@@ -80,8 +86,11 @@ class Router
         $marksRepository = new MarksRepository($db);
         $attainmentScaleRepository = new AttainmentScaleRepository($db);
         $coPoRepository = new CoPoRepository($db);
+        $schoolRepository = new SchoolRepository($db);
+        $hodAssignmentRepository = new HODAssignmentRepository($db);
+        $deanAssignmentRepository = new DeanAssignmentRepository($db);
         $jwtService = new JWTService();
-        $authService = new AuthService($userRepository, $jwtService, $departmentRepository);
+        $authService = new AuthService($userRepository, $jwtService, $departmentRepository, $hodAssignmentRepository, $deanAssignmentRepository);
 
         // Initialize middleware
         $this->corsMiddleware = new CorsMiddleware();
@@ -96,7 +105,7 @@ class Router
         $this->marksController = new MarksController($studentRepository, $rawMarksRepository, $marksRepository, $questionRepository, $testRepository, $validationMiddleware, $courseRepository);
         $this->enrollmentController = new EnrollmentController($db);
         $this->attainmentController = new AttainmentController($courseRepository, $attainmentScaleRepository, $coPoRepository);
-        $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository);
+        $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository, $deanAssignmentRepository, $schoolRepository);
         $this->hodController = new HODController($userRepository, $courseRepository, $departmentRepository, $validationMiddleware);
 
         // Initialize enrollment repository for staff controller
@@ -107,7 +116,7 @@ class Router
         $this->facultyController = new FacultyController($courseRepository, $testRepository, $enrollmentRepository, $marksRepository, $db);
 
         // Initialize dean controller
-        $this->deanController = new DeanController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository, $enrollmentRepository, $marksRepository);
+        $this->deanController = new DeanController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository, $enrollmentRepository, $marksRepository, $hodAssignmentRepository);
     }
 
     /**
@@ -492,6 +501,27 @@ class Router
                     $user = $this->authMiddleware->requireAuth();
                     $_REQUEST['authenticated_user'] = $user;
                     $this->deanController->demoteHOD($matches[1]);
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            // Admin Dean management routes
+            case (preg_match('#^admin/schools/(\d+)/dean$#', $path, $matches) ? true : false):
+                if ($method === 'POST') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->appointDean($matches[1]);
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case (preg_match('#^admin/dean/(\d+)$#', $path, $matches) ? true : false):
+                if ($method === 'DELETE') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->demoteDean($matches[1]);
                 } else {
                     $this->sendMethodNotAllowed();
                 }

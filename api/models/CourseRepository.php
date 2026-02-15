@@ -431,7 +431,7 @@ class CourseRepository
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT COUNT(*) FROM test t
+                SELECT COUNT(*) FROM tests t
                 INNER JOIN courses c ON t.course_id = c.course_id
                 INNER JOIN users u ON c.faculty_id = u.employee_id 
                 WHERE u.department_id = ?

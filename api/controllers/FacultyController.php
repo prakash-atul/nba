@@ -142,7 +142,7 @@ class FacultyController
             $stmt = $this->db->prepare("
                 SELECT 
                     (SELECT COUNT(*) FROM questions WHERE test_id = ?) as question_count,
-                    (SELECT COUNT(DISTINCT student_id) FROM marks WHERE test_id = ?) as student_count,
+                    (SELECT COUNT(DISTINCT student_roll_no) FROM marks WHERE test_id = ?) as student_count,
                     (SELECT COUNT(*) FROM raw_marks WHERE test_id = ?) as raw_marks_count
             ");
             $stmt->execute([$testId, $testId, $testId]);
@@ -158,7 +158,7 @@ class FacultyController
                 'success' => true,
                 'message' => 'Test deleted successfully',
                 'data' => [
-                    'test_name' => $test['name'],
+                    'test_name' => $test['test_name'],
                     'course_code' => $test['course_code'],
                     'questions_deleted' => (int)$counts['question_count'],
                     'students_affected' => (int)$counts['student_count'],

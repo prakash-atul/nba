@@ -321,6 +321,63 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Appoint Dean",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"employee_id\": 3001,\n  \"appointment_order\": \"APT/2026/DEAN/001\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/schools/1/dean",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "schools", "1", "dean"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create and Appoint Dean",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"employee_id\": 5001,\n  \"username\": \"DEAN_SOE\",\n  \"email\": \"dean_soe@tezu.ac.in\",\n  \"password\": \"password123\",\n  \"role\": \"faculty\",\n  \"department_id\": 1,\n  \"designation\": \"Professor & Dean\",\n  \"phone\": \"9876543210\",\n  \"appointment_order\": \"APT/2026/DEAN/001\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/schools/1/dean",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "schools", "1", "dean"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Demote Dean",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/dean/5001",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "dean", "5001"]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -866,7 +923,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"course_id\": 1,\n  \"name\": \"Mid Semester Exam\",\n  \"full_marks\": 50,\n  \"pass_marks\": 20,\n  \"questions\": [\n    {\n      \"question_number\": 1,\n      \"question_text\": \"Explain data structures\",\n      \"max_marks\": 10,\n      \"co_id\": 1,\n      \"bloom_level\": \"Understand\"\n    },\n    {\n      \"question_number\": 2,\n      \"question_text\": \"Implement a binary search tree\",\n      \"max_marks\": 15,\n      \"co_id\": 2,\n      \"bloom_level\": \"Apply\"\n    }\n  ]\n}"
+							"raw": "{\n  \"course_id\": 1,\n  \"name\": \"Mid Semester Exam\",\n  \"full_marks\": 50,\n  \"pass_marks\": 20,\n  \"test_type\": \"Mid-term\",\n  \"test_date\": \"2026-03-15\",\n  \"max_marks\": 50,\n  \"weightage\": 30,\n  \"questions\": [\n    {\n      \"question_number\": 1,\n      \"max_marks\": 10,\n      \"co\": 1\n    },\n    {\n      \"question_number\": 2,\n      \"max_marks\": 15,\n      \"co\": 2\n    },\n    {\n      \"question_number\": 3,\n      \"sub_question\": \"a\",\n      \"max_marks\": 8,\n      \"co\": 3,\n      \"is_optional\": false\n    },\n    {\n      \"question_number\": 3,\n      \"sub_question\": \"b\",\n      \"max_marks\": 7,\n      \"co\": 4,\n      \"is_optional\": false\n    },\n    {\n      \"question_number\": 4,\n      \"max_marks\": 10,\n      \"co\": 5,\n      \"is_optional\": true\n    }\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/assessment",
@@ -926,7 +983,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"question_text\": \"Updated question text\",\n  \"max_marks\": 12,\n  \"co_id\": 1,\n  \"bloom_level\": \"Analyze\"\n}"
+							"raw": "{\n  \"max_marks\": 12,\n  \"co\": 2,\n  \"is_optional\": false\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/questions/1",
@@ -966,7 +1023,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"test_id\": 1,\n  \"question_id\": 1,\n  \"marks\": [\n    {\n      \"student_roll_no\": \"2026CS001\",\n      \"marks_obtained\": 8.5\n    },\n    {\n      \"student_roll_no\": \"2026CS002\",\n      \"marks_obtained\": 9.0\n    }\n  ]\n}"
+							"raw": "{\n  \"test_id\": 1,\n  \"student_id\": \"2026CS001\",\n  \"marks\": [\n    {\n      \"question_identifier\": \"1\",\n      \"marks\": 8.5\n    },\n    {\n      \"question_identifier\": \"2\",\n      \"marks\": 12.0\n    },\n    {\n      \"question_identifier\": \"3a\",\n      \"marks\": 7.0\n    },\n    {\n      \"question_identifier\": \"3b\",\n      \"marks\": 6.5\n    }\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/marks/by-question",
@@ -988,7 +1045,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"test_id\": 1,\n  \"co_id\": 1,\n  \"marks\": [\n    {\n      \"student_roll_no\": \"2026CS001\",\n      \"marks_obtained\": 25.5\n    },\n    {\n      \"student_roll_no\": \"2026CS002\",\n      \"marks_obtained\": 28.0\n    }\n  ]\n}"
+							"raw": "{\n  \"test_id\": 1,\n  \"student_id\": \"2026CS001\",\n  \"CO1\": 10,\n  \"CO2\": 8.5,\n  \"CO3\": 15,\n  \"CO4\": 12,\n  \"CO5\": 0,\n  \"CO6\": 0\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/marks/by-co",
@@ -1010,7 +1067,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"test_id\": 1,\n  \"marks\": [\n    {\n      \"student_roll_no\": \"2026CS001\",\n      \"question_marks\": [\n        {\"question_id\": 1, \"marks_obtained\": 8.5},\n        {\"question_id\": 2, \"marks_obtained\": 12.0}\n      ]\n    },\n    {\n      \"student_roll_no\": \"2026CS002\",\n      \"question_marks\": [\n        {\"question_id\": 1, \"marks_obtained\": 9.0},\n        {\"question_id\": 2, \"marks_obtained\": 13.5}\n      ]\n    }\n  ]\n}"
+							"raw": "{\n  \"test_id\": 1,\n  \"marks_entries\": [\n    {\n      \"student_rollno\": \"2026CS001\",\n      \"question_number\": 1,\n      \"sub_question\": null,\n      \"marks_obtained\": 8.5\n    },\n    {\n      \"student_rollno\": \"2026CS001\",\n      \"question_number\": 2,\n      \"sub_question\": null,\n      \"marks_obtained\": 12.0\n    },\n    {\n      \"student_rollno\": \"2026CS001\",\n      \"question_number\": 3,\n      \"sub_question\": \"a\",\n      \"marks_obtained\": 7.0\n    },\n    {\n      \"student_rollno\": \"2026CS002\",\n      \"question_number\": 1,\n      \"sub_question\": null,\n      \"marks_obtained\": 9.0\n    },\n    {\n      \"student_rollno\": \"2026CS002\",\n      \"question_number\": 2,\n      \"sub_question\": null,\n      \"marks_obtained\": 13.5\n    },\n    {\n      \"student_rollno\": \"2026CS002\",\n      \"question_number\": 3,\n      \"sub_question\": \"a\",\n      \"marks_obtained\": 6.5\n    }\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/marks/bulk",
@@ -1224,7 +1281,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"mappings\": [\n    {\"co_id\": 1, \"po_id\": 1, \"mapping_level\": 3},\n    {\"co_id\": 1, \"po_id\": 2, \"mapping_level\": 2},\n    {\"co_id\": 2, \"po_id\": 1, \"mapping_level\": 2},\n    {\"co_id\": 2, \"po_id\": 3, \"mapping_level\": 3}\n  ]\n}"
+							"raw": "{\n  \"mappings\": [\n    {\"co\": \"CO1\", \"po\": \"PO1\", \"value\": 3},\n    {\"co\": \"CO1\", \"po\": \"PO2\", \"value\": 2},\n    {\"co\": \"CO1\", \"po\": \"PO3\", \"value\": 1},\n    {\"co\": \"CO2\", \"po\": \"PO1\", \"value\": 2},\n    {\"co\": \"CO2\", \"po\": \"PO3\", \"value\": 3},\n    {\"co\": \"CO3\", \"po\": \"PO2\", \"value\": 3},\n    {\"co\": \"CO3\", \"po\": \"PO4\", \"value\": 2}\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/courses/1/copo-matrix",

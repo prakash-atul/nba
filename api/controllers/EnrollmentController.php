@@ -197,11 +197,11 @@ class EnrollmentController
                     $questions = $questionRepo->findByTestId($testId);
                     $testInfo = [
                         'test_id' => $testId,
-                        'test_name' => $test->getName(),
+                        'test_name' => $test->getTestName(),
                         'full_marks' => $test->getFullMarks(),
                         'questions' => array_map(function ($q) {
                             return [
-                                'id' => $q->getId(),
+                                'id' => $q->getQuestionId(),
                                 'question_number' => $q->getQuestionNumber(),
                                 'sub_question' => $q->getSubQuestion(),
                                 'question_identifier' => $q->getQuestionIdentifier(),
@@ -220,7 +220,7 @@ class EnrollmentController
                 'data' => [
                     'course_id' => $courseId,
                     'course_code' => $course->getCourseCode(),
-                    'course_name' => $course->getName(),
+                    'course_name' => $course->getCourseName(),
                     'enrollment_count' => $count,
                     'enrollments' => $enrollments
                 ]

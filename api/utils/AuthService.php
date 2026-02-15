@@ -10,12 +10,21 @@ class AuthService
     private $userRepository;
     private $jwtService;
     private $departmentRepository;
+    private $hodAssignmentRepository;
+    private $deanAssignmentRepository;
 
-    public function __construct(UserRepository $userRepository, JWTService $jwtService, DepartmentRepository $departmentRepository = null)
-    {
+    public function __construct(
+        UserRepository $userRepository, 
+        JWTService $jwtService, 
+        DepartmentRepository $departmentRepository = null,
+        $hodAssignmentRepository = null,
+        $deanAssignmentRepository = null
+    ) {
         $this->userRepository = $userRepository;
         $this->jwtService = $jwtService;
         $this->departmentRepository = $departmentRepository;
+        $this->hodAssignmentRepository = $hodAssignmentRepository;
+        $this->deanAssignmentRepository = $deanAssignmentRepository;
     }
 
     /**
@@ -38,11 +47,43 @@ class AuthService
             return null; // Invalid password
         }
 
-        // Generate token
-        $token = $this->jwtService->generateToken($user);
+        // Check HOD assignment
+        $flags = [
+            'is_hod' => false,
+            'is_dean' => false,
+            'hod_department_id' => null,
+            'school_id' => null
+        ];
+
+        if ($this->hodAssignmentRepository && $user->getDepartmentId()) {
+            $hodAssignment = $this->hodAssignmentRepository->getCurrentHOD($user->getDepartmentId());
+            if ($hodAssignment && $hodAssignment->getEmployeeId() == $user->getEmployeeId()) {
+                $flags['is_hod'] = true;
+                $flags['hod_department_id'] = $user->getDepartmentId();
+            }
+        }
+
+        // Check Dean assignment - check if user is a current Dean for any school
+        if ($this->deanAssignmentRepository) {
+            $allCurrentDeans = $this->deanAssignmentRepository->getAllCurrentDeans();
+            foreach ($allCurrentDeans as $deanData) {
+                if ($deanData['employee_id'] == $user->getEmployeeId()) {
+                    $flags['is_dean'] = true;
+                    $flags['school_id'] = $deanData['school_id'];
+                    break;
+                }
+            }
+        }
+
+        // Generate token with assignment flags
+        $token = $this->jwtService->generateToken($user, $flags);
 
         // Prepare user data with department info
         $userData = $user->toArray();
+        $userData['is_hod'] = $flags['is_hod'];
+        $userData['is_dean'] = $flags['is_dean'];
+        $userData['hod_department_id'] = $flags['hod_department_id'];
+        $userData['school_id'] = $flags['school_id'];
 
         // Add department name if user has a department and repository is available
         if ($this->departmentRepository && $user->getDepartmentId()) {

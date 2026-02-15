@@ -18,13 +18,13 @@ class MarksRepository
      */
     public function findByTestAndStudent($testId, $studentId)
     {
-        $stmt = $this->db->prepare("SELECT * FROM marks WHERE test_id = ? AND student_id = ?");
+        $stmt = $this->db->prepare("SELECT * FROM marks WHERE test_id = ? AND student_roll_no = ?");
         $stmt->execute([$testId, $studentId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
             return new Marks(
-                $row['student_id'],
+                $row['student_roll_no'],
                 $row['test_id'],
                 $row['CO1'],
                 $row['CO2'],
@@ -44,18 +44,18 @@ class MarksRepository
     public function findByTest($testId)
     {
         $stmt = $this->db->prepare("
-            SELECT m.*, s.name as student_name 
+            SELECT m.*, s.student_name as student_name 
             FROM marks m
-            JOIN student s ON m.student_id = s.rollno
+            JOIN students s ON m.student_roll_no = s.roll_no
             WHERE m.test_id = ?
-            ORDER BY m.student_id
+            ORDER BY m.student_roll_no
         ");
         $stmt->execute([$testId]);
 
         $marksList = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $marks = new Marks(
-                $row['student_id'],
+                $row['student_roll_no'],
                 $row['test_id'],
                 $row['CO1'],
                 $row['CO2'],
@@ -79,7 +79,7 @@ class MarksRepository
     public function save(Marks $marks)
     {
         $stmt = $this->db->prepare("
-            INSERT INTO marks (student_id, test_id, CO1, CO2, CO3, CO4, CO5, CO6) 
+            INSERT INTO marks (student_roll_no, test_id, CO1, CO2, CO3, CO4, CO5, CO6) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE 
                 CO1 = VALUES(CO1),
@@ -91,7 +91,7 @@ class MarksRepository
         ");
 
         $result = $stmt->execute([
-            $marks->getStudentId(),
+            $marks->getStudentRollNo(),
             $marks->getTestId(),
             $marks->getCO1(),
             $marks->getCO2(),
@@ -113,7 +113,7 @@ class MarksRepository
      */
     public function deleteByTestAndStudent($testId, $studentId)
     {
-        $stmt = $this->db->prepare("DELETE FROM marks WHERE test_id = ? AND student_id = ?");
+        $stmt = $this->db->prepare("DELETE FROM marks WHERE test_id = ? AND student_roll_no = ?");
         return $stmt->execute([$testId, $studentId]);
     }
 
@@ -122,7 +122,7 @@ class MarksRepository
      */
     public function exists($testId, $studentId)
     {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM marks WHERE test_id = ? AND student_id = ?");
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM marks WHERE test_id = ? AND student_roll_no = ?");
         $stmt->execute([$testId, $studentId]);
         return $stmt->fetchColumn() > 0;
     }
@@ -134,9 +134,9 @@ class MarksRepository
     {
         // Calculate CO totals from raw marks
         $stmt = $this->db->prepare("
-            SELECT q.co, SUM(r.marks) as total
-            FROM rawMarks r
-            JOIN question q ON r.question_id = q.id
+            SELECT q.co, SUM(r.marks_obtained) as total
+            FROM raw_marks r
+            JOIN questions q ON r.question_id = q.question_id
             WHERE r.test_id = ? AND r.student_id = ?
             GROUP BY q.co
         ");
