@@ -26,17 +26,17 @@ export function LoginPage() {
 			if (response.success) {
 				const { user } = response.data;
 
-				// Route based on role
-				if (user.role === "faculty") {
-					navigate("/faculty");
-				} else if (user.role === "hod") {
+				// Route based on role and flags
+				if (user.role === "admin") {
+					navigate("/dashboard");
+				} else if (user.is_dean) {
+					navigate("/dean");
+				} else if (user.is_hod) {
 					navigate("/hod");
+				} else if (user.role === "faculty") {
+					navigate("/faculty");
 				} else if (user.role === "staff") {
 					navigate("/staff");
-				} else if (user.role === "dean") {
-					navigate("/dean");
-				} else if (user.role === "admin") {
-					navigate("/dashboard");
 				} else {
 					navigate("/dashboard");
 				}

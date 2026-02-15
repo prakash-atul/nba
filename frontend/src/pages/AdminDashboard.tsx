@@ -8,6 +8,7 @@ import type {
 	AdminTest,
 	Student,
 	Department,
+	School,
 } from "@/services/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RefreshCw } from "lucide-react";
@@ -21,6 +22,7 @@ import {
 	StudentsView,
 	TestsView,
 	DepartmentsView,
+	SchoolsView,
 } from "@/components/admin";
 import { AppSidebar, AppHeader, type NavItem } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -31,10 +33,12 @@ import {
 	GraduationCap,
 	FileText,
 	Building2,
+	School as SchoolIcon,
 } from "lucide-react";
 
 const adminNavItems: NavItem[] = [
 	{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+	{ id: "schools", label: "Schools", icon: SchoolIcon },
 	{ id: "departments", label: "Departments", icon: Building2 },
 	{ id: "users", label: "Users", icon: UsersIcon },
 	{ id: "courses", label: "Courses", icon: BookOpen },
@@ -59,6 +63,7 @@ export function AdminDashboard() {
 	const [students, setStudents] = useState<Student[]>([]);
 	const [tests, setTests] = useState<AdminTest[]>([]);
 	const [departments, setDepartments] = useState<Department[]>([]);
+	const [schools, setSchools] = useState<School[]>([]);
 
 	// Loading states
 	const [loading, setLoading] = useState(true);
@@ -75,11 +80,15 @@ export function AdminDashboard() {
 		}
 		// Only allow admin role
 		if (storedUser.role !== "admin") {
-			// Redirect based on role
-			if (storedUser.role === "hod") {
+			// Redirect based on role and flags
+			if (storedUser.is_dean) {
+				navigate("/dean");
+			} else if (storedUser.is_hod) {
 				navigate("/hod");
 			} else if (storedUser.role === "faculty") {
-				navigate("/assessments");
+				navigate("/faculty");
+			} else if (storedUser.role === "staff") {
+				navigate("/staff");
 			} else {
 				navigate("/login");
 			}
@@ -118,9 +127,13 @@ export function AdminDashboard() {
 					setUsers(usersData);
 					break;
 				case "departments":
-					const departmentsData =
-						await apiService.getAllDepartments();
+					const [departmentsData, schoolsListForDept] =
+						await Promise.all([
+							apiService.getAllDepartments(),
+							apiService.getAllSchools(),
+						]);
 					setDepartments(departmentsData);
+					setSchools(schoolsListForDept);
 					break;
 				case "courses":
 					const coursesData = await apiService.getAllCoursesAdmin();
@@ -133,6 +146,14 @@ export function AdminDashboard() {
 				case "tests":
 					const testsData = await apiService.getAllTestsAdmin();
 					setTests(testsData);
+					break;
+				case "schools":
+					const [schoolsData, usersList] = await Promise.all([
+						apiService.getAllSchools(),
+						apiService.getAllUsers(),
+					]);
+					setSchools(schoolsData);
+					setUsers(usersList);
 					break;
 			}
 		} catch (error) {
@@ -171,8 +192,17 @@ export function AdminDashboard() {
 		setUsers(newUsers);
 	};
 
-	const handleDepartmentsRefresh = (newDepartments: Department[]) => {
-		setDepartments(newDepartments);
+	const handleDepartmentsRefresh = async () => {
+		try {
+			const [deptData, schoolsListForDept] = await Promise.all([
+				apiService.getAllDepartments(),
+				apiService.getAllSchools(),
+			]);
+			setDepartments(deptData);
+			setSchools(schoolsListForDept);
+		} catch (error) {
+			console.error("Failed to refresh department data:", error);
+		}
 	};
 
 	const renderContent = () => {
@@ -198,8 +228,7 @@ export function AdminDashboard() {
 			case "departments":
 				return (
 					<DepartmentsView
-						departments={departments}
-						refreshing={refreshing}
+						departments={departments}							schools={schools}						refreshing={refreshing}
 						onDataRefresh={handleDepartmentsRefresh}
 					/>
 				);
@@ -223,6 +252,15 @@ export function AdminDashboard() {
 				);
 			case "tests":
 				return <TestsView tests={tests} refreshing={refreshing} />;
+			case "schools":
+				return (
+					<SchoolsView
+						schools={schools}
+						users={users}
+						refreshing={refreshing}
+						onDataRefresh={() => fetchViewData("schools")}
+					/>
+				);
 			default:
 				return (
 					<div className="space-y-6">

@@ -40,8 +40,8 @@ interface UsersViewProps {
 }
 
 export function UsersView({
-	users,
-	departments,
+	users = [],
+	departments = [],
 	currentUser,
 	refreshing,
 	onDataRefresh,
@@ -63,10 +63,6 @@ export function UsersView({
 		switch (role) {
 			case "admin":
 				return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-			case "dean":
-				return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-			case "hod":
-				return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
 			case "faculty":
 				return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
 			case "staff":
@@ -195,8 +191,6 @@ export function UsersView({
 										}
 									>
 										<option value="admin">Admin</option>
-										<option value="dean">Dean</option>
-										<option value="hod">HOD</option>
 										<option value="faculty">Faculty</option>
 										<option value="staff">Staff</option>
 									</select>
@@ -344,13 +338,25 @@ export function UsersView({
 											{user.email}
 										</TableCell>
 										<TableCell>
-											<Badge
-												className={getRoleBadgeColor(
-													user.role
+											<div className="flex gap-1 flex-wrap">
+												<Badge
+													className={getRoleBadgeColor(
+														user.role
+													)}
+												>
+													{user.role.toUpperCase()}
+												</Badge>
+												{user.is_dean && (
+													<Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+														DEAN
+													</Badge>
 												)}
-											>
-												{user.role.toUpperCase()}
-											</Badge>
+												{user.is_hod && (
+													<Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+														HOD
+													</Badge>
+												)}
+											</div>
 										</TableCell>
 										<TableCell>
 											{user.department_code || (

@@ -215,10 +215,9 @@ export function DataTableView<T>({
 export function getRoleBadgeColor(role: string) {
 	const colors: Record<string, string> = {
 		admin: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
-		dean: "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-		hod: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
 		faculty: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-		staff: "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+		staff:
+			"bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
 	};
 	return (
 		colors[role] ||
@@ -231,5 +230,28 @@ export function RoleBadge({ role }: { role: string }) {
 		<Badge className={getRoleBadgeColor(role)}>
 			{role.charAt(0).toUpperCase() + role.slice(1)}
 		</Badge>
+	);
+}
+
+export function StatusBadge({
+	is_hod,
+	is_dean,
+}: {
+	is_hod?: boolean;
+	is_dean?: boolean;
+}) {
+	return (
+		<div className="flex gap-1">
+			{is_dean && (
+				<Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+					Dean
+				</Badge>
+			)}
+			{is_hod && (
+				<Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+					HOD
+				</Badge>
+			)}
+		</div>
 	);
 }

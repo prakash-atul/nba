@@ -49,6 +49,14 @@ class ApiService {
 	getAdminStats = adminApi.getStats;
 	getAllUsers = adminApi.getAllUsers;
 	createUser = adminApi.createUser;
+	// School methods
+	getAllSchools = adminApi.getAllSchools;
+	createSchool = adminApi.createSchool;
+	updateSchool = adminApi.updateSchool;
+	deleteSchool = adminApi.deleteSchool;
+	appointDean = adminApi.appointDean;
+	demoteDean = adminApi.demoteDean;
+
 	deleteUser = adminApi.deleteUser;
 	getAllDepartments = adminApi.getAllDepartments;
 	createDepartment = adminApi.createDepartment;

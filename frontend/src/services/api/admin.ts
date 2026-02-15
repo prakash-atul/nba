@@ -9,6 +9,11 @@ import type {
 	CreateUserRequest,
 	CreateDepartmentRequest,
 	UpdateDepartmentRequest,
+	School,
+	CreateSchoolRequest,
+	UpdateSchoolRequest,
+	AppointDeanRequest,
+	CreateDeanRequest,
 } from "./types";
 
 export const adminApi = {
@@ -26,6 +31,44 @@ export const adminApi = {
 
 	async deleteUser(employeeId: number): Promise<void> {
 		return apiDelete(`/admin/users/${employeeId}`);
+	},
+
+	// School Management
+	async getAllSchools(): Promise<School[]> {
+		return apiGet<School[]>("/admin/schools");
+	},
+
+	async createSchool(data: CreateSchoolRequest): Promise<School> {
+		return apiPost<CreateSchoolRequest, School>("/admin/schools", data);
+	},
+
+	async updateSchool(
+		schoolId: number,
+		data: UpdateSchoolRequest
+	): Promise<School> {
+		return apiPut<UpdateSchoolRequest, School>(
+			`/admin/schools/${schoolId}`,
+			data
+		);
+	},
+
+	async deleteSchool(schoolId: number): Promise<void> {
+		return apiDelete(`/admin/schools/${schoolId}`);
+	},
+
+	// Dean Management
+	async appointDean(
+		schoolId: number,
+		data: AppointDeanRequest | CreateDeanRequest
+	): Promise<User> {
+		return apiPost<AppointDeanRequest | CreateDeanRequest, User>(
+			`/admin/schools/${schoolId}/dean`,
+			data
+		);
+	},
+
+	async demoteDean(employeeId: number): Promise<void> {
+		return apiDelete(`/admin/dean/${employeeId}`);
 	},
 
 	async getAllDepartments(): Promise<Department[]> {

@@ -77,12 +77,14 @@ export function HODDashboard() {
 			navigate("/login");
 			return;
 		}
-		if (storedUser.role !== "hod") {
+		if (!storedUser.is_hod) {
 			// Redirect based on role
 			if (storedUser.role === "admin") {
 				navigate("/dashboard");
+			} else if (storedUser.is_dean) {
+				navigate("/dean");
 			} else if (storedUser.role === "faculty") {
-				navigate("/assessments");
+				navigate("/faculty");
 			} else {
 				navigate("/login");
 			}

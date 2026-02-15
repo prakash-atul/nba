@@ -247,6 +247,206 @@ class AdminController
     }
 
     /**
+     * Get all schools (Admin only)
+     */
+    public function getAllSchools()
+    {
+        try {
+            $userData = $_REQUEST['authenticated_user'];
+            
+            // Start of Selection
+            if ($userData['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Access denied. Admin privileges required.'
+                ]);
+                return;
+            }
+
+            $schools = $this->schoolRepository->findAll();
+
+            // Enrich with Dean info and department count
+            foreach ($schools as &$school) {
+                $school['dean'] = null;
+                if ($this->deanAssignmentRepository) {
+                    $deanAssignment = $this->deanAssignmentRepository->getCurrentDean($school['school_id']);
+                    if ($deanAssignment) {
+                        $deanUser = $this->userRepository->findByEmployeeId($deanAssignment->getEmployeeId());
+                        if ($deanUser) {
+                            $school['dean'] = [
+                                'employee_id' => $deanUser->getEmployeeId(),
+                                'username' => $deanUser->getUsername(),
+                                'email' => $deanUser->getEmail()
+                            ];
+                        }
+                    }
+                }
+
+            }
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Schools retrieved successfully',
+                'data' => $schools
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to retrieve schools',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Create a new school (Admin only)
+     */
+    public function createSchool()
+    {
+        try {
+            if (!$this->requireAdmin()) return;
+
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            if (empty($input['school_name']) || empty($input['school_code'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'School name and code are required'
+                ]);
+                return;
+            }
+
+            $school = new School(
+                null,
+                $input['school_code'],
+                $input['school_name'],
+                isset($input['description']) ? $input['description'] : null
+            );
+
+            $schoolId = $this->schoolRepository->create($school);
+
+            if ($schoolId) {
+                $school->setSchoolId($schoolId);
+                http_response_code(201);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'School created successfully',
+                    'data' => $school->toArray()
+                ]);
+            } else {
+                throw new Exception("Failed to create school");
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to create school',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update a school (Admin only)
+     */
+    public function updateSchool($schoolId)
+    {
+        try {
+            if (!$this->requireAdmin()) return;
+
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $existingSchool = $this->schoolRepository->findById($schoolId);
+            if (!$existingSchool) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'School not found'
+                ]);
+                return;
+            }
+
+            if (isset($input['school_name'])) {
+                $existingSchool->setSchoolName($input['school_name']);
+            }
+            if (isset($input['school_code'])) {
+                $existingSchool->setSchoolCode($input['school_code']);
+            }
+            if (isset($input['description'])) {
+                $existingSchool->setDescription($input['description']);
+            }
+
+            if ($this->schoolRepository->update($existingSchool)) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'School updated successfully',
+                    'data' => $existingSchool->toArray()
+                ]);
+            } else {
+                // If no rows updated, it might mean no changes were made, but distinct from failure
+                http_response_code(200);
+                 echo json_encode([
+                    'success' => true,
+                    'message' => 'School updated successfully (no changes detected)',
+                    'data' => $existingSchool->toArray()
+                ]);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to update school',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete a school (Admin only)
+     */
+    public function deleteSchool($schoolId)
+    {
+        try {
+            if (!$this->requireAdmin()) return;
+
+            // Check if school exists
+            $school = $this->schoolRepository->findById($schoolId);
+            if (!$school) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'School not found'
+                ]);
+                return;
+            }
+
+            // Attempt delete (will fail if constraints exist, caught by catch block)
+            if ($this->schoolRepository->delete($schoolId)) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'School deleted successfully'
+                ]);
+            } else {
+                throw new Exception("Failed to delete school");
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to delete school',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Create a new department (Admin only)
      */
     public function createDepartment()
@@ -290,7 +490,13 @@ class AdminController
             }
 
             // Create department
-            $department = new Department(null, $departmentName, $departmentCode);
+            $department = new Department(
+                null, 
+                $departmentName, 
+                $departmentCode,
+                isset($input['school_id']) ? $input['school_id'] : null,
+                isset($input['description']) ? $input['description'] : null
+            );
             $result = $this->departmentRepository->save($department);
 
             if ($result) {
@@ -340,11 +546,16 @@ class AdminController
             }
 
             // Validate at least one field to update
-            if (empty($input['department_name']) && empty($input['department_code'])) {
+            if (
+                empty($input['department_name']) && 
+                empty($input['department_code']) && 
+                !array_key_exists('school_id', $input) && 
+                !array_key_exists('description', $input)
+            ) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'At least one field (name or code) is required'
+                    'message' => 'At least one field to update is required'
                 ]);
                 return;
             }
@@ -380,6 +591,14 @@ class AdminController
                     return;
                 }
                 $department->setDepartmentCode($newCode);
+            }
+
+            if (array_key_exists('school_id', $input)) {
+                $department->setSchoolId($input['school_id']);
+            }
+
+            if (array_key_exists('description', $input)) {
+                $department->setDescription($input['description']);
             }
 
             $result = $this->departmentRepository->save($department);

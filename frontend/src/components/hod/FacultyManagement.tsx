@@ -201,14 +201,24 @@ export function FacultyManagement({
 		setIsEditDialogOpen(true);
 	};
 
-	const getRoleBadge = (role: string) => {
-		switch (role) {
-			case "hod":
-				return (
-					<Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-						HOD
-					</Badge>
-				);
+	const getRoleBadge = (member: DepartmentFaculty) => {
+		if (member.is_hod) {
+			return (
+				<Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+					HOD
+				</Badge>
+			);
+		}
+		if (member.is_dean) {
+			return (
+				<Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+					Dean
+				</Badge>
+			);
+		}
+		switch (member.role) {
+			case "admin":
+				return <Badge variant="default">Admin</Badge>;
 			case "faculty":
 				return (
 					<Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
@@ -222,13 +232,13 @@ export function FacultyManagement({
 					</Badge>
 				);
 			default:
-				return <Badge variant="outline">{role}</Badge>;
+				return <Badge variant="outline">{member.role}</Badge>;
 		}
 	};
 
 	// Separate faculty list into HOD/faculty and staff
 	const facultyList = faculty.filter(
-		(f) => f.role === "faculty" || f.role === "hod"
+		(f) => f.role === "faculty" || f.is_hod
 	);
 	const staffList = faculty.filter((f) => f.role === "staff");
 
@@ -443,10 +453,10 @@ export function FacultyManagement({
 										<TableCell>{member.username}</TableCell>
 										<TableCell>{member.email}</TableCell>
 										<TableCell>
-											{getRoleBadge(member.role)}
+											{getRoleBadge(member)}
 										</TableCell>
 										<TableCell className="text-right">
-											{member.role !== "hod" && (
+											{!member.is_hod && (
 												<div className="flex justify-end gap-2">
 													<Button
 														variant="ghost"
@@ -567,7 +577,7 @@ export function FacultyManagement({
 										<TableCell>{member.username}</TableCell>
 										<TableCell>{member.email}</TableCell>
 										<TableCell>
-											{getRoleBadge(member.role)}
+											{getRoleBadge(member)}
 										</TableCell>
 										<TableCell className="text-right">
 											<div className="flex justify-end gap-2">

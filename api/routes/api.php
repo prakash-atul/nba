@@ -527,6 +527,36 @@ class Router
                 }
                 break;
 
+            // Admin School Management Routes
+            case 'admin/schools':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->getAllSchools();
+                } elseif ($method === 'POST') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->createSchool();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case (preg_match('#^admin/schools/(\d+)$#', $path, $matches) ? true : false):
+                $schoolId = $matches[1];
+                if ($method === 'PUT') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->updateSchool($schoolId);
+                } elseif ($method === 'DELETE') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->deleteSchool($schoolId);
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
             case 'courses':
                 if ($method === 'GET') {
                     $user = $this->authMiddleware->requireAuth();

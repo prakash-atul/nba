@@ -12,6 +12,10 @@ export interface User {
 	department_id: number | null;
 	department_name?: string;
 	department_code?: string;
+	is_hod: boolean;
+	is_dean: boolean;
+	hod_department_id?: number | null;
+	school_id?: number | null;
 }
 
 export interface LoginResponse {
@@ -208,6 +212,8 @@ export interface Department {
 	department_id: number;
 	department_name: string;
 	department_code: string;
+	school_id?: number | null;
+	description?: string;
 }
 
 // Admin Types
@@ -248,7 +254,7 @@ export interface CreateUserRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "admin" | "dean" | "hod" | "faculty" | "staff";
+	role: "admin" | "faculty" | "staff";
 	department_id?: number | null;
 }
 
@@ -311,6 +317,7 @@ export interface DepartmentFaculty {
 	email: string;
 	role: string;
 	department_id: number;
+	is_hod?: boolean;
 }
 
 export interface CreateCourseRequest {
@@ -333,6 +340,17 @@ export interface UpdateCourseRequest {
 	semester?: number;
 }
 
+export interface AppointHODRequest {
+	employee_id: number;
+	appointment_order: string;
+}
+
+export interface CreateHODRequest extends AppointHODRequest {
+	username: string;
+	email: string;
+	password: string;
+}
+
 // HOD User Management Types
 export interface HODCreateUserRequest {
 	employee_id: number;
@@ -349,15 +367,55 @@ export interface HODUpdateUserRequest {
 	role?: "faculty" | "staff";
 }
 
+// School Types
+export interface School {
+	school_id: number;
+	school_code: string;
+	school_name: string;
+	description?: string;
+	created_at?: string;
+	dean: User | null;
+	departments_count: number;
+}
+
+export interface CreateSchoolRequest {
+	school_code: string;
+	school_name: string;
+	description?: string;
+}
+
+export interface UpdateSchoolRequest {
+	school_code?: string;
+	school_name?: string;
+	description?: string;
+}
+
+export interface AppointDeanRequest {
+	employee_id: number;
+	appointment_order: string;
+}
+
+export interface CreateDeanRequest extends AppointDeanRequest {
+	username: string;
+	email: string;
+	password: string;
+	role: "faculty";
+	department_id: number;
+}
+
 // Admin Department Management Types
 export interface CreateDepartmentRequest {
 	department_name: string;
 	department_code: string;
+	school_id?: number | null;
+	description?: string;
 }
 
 export interface UpdateDepartmentRequest {
 	department_name?: string;
 	department_code?: string;
+	school_id?: number | null;
+	description?: string;
 }
 
 // Faculty Types
@@ -396,7 +454,6 @@ export interface DeanStats {
 	totalStudents: number;
 	totalAssessments: number;
 	usersByRole: {
-		hod: number;
 		faculty: number;
 		staff: number;
 	};
@@ -422,6 +479,8 @@ export interface DeanUser {
 	department_id: number | null;
 	department_name: string | null;
 	department_code: string | null;
+	is_hod?: boolean;
+	is_dean?: boolean;
 }
 
 export interface DeanCourse {

@@ -58,17 +58,12 @@ export function FacultyDashboard() {
 			navigate("/login");
 			return;
 		}
-		if (storedUser.role !== "faculty" && storedUser.role !== "hod") {
-			// Allow HOD to access this dashboard too if they want, or redirect?
-			// Usually strict role check. But user said HOD reuses components.
-			// For now, let's stick to faculty role check or redirect to respective dashboard.
-			// If HOD logs in, they go to /hod. If they navigate here manually, maybe allow?
-			// Let's assume this is primarily for Faculty role.
+		if (storedUser.role !== "faculty") {
 			if (storedUser.role === "admin") {
 				navigate("/dashboard");
 				return;
 			}
-			if (storedUser.role === "dean") {
+			if (storedUser.is_dean) {
 				navigate("/dean");
 				return;
 			}
@@ -76,7 +71,6 @@ export function FacultyDashboard() {
 				navigate("/staff");
 				return;
 			}
-			// If HOD, they might want to see this view for their own courses.
 		}
 		setUser(storedUser);
 		loadCourses();

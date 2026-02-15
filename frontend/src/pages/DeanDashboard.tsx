@@ -89,15 +89,15 @@ export function DeanDashboard() {
 			navigate("/login");
 			return;
 		}
-		// Only allow dean role
-		if (storedUser.role !== "dean") {
+		// Only allow dean status
+		if (!storedUser.is_dean) {
 			// Redirect based on role
 			if (storedUser.role === "admin") {
 				navigate("/dashboard");
-			} else if (storedUser.role === "hod") {
+			} else if (storedUser.is_hod) {
 				navigate("/hod");
 			} else if (storedUser.role === "faculty") {
-				navigate("/assessments");
+				navigate("/faculty");
 			} else if (storedUser.role === "staff") {
 				navigate("/staff");
 			} else {

@@ -19,6 +19,13 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	AlertDialog,
 	AlertDialogAction,
 	AlertDialogCancel,
@@ -35,16 +42,18 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Building2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
-import type { Department } from "@/services/api";
+import type { Department, School } from "@/services/api";
 
 interface DepartmentsViewProps {
 	departments: Department[];
+	schools?: School[];
 	refreshing: boolean;
-	onDataRefresh: (newDepartments: Department[]) => void;
+	onDataRefresh: () => void;
 }
 
 export function DepartmentsView({
-	departments,
+	departments = [],
+	schools = [],
 	refreshing,
 	onDataRefresh,
 }: DepartmentsViewProps) {
@@ -56,16 +65,22 @@ export function DepartmentsView({
 	const [formData, setFormData] = useState({
 		department_name: "",
 		department_code: "",
+		school_id: "",
+		description: "",
 	});
 	const [editFormData, setEditFormData] = useState({
 		department_name: "",
 		department_code: "",
+		school_id: "",
+		description: "",
 	});
 
 	const resetForm = () => {
 		setFormData({
 			department_name: "",
 			department_code: "",
+			school_id: "",
+			description: "",
 		});
 	};
 
@@ -85,13 +100,14 @@ export function DepartmentsView({
 			await apiService.createDepartment({
 				department_name: formData.department_name,
 				department_code: formData.department_code.toUpperCase(),
+				school_id: formData.school_id ? parseInt(formData.school_id) : undefined,
+				description: formData.description,
 			});
 			toast.success("Department created successfully");
 			setIsAddDialogOpen(false);
 			resetForm();
-			// Refresh departments list
-			const updatedDepartments = await apiService.getAllDepartments();
-			onDataRefresh(updatedDepartments);
+			// Refresh data
+			onDataRefresh();
 		} catch (error) {
 			toast.error(
 				error instanceof Error
@@ -108,6 +124,8 @@ export function DepartmentsView({
 		setEditFormData({
 			department_name: department.department_name,
 			department_code: department.department_code,
+			school_id: department.school_id ? department.school_id.toString() : "",
+			description: department.description || "",
 		});
 		setIsEditDialogOpen(true);
 	};
@@ -132,14 +150,15 @@ export function DepartmentsView({
 				{
 					department_name: editFormData.department_name,
 					department_code: editFormData.department_code.toUpperCase(),
+					school_id: editFormData.school_id ? parseInt(editFormData.school_id) : null,
+					description: editFormData.description,
 				}
 			);
 			toast.success("Department updated successfully");
 			setIsEditDialogOpen(false);
 			setSelectedDepartment(null);
-			// Refresh departments list
-			const updatedDepartments = await apiService.getAllDepartments();
-			onDataRefresh(updatedDepartments);
+			// Refresh data
+			onDataRefresh();
 		} catch (error) {
 			toast.error(
 				error instanceof Error
@@ -155,9 +174,8 @@ export function DepartmentsView({
 		try {
 			await apiService.deleteDepartment(department.department_id);
 			toast.success(`Department "${department.department_name}" deleted`);
-			// Refresh departments list
-			const updatedDepartments = await apiService.getAllDepartments();
-			onDataRefresh(updatedDepartments);
+			// Refresh data
+			onDataRefresh();
 		} catch (error) {
 			toast.error(
 				error instanceof Error
@@ -237,6 +255,53 @@ export function DepartmentsView({
 									auto-capitalized
 								</p>
 							</div>
+							<div className="space-y-2">
+								<Label htmlFor="school_id">School</Label>
+								<Select
+									value={formData.school_id || "none"}
+									onValueChange={(val) =>
+										setFormData({
+											...formData,
+											school_id:
+												val === "none" ? "" : val,
+										})
+									}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="Select a school" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">
+											None
+										</SelectItem>
+										{schools.map((school) => (
+											<SelectItem
+												key={school.school_id}
+												value={school.school_id.toString()}
+											>
+												{school.school_name} (
+												{school.school_code})
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="description">
+									Description (Optional)
+								</Label>
+								<Input
+									id="description"
+									placeholder="Department description"
+									value={formData.description}
+									onChange={(e) =>
+										setFormData({
+											...formData,
+											description: e.target.value,
+										})
+									}
+								/>
+							</div>
 						</div>
 						<DialogFooter>
 							<Button
@@ -281,6 +346,7 @@ export function DepartmentsView({
 								<TableHead>ID</TableHead>
 								<TableHead>Department Name</TableHead>
 								<TableHead>Code</TableHead>
+								<TableHead>School</TableHead>
 								<TableHead className="text-right">
 									Actions
 								</TableHead>
@@ -302,6 +368,12 @@ export function DepartmentsView({
 										>
 											{dept.department_code}
 										</Badge>
+									</TableCell>
+									<TableCell>
+										{schools.find(
+											(s) =>
+												s.school_id === dept.school_id
+										)?.school_name || "-"}
 									</TableCell>
 									<TableCell className="text-right">
 										<div className="flex items-center justify-end gap-2">
@@ -413,6 +485,50 @@ export function DepartmentsView({
 							<p className="text-xs text-muted-foreground">
 								Short code (max 10 characters)
 							</p>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="edit_school_id">School</Label>
+							<Select
+								value={editFormData.school_id || "none"}
+								onValueChange={(val) =>
+									setEditFormData({
+										...editFormData,
+										school_id: val === "none" ? "" : val,
+									})
+								}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder="Select a school" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">None</SelectItem>
+									{schools.map((school) => (
+										<SelectItem
+											key={school.school_id}
+											value={school.school_id.toString()}
+										>
+											{school.school_name} (
+											{school.school_code})
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="edit_description">
+								Description (Optional)
+							</Label>
+							<Input
+								id="edit_description"
+								placeholder="Department description"
+								value={editFormData.description || ""}
+								onChange={(e) =>
+									setEditFormData({
+										...editFormData,
+										description: e.target.value,
+									})
+								}
+							/>
 						</div>
 					</div>
 					<DialogFooter>

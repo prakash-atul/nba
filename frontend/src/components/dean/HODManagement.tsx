@@ -51,6 +51,7 @@ export function HODManagement({
 		"promote",
 	);
 	const [selectedFaculty, setSelectedFaculty] = useState<string>("");
+	const [appointmentOrder, setAppointmentOrder] = useState("");
 
 	// Form state for creating new HOD
 	const [newHODForm, setNewHODForm] = useState({
@@ -97,6 +98,7 @@ export function HODManagement({
 
 	const resetForm = () => {
 		setSelectedFaculty("");
+		setAppointmentOrder("");
 		setNewHODForm({
 			employee_id: "",
 			username: "",
@@ -140,13 +142,16 @@ export function HODManagement({
 			}
 
 			if (appointMode === "promote") {
-				if (!selectedFaculty) {
-					toast.error("Please select a faculty member");
+				if (!selectedFaculty || !appointmentOrder.trim()) {
+					toast.error("Please select a faculty member and enter appointment order");
 					return;
 				}
 				await appointMutation.mutateAsync({
 					departmentId: selectedDepartment.department_id,
-					data: { employee_id: parseInt(selectedFaculty) },
+					data: {
+						employee_id: parseInt(selectedFaculty),
+						appointment_order: appointmentOrder,
+					},
 				});
 			} else {
 				// Create new HOD
@@ -154,9 +159,10 @@ export function HODManagement({
 					!newHODForm.employee_id ||
 					!newHODForm.username ||
 					!newHODForm.email ||
-					!newHODForm.password
+					!newHODForm.password ||
+					!appointmentOrder.trim()
 				) {
-					toast.error("Please fill all fields");
+					toast.error("Please fill all fields including appointment order");
 					return;
 				}
 				await appointMutation.mutateAsync({
@@ -166,6 +172,7 @@ export function HODManagement({
 						username: newHODForm.username,
 						email: newHODForm.email,
 						password: newHODForm.password,
+						appointment_order: appointmentOrder,
 					},
 				});
 			}
@@ -371,6 +378,16 @@ export function HODManagement({
 							>
 								Create New HOD
 							</Button>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="appointment-order">Appointment Order No.</Label>
+							<Input
+								id="appointment-order"
+								value={appointmentOrder}
+								onChange={(e) => setAppointmentOrder(e.target.value)}
+								placeholder="e.g. ORD/HOD/2026/01"
+							/>
 						</div>
 
 						{appointMode === "promote" ? (

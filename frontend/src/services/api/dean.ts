@@ -7,6 +7,8 @@ import type {
 	DeanStudent,
 	DeanTest,
 	DepartmentAnalytics,
+	AppointHODRequest,
+	CreateHODRequest,
 } from "./types";
 
 export const deanApi = {
@@ -45,18 +47,11 @@ export const deanApi = {
 
 	async appointHOD(
 		departmentId: number,
-		data:
-			| { employee_id: number }
-			| {
-					employee_id: number;
-					username: string;
-					email: string;
-					password: string;
-			  },
+		data: AppointHODRequest | CreateHODRequest
 	): Promise<DeanUser> {
-		return apiPost<typeof data, DeanUser>(
+		return apiPost<AppointHODRequest | CreateHODRequest, DeanUser>(
 			`/dean/departments/${departmentId}/hod`,
-			data,
+			data
 		);
 	},
 
