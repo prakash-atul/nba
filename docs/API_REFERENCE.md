@@ -2,17 +2,28 @@
 
 **Base URL:** `http://localhost/nba/api/`  
 **Authentication:** All endpoints (except login) require: `Authorization: Bearer <jwt_token>`
+**Version:** 3.0 (Role-Assignment Based System)
+
+---
+
+## 🔑 Role Architecture (v3.0)
+
+In version 3.0, roles are handled via **assignments** rather than just a fixed database column.
+- **Fixed Roles:** `admin`, `faculty`, `staff`
+- **Dynamic Status:** `is_hod`, `is_dean` (Determined by active assignments in `hod_assignments` and `dean_assignments` tables).
+
+JWT tokens now include these flags. The frontend should check `user.is_hod` and `user.is_dean` for dashboard access.
 
 ---
 
 ## Table of Contents
 
 1. [Authentication & Common](#authentication--common) - 6 endpoints
-2. [Admin Endpoints](#admin-endpoints) - 11 endpoints
-3. [HOD Endpoints](#hod-endpoints) - 9 endpoints
+2. [Admin Endpoints](#admin-endpoints) - 14 endpoints (Includes Dean Management)
+3. [HOD Endpoints](#hod-endpoints) - 9 endpoints 
 4. [Faculty Endpoints](#faculty-endpoints) - 1 endpoint
 5. [Staff Endpoints](#staff-endpoints) - 3 endpoints
-6. [Dean Endpoints](#dean-endpoints) - 7 endpoints
+6. [Dean Endpoints](#dean-endpoints) - 9 endpoints (Includes HOD Management)
 7. [Course Management](#course-management) - 2 endpoints
 8. [Assessment Management](#assessment-management) - 2 endpoints
 9. [Marks Management](#marks-management) - 6 endpoints
@@ -32,8 +43,8 @@
 ```json
 // REQUEST
 {
-  "employeeIdOrEmail": "admin@nba.edu",
-  "password": "admin123"
+  "employeeIdOrEmail": "hod_cse@tezu.ac.in",
+  "password": "password123"
 }
 
 // RESPONSE (200)
@@ -41,12 +52,16 @@
   "success": true,
   "token": "eyJ0eXAiOiJKV1QiLCJhbGci...",
   "user": {
-    "employee_id": 1,
-    "username": "admin",
-    "email": "admin@nba.edu",
-    "role": "admin",
-    "department_name": "Computer Science",  // null if admin
-    "department_code": "CSE"                 // null if admin
+    "employee_id": 2001,
+    "username": "HOD CSE",
+    "email": "hod_cse@tezu.ac.in",
+    "role": "faculty",
+    "is_hod": true,
+    "is_dean": false,
+    "hod_department_id": 1,
+    "school_id": null,
+    "department_name": "Computer Science & Engineering",
+    "department_code": "CSE"
   }
 }
 
@@ -65,10 +80,14 @@
 {
 	"success": true,
 	"data": {
-		"employee_id": 1,
-		"username": "admin",
-		"email": "admin@nba.edu",
-		"role": "admin"
+		"employee_id": 2001,
+		"username": "HOD CSE",
+		"email": "hod_cse@tezu.ac.in",
+		"role": "faculty",
+		"is_hod": true,
+		"is_dean": false,
+		"hod_department_id": 1,
+		"school_id": null
 	}
 }
 ```
@@ -172,28 +191,47 @@
 ```json
 // POST Request
 {
-	"employee_id": 5001,
+	"employee_id": 3020,
 	"username": "New User",
 	"email": "user@tezu.edu",
 	"password": "pass123",
-	"role": "faculty",
-	"department_id": 1  // Required if role is 'hod'
+	"role": "faculty",  // admin, faculty, staff
+	"department_id": 1
 }
 
-// ERROR (409) - HOD already exists
-{"success": false, "message": "An HOD already exists for this department"}
-
-// ERROR (409) - Dean already exists
-{"success": false, "message": "A Dean already exists in the system"}
-
-// ERROR (400) - HOD without department
-{"success": false, "message": "Department ID is required for HOD role"}
-
 // CONSTRAINTS:
-// - Only one HOD per department allowed
-// - Only one Dean allowed in the entire system
-// - HOD role requires department_id
+// - HOD and Dean status are managed via separate endpoints (see below)
+// - Creating a user with role 'faculty' or 'staff' does NOT make them HOD/Dean
 ```
+
+### 6.1. Manage Deans (Admin only)
+
+**POST** `/admin/schools/{schoolId}/dean` | **DELETE** `/admin/dean/{employeeId}`
+
+**A. Appoint/Create Dean**
+```json
+// Scenario 1: Assign existing faculty/staff as Dean
+{
+	"employee_id": 3001,
+	"appointment_order": "ORD/DEAN/2026/01"
+}
+
+// Scenario 2: Create new user and assign as Dean
+{
+	"employee_id": 5001,
+	"username": "DEAN_SOE",
+	"email": "dean_soe@tezu.ac.in",
+	"password": "password123",
+	"role": "faculty",
+	"department_id": 1,
+	"appointment_order": "ORD/DEAN/2026/01"
+}
+```
+
+**B. Demote Dean**
+`DELETE /admin/dean/5001`
+
+---
 
 ### 7. Manage Departments
 
@@ -201,8 +239,18 @@
 
 ```json
 // POST Request
-{ "department_name": "AI & ML", "department_code": "AIML" }
+{ 
+	"department_name": "AI & ML", 
+	"department_code": "AIML",
+	"school_id": 1 
+}
 ```
+
+### 7.1. Manage Schools
+
+**GET** `/admin/schools` | **POST** `/admin/schools`
+
+---
 
 ### 8. View All Data
 
@@ -212,7 +260,7 @@
 
 ## HOD Endpoints
 
-**Role Required:** `hod`
+**Status Required:** `is_hod: true`
 
 ### 9. Get HOD Stats
 
@@ -290,7 +338,7 @@
 
 ## Staff Endpoints
 
-**Role Required:** `staff`
+**Status Required:** `role: staff` (including users with `is_dean: true` if their base role is staff)
 
 ### 13. Get Staff Stats
 
@@ -308,7 +356,7 @@
 
 ## Dean Endpoints
 
-**Role Required:** `dean` (Read-only access to all data + HOD management)
+**Status Required:** `is_dean: true` (Read-only access to all data + HOD management)
 
 ### 15. Get Dean Stats
 
@@ -321,7 +369,7 @@
 	"totalCourses": 80,
 	"totalStudents": 1200,
 	"totalAssessments": 240,
-	"usersByRole": { "hod": 7, "faculty": 35, "staff": 8 }
+	"usersByRole": { "faculty": 42, "staff": 8 } 
 }
 ```
 
@@ -379,7 +427,8 @@
 ```json
 // REQUEST (Scenario 1: Promote existing faculty)
 {
-	"employee_id": 3001
+	"employee_id": 3001,
+	"appointment_order": "ORD/HOD/2026/01"
 }
 
 // REQUEST (Scenario 2: Create new HOD)
@@ -387,32 +436,28 @@
 	"employee_id": 2005,
 	"username": "Dr. New HOD",
 	"email": "hod_new@tezu.edu",
-	"password": "pass123"
+	"password": "pass123",
+	"appointment_order": "ORD/HOD/2026/01"
 }
 
 // RESPONSE (200/201)
 {
 	"success": true,
-	"message": "Faculty promoted to HOD successfully",
+	"message": "User assigned as HOD successfully",
 	"data": {
-		"employee_id": 3001,
-		"username": "Dr. Faculty One",
-		"email": "faculty01@tezu.edu",
-		"role": "hod",
-		"department_id": 1
+		"user": {
+			"employee_id": 3001,
+			"username": "Dr. Faculty One",
+			"email": "faculty01@tezu.edu",
+			"role": "faculty",
+			"department_id": 1
+		},
+		"assignment_id": 1
 	}
 }
 
 // ERROR (409) - HOD already exists
 {"success": false, "message": "An HOD already exists for this department. Please demote the current HOD first."}
-
-// ERROR (400) - User not in department
-{"success": false, "message": "User does not belong to this department"}
-
-// CONSTRAINTS:
-// - Only one HOD per department
-// - When promoting: user must be faculty in that department
-// - When creating: standard user creation validations apply
 ```
 
 ---
@@ -425,20 +470,20 @@
 // RESPONSE (200)
 {
 	"success": true,
-	"message": "HOD demoted to faculty successfully",
+	"message": "HOD demoted successfully. User role remains unchanged.",
 	"data": {
-		"employee_id": 3001,
-		"username": "Dr. Faculty One",
-		"email": "faculty01@tezu.edu",
-		"role": "faculty",
-		"department_id": 1
+		"user": {
+			"employee_id": 3001,
+			"username": "Dr. Faculty One",
+			"email": "faculty01@tezu.edu",
+			"role": "faculty",
+			"department_id": 1
+		}
 	}
 }
 
 // ERROR (400) - Not an HOD
-{"success": false, "message": "User is not an HOD"}
-
-// NOTE: Demotes HOD to faculty role
+{"success": false, "message": "User is not a current HOD"}
 ```
 
 ---
