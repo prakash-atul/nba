@@ -32,10 +32,10 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 
 	// Get unique departments and years for filters
 	const departments = Array.from(
-		new Set(courses.map((c) => c.department_code).filter(Boolean))
+		new Set(courses.map((c) => c.department_code).filter(Boolean)),
 	) as string[];
 	const years = Array.from(new Set(courses.map((c) => c.year))).sort(
-		(a, b) => b - a
+		(a, b) => b - a,
 	);
 
 	// Filter courses
@@ -44,7 +44,9 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 			course.course_code
 				.toLowerCase()
 				.includes(searchTerm.toLowerCase()) ||
-			course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			course.course_name
+				.toLowerCase()
+				.includes(searchTerm.toLowerCase()) ||
 			course.faculty_name
 				?.toLowerCase()
 				.includes(searchTerm.toLowerCase());
@@ -162,7 +164,7 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 								</TableRow>
 							) : (
 								filteredCourses.map((course) => (
-									<TableRow key={course.id}>
+									<TableRow key={course.course_id}>
 										<TableCell>
 											<Badge
 												variant="outline"
@@ -172,7 +174,7 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 											</Badge>
 										</TableCell>
 										<TableCell className="font-medium max-w-[200px] truncate">
-											{course.name}
+											{course.course_name}
 										</TableCell>
 										<TableCell className="text-muted-foreground">
 											{course.faculty_name || "N/A"}

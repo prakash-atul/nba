@@ -31,13 +31,13 @@ export function TestsView({ tests, isLoading }: TestsViewProps) {
 
 	// Get unique departments for filter
 	const departments = Array.from(
-		new Set(tests.map((t) => t.department_code).filter(Boolean))
+		new Set(tests.map((t) => t.department_code).filter(Boolean)),
 	) as string[];
 
 	// Filter tests
 	const filteredTests = tests.filter((test) => {
 		const matchesSearch =
-			test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			test.test_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			test.course_code
 				?.toLowerCase()
 				.includes(searchTerm.toLowerCase()) ||
@@ -126,9 +126,9 @@ export function TestsView({ tests, isLoading }: TestsViewProps) {
 								</TableRow>
 							) : (
 								filteredTests.map((test) => (
-									<TableRow key={test.id}>
+									<TableRow key={test.test_id}>
 										<TableCell className="font-medium">
-											{test.name}
+											{test.test_name}
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-col">

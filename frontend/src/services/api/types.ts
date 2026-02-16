@@ -507,9 +507,9 @@ export interface DeanUser {
 }
 
 export interface DeanCourse {
-	id: number;
+	course_id: number;
 	course_code: string;
-	name: string;
+	course_name: string;
 	credit: number;
 	faculty_id: number;
 	faculty_name: string;
@@ -524,17 +524,17 @@ export interface DeanCourse {
 }
 
 export interface DeanStudent {
-	rollno: string;
-	name: string;
-	dept: number;
+	roll_no: string;
+	student_name: string;
+	department_id: number;
 	department_name: string;
 	department_code: string;
 }
 
 export interface DeanTest {
-	id: number;
+	test_id: number;
 	course_id: number;
-	name: string;
+	test_name: string;
 	full_marks: number;
 	pass_marks: number;
 	course_code: string;

@@ -31,14 +31,18 @@ export function StudentsView({ students, isLoading }: StudentsViewProps) {
 
 	// Get unique departments for filter
 	const departments = Array.from(
-		new Set(students.map((s) => s.department_code).filter(Boolean))
+		new Set(students.map((s) => s.department_code).filter(Boolean)),
 	) as string[];
 
 	// Filter students
 	const filteredStudents = students.filter((student) => {
 		const matchesSearch =
-			student.rollno.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			student.name.toLowerCase().includes(searchTerm.toLowerCase());
+			(student.roll_no || "")
+				.toLowerCase()
+				.includes(searchTerm.toLowerCase()) ||
+			(student.student_name || "")
+				.toLowerCase()
+				.includes(searchTerm.toLowerCase());
 
 		const matchesDepartment =
 			departmentFilter === "all" ||
@@ -116,17 +120,17 @@ export function StudentsView({ students, isLoading }: StudentsViewProps) {
 								</TableRow>
 							) : (
 								filteredStudents.map((student) => (
-									<TableRow key={student.rollno}>
+									<TableRow key={student.roll_no}>
 										<TableCell>
 											<Badge
 												variant="outline"
 												className="font-mono"
 											>
-												{student.rollno}
+												{student.roll_no}
 											</Badge>
 										</TableCell>
 										<TableCell className="font-medium">
-											{student.name}
+											{student.student_name}
 										</TableCell>
 										<TableCell>
 											<Badge
