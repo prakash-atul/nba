@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import type { School, User } from "@/services/api";
+import { generateAppointmentOrder } from "@/utils/appointmentUtils";
 
 interface SchoolsViewProps {
 	schools: School[];
@@ -53,7 +54,7 @@ export function SchoolsView({
 	// Filter faculty for Dean appointment
 	const facultyUsers = useMemo(
 		() => users.filter((u) => u.role === "faculty"),
-		[users]
+		[users],
 	);
 
 	// Create/Edit School Form
@@ -68,6 +69,19 @@ export function SchoolsView({
 		employee_id: "",
 		appointment_order: "",
 	});
+
+	// Auto-generate appointment order when dialog opens and school is selected
+	useEffect(() => {
+		if (isAppointDeanOpen && selectedSchool) {
+			setAppointDeanForm((prev) => ({
+				...prev,
+				appointment_order: generateAppointmentOrder(
+					"DEAN",
+					selectedSchool.school_id,
+				),
+			}));
+		}
+	}, [isAppointDeanOpen, selectedSchool]);
 
 	const resetForm = () => {
 		setSchoolForm({
@@ -134,7 +148,7 @@ export function SchoolsView({
 	const handleDeleteSchool = async (school: School) => {
 		if (
 			!confirm(
-				`Are you sure you want to delete ${school.school_name}? This action cannot be undone.`
+				`Are you sure you want to delete ${school.school_name}? This action cannot be undone.`,
 			)
 		) {
 			return;
@@ -184,7 +198,7 @@ export function SchoolsView({
 	const handleDemoteDean = async (user: User) => {
 		if (
 			!confirm(
-				`Are you sure you want to demote Dean ${user.username}? They will revert to Faculty role.`
+				`Are you sure you want to demote Dean ${user.username}? They will revert to Faculty role.`,
 			)
 		) {
 			return;
@@ -397,17 +411,35 @@ export function SchoolsView({
 									<SelectValue placeholder="Select faculty" />
 								</SelectTrigger>
 								<SelectContent>
-									{facultyUsers.map((u) => (
-										<SelectItem
-											key={u.employee_id}
-											value={u.employee_id.toString()}
-										>
-											{u.username} ({u.employee_id})
-											{u.department_code
-												? ` - ${u.department_code}`
-												: ""}
+									{facultyUsers
+										.filter(
+											(u) =>
+												selectedSchool &&
+												Number(u.school_id) ===
+													selectedSchool.school_id,
+										)
+										.map((u) => (
+											<SelectItem
+												key={u.employee_id}
+												value={u.employee_id.toString()}
+											>
+												{u.username} ({u.employee_id})
+												{u.department_code
+													? ` - ${u.department_code}`
+													: ""}
+											</SelectItem>
+										))}
+									{facultyUsers.filter(
+										(u) =>
+											selectedSchool &&
+											Number(u.school_id) ===
+												selectedSchool.school_id,
+									).length === 0 && (
+										<SelectItem value="none" disabled>
+											No eligible faculty found in this
+											school
 										</SelectItem>
-									))}
+									)}
 								</SelectContent>
 							</Select>
 						</div>
@@ -518,7 +550,7 @@ export function SchoolsView({
 												className="text-red-600 hover:text-red-700 hover:bg-red-50"
 												onClick={() =>
 													handleDemoteDean(
-														school.dean!
+														school.dean!,
 													)
 												}
 											>
@@ -531,7 +563,7 @@ export function SchoolsView({
 												className="h-8"
 												onClick={() =>
 													openAppointDeanDialog(
-														school
+														school,
 													)
 												}
 											>

@@ -1,14 +1,9 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { DataTable } from "@/components/shared/DataTable";
+import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
 import { Badge } from "@/components/ui/badge";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { Student } from "@/services/api";
 
 interface StudentsViewProps {
@@ -17,6 +12,67 @@ interface StudentsViewProps {
 }
 
 export function StudentsView({ students, refreshing }: StudentsViewProps) {
+	const columns: ColumnDef<Student>[] = [
+		{
+			accessorKey: "roll_no",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Roll No
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<div className="font-medium">{row.getValue("roll_no")}</div>
+			),
+		},
+		{
+			accessorKey: "student_name",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Name
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+		},
+		{
+			accessorKey: "department_code",
+			header: "Department",
+			filterFn: (row, id, value) => {
+				return value.includes(row.getValue(id));
+			},
+			cell: ({ row }) => {
+				const student = row.original;
+				return (
+					<Badge>
+						{student.department_code || student.department_id}
+					</Badge>
+				);
+			},
+		},
+	];
+
+	const departmentOptions = Array.from(
+		new Set(
+			students
+				.map((s) => s.department_code)
+				.filter((n): n is string => !!n),
+		),
+	)
+		.sort()
+		.map((name) => ({ label: name, value: name }));
+
 	return (
 		<div className="space-y-4">
 			<div>
@@ -26,55 +82,23 @@ export function StudentsView({ students, refreshing }: StudentsViewProps) {
 				</p>
 			</div>
 
-			<Card>
-				<CardContent className="p-0">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Roll No</TableHead>
-								<TableHead>Name</TableHead>
-								<TableHead>Department</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{refreshing ? (
-								<TableRow>
-									<TableCell
-										colSpan={3}
-										className="text-center py-8"
-									>
-										<RefreshCw className="h-6 w-6 animate-spin mx-auto text-gray-400" />
-									</TableCell>
-								</TableRow>
-							) : students.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={3}
-										className="text-center py-8 text-gray-500"
-									>
-										No students found
-									</TableCell>
-								</TableRow>
-							) : (
-								students.map((student) => (
-									<TableRow key={student.rollno}>
-										<TableCell className="font-medium">
-											{student.rollno}
-										</TableCell>
-										<TableCell>{student.name}</TableCell>
-										<TableCell>
-											<Badge>
-												{student.department_code ||
-													student.dept}
-											</Badge>
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</CardContent>
-			</Card>
+			<DataTable
+				columns={columns}
+				data={students}
+				searchKey="student_name"
+				searchPlaceholder="Filter by name..."
+				refreshing={refreshing}
+			>
+				{(table) => (
+					<>
+						<DataTableFacetedFilter
+							column={table.getColumn("department_code")}
+							title="Department"
+							options={departmentOptions}
+						/>
+					</>
+				)}
+			</DataTable>
 		</div>
 	);
 }

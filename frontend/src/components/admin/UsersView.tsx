@@ -1,17 +1,16 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/shared/DataTable";
+import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+	Plus,
+	Trash2,
+	AlertCircle,
+	RefreshCw,
+	ArrowUpDown,
+} from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
 	Dialog,
 	DialogContent,
@@ -21,7 +20,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, RefreshCw, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import type {
@@ -57,6 +57,8 @@ export function UsersView({
 		password: "",
 		role: "faculty",
 		department_id: null,
+		designation: "",
+		phone: "",
 	});
 
 	const getRoleBadgeColor = (role: string) => {
@@ -71,6 +73,125 @@ export function UsersView({
 				return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
 		}
 	};
+
+	const columns: ColumnDef<User>[] = [
+		{
+			accessorKey: "employee_id",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Employee ID
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<div className="font-medium">{row.getValue("employee_id")}</div>
+			),
+		},
+		{
+			accessorKey: "username",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Name
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+		},
+		{
+			accessorKey: "email",
+			header: "Email",
+			cell: ({ row }) => (
+				<div className="text-gray-500">{row.getValue("email")}</div>
+			),
+		},
+		{
+			accessorKey: "designation",
+			header: "Designation",
+			cell: ({ row }) => (
+				<div className="text-gray-500 italic">
+					{row.getValue("designation") || "-"}
+				</div>
+			),
+		},
+		{
+			accessorKey: "phone",
+			header: "Phone",
+			cell: ({ row }) => (
+				<div className="text-gray-500 font-mono">
+					{row.getValue("phone") || "-"}
+				</div>
+			),
+		},
+		{
+			accessorKey: "role",
+			header: "Role",
+			filterFn: (row, id, value) => {
+				return value.includes(row.getValue(id));
+			},
+			cell: ({ row }) => {
+				const user = row.original;
+				return (
+					<div className="flex gap-1 flex-wrap justify-center">
+						<Badge className={getRoleBadgeColor(user.role)}>
+							{user.role.toUpperCase()}
+						</Badge>
+						{user.is_dean && (
+							<Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+								DEAN
+							</Badge>
+						)}
+						{user.is_hod && (
+							<Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+								HOD
+							</Badge>
+						)}
+					</div>
+				);
+			},
+		},
+		{
+			accessorKey: "department_code",
+			header: "Department",
+			filterFn: (row, id, value) => {
+				return value.includes(row.getValue(id));
+			},
+			cell: ({ row }) => row.getValue("department_code") || "-",
+		},
+		{
+			id: "actions",
+			header: () => <div className="text-center">Actions</div>,
+			cell: ({ row }) => {
+				const user = row.original;
+				if (user.employee_id === currentUser?.employee_id) return null;
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+							onClick={() => {
+								setUserToDelete(user);
+								setIsDeleteUserOpen(true);
+							}}
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+		},
+	];
 
 	const handleCreateUser = async () => {
 		if (
@@ -95,6 +216,8 @@ export function UsersView({
 				password: "",
 				role: "faculty",
 				department_id: null,
+				designation: "",
+				phone: "",
 			});
 			// Refresh data
 			const [statsData, usersData] = await Promise.all([
@@ -130,6 +253,18 @@ export function UsersView({
 			setSubmitting(false);
 		}
 	};
+
+	const roleOptions = [
+		{ label: "Admin", value: "admin" },
+		{ label: "Faculty", value: "faculty" },
+		{ label: "Staff", value: "staff" },
+	];
+
+	const departmentOptions =
+		departments?.map((d) => ({
+			label: d.department_code,
+			value: d.department_code,
+		})) || [];
 
 	return (
 		<div className="space-y-4">
@@ -225,6 +360,38 @@ export function UsersView({
 									}
 								/>
 							</div>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="designation">
+										Designation
+									</Label>
+									<Input
+										id="designation"
+										placeholder="e.g., Professor"
+										value={newUser.designation || ""}
+										onChange={(e) =>
+											setNewUser({
+												...newUser,
+												designation: e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="phone">Phone Number</Label>
+									<Input
+										id="phone"
+										placeholder="e.g., 9876543210"
+										value={newUser.phone || ""}
+										onChange={(e) =>
+											setNewUser({
+												...newUser,
+												phone: e.target.value,
+											})
+										}
+									/>
+								</div>
+							</div>
 							<div className="space-y-2">
 								<Label htmlFor="password">Password *</Label>
 								<Input
@@ -293,103 +460,28 @@ export function UsersView({
 				</Dialog>
 			</div>
 
-			<Card>
-				<CardContent className="p-0">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Employee ID</TableHead>
-								<TableHead>Name</TableHead>
-								<TableHead>Email</TableHead>
-								<TableHead>Role</TableHead>
-								<TableHead>Department</TableHead>
-								<TableHead className="text-right">
-									Actions
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{refreshing ? (
-								<TableRow>
-									<TableCell
-										colSpan={6}
-										className="text-center py-8"
-									>
-										<RefreshCw className="h-6 w-6 animate-spin mx-auto text-gray-400" />
-									</TableCell>
-								</TableRow>
-							) : users.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={6}
-										className="text-center py-8 text-gray-500"
-									>
-										No users found
-									</TableCell>
-								</TableRow>
-							) : (
-								users.map((user) => (
-									<TableRow key={user.employee_id}>
-										<TableCell className="font-medium">
-											{user.employee_id}
-										</TableCell>
-										<TableCell>{user.username}</TableCell>
-										<TableCell className="text-gray-500">
-											{user.email}
-										</TableCell>
-										<TableCell>
-											<div className="flex gap-1 flex-wrap">
-												<Badge
-													className={getRoleBadgeColor(
-														user.role
-													)}
-												>
-													{user.role.toUpperCase()}
-												</Badge>
-												{user.is_dean && (
-													<Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-														DEAN
-													</Badge>
-												)}
-												{user.is_hod && (
-													<Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-														HOD
-													</Badge>
-												)}
-											</div>
-										</TableCell>
-										<TableCell>
-											{user.department_code || (
-												<span className="text-gray-400">
-													-
-												</span>
-											)}
-										</TableCell>
-										<TableCell className="text-right">
-											{user.employee_id !==
-												currentUser?.employee_id && (
-												<Button
-													variant="ghost"
-													size="icon"
-													className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-													onClick={() => {
-														setUserToDelete(user);
-														setIsDeleteUserOpen(
-															true
-														);
-													}}
-												>
-													<Trash2 className="h-4 w-4" />
-												</Button>
-											)}
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</CardContent>
-			</Card>
+			<DataTable
+				columns={columns}
+				data={users}
+				searchKey="username"
+				searchPlaceholder="Search by name..."
+				refreshing={refreshing}
+			>
+				{(table) => (
+					<>
+						<DataTableFacetedFilter
+							column={table.getColumn("role")}
+							title="Role"
+							options={roleOptions}
+						/>
+						<DataTableFacetedFilter
+							column={table.getColumn("department_code")}
+							title="Department"
+							options={departmentOptions}
+						/>
+					</>
+				)}
+			</DataTable>
 
 			{/* Delete User Dialog */}
 			<Dialog open={isDeleteUserOpen} onOpenChange={setIsDeleteUserOpen}>

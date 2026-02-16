@@ -249,7 +249,7 @@ class UserRepository
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT u.*, d.department_name, d.department_code 
+                SELECT u.*, d.department_name, d.department_code, d.school_id
                 FROM users u 
                 LEFT JOIN departments d ON u.department_id = d.department_id 
                 ORDER BY u.employee_id
@@ -263,9 +263,12 @@ class UserRepository
                     'username' => $userData['username'],
                     'email' => $userData['email'],
                     'role' => $userData['role'],
+                    'designation' => $userData['designation'],
+                    'phone' => $userData['phone'],
                     'department_id' => $userData['department_id'],
                     'department_name' => $userData['department_name'],
-                    'department_code' => $userData['department_code']
+                    'department_code' => $userData['department_code'],
+                    'school_id' => $userData['school_id'] ?? null
                 ];
             }
 
@@ -299,7 +302,7 @@ class UserRepository
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT employee_id, username, email, role, department_id 
+                SELECT employee_id, username, email, role, department_id, designation, phone
                 FROM users 
                 WHERE department_id = ? AND role IN ('faculty', 'staff')
                 ORDER BY role, username
@@ -313,6 +316,8 @@ class UserRepository
                     'username' => $userData['username'],
                     'email' => $userData['email'],
                     'role' => $userData['role'],
+                    'designation' => $userData['designation'],
+                    'phone' => $userData['phone'],
                     'department_id' => $userData['department_id']
                 ];
             }

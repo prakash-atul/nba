@@ -187,12 +187,15 @@ class DeanController
                     'username' => $user['username'],
                     'email' => $user['email'],
                     'role' => $user['role'],
+                    'designation' => $user['designation'] ?? null,
+                    'phone' => $user['phone'] ?? null,
                     'department_id' => $user['department_id'],
-                    'department_name' => null,
-                    'department_code' => null
+                    'department_name' => $user['department_name'] ?? null,
+                    'department_code' => $user['department_code'] ?? null
                 ];
                 
-                if ($user['department_id']) {
+                // If department info not already in $user (though findAll was updated to include it)
+                if (!$userArray['department_name'] && $user['department_id']) {
                     $dept = $this->departmentRepository->findById($user['department_id']);
                     if ($dept) {
                         $userArray['department_name'] = $dept->getDepartmentName();

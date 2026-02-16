@@ -9,6 +9,8 @@ export interface User {
 	username: string;
 	email: string;
 	role: string;
+	designation: string | null;
+	phone: string | null;
 	department_id: number | null;
 	department_name?: string;
 	department_code?: string;
@@ -179,9 +181,12 @@ export interface BulkMarksSaveResponse {
 
 // Student & Enrollment Types
 export interface Student {
-	rollno: string;
-	name: string;
-	dept: number;
+	roll_no: string;
+	student_name: string;
+	rollno?: string; // Legacy
+	name?: string; // Legacy
+	department_id: number;
+	dept?: number; // Legacy
 	department_name?: string;
 	department_code?: string;
 }
@@ -213,6 +218,8 @@ export interface Department {
 	department_name: string;
 	department_code: string;
 	school_id?: number | null;
+	school_name?: string;
+	school_code?: string;
 	description?: string;
 }
 
@@ -225,9 +232,11 @@ export interface AdminStats {
 }
 
 export interface AdminCourse {
-	id: number;
+	course_id: number;
 	course_code: string;
-	name: string;
+	course_name: string;
+	id?: number; // compat
+	name?: string; // compat
 	credit: number;
 	faculty_id: number;
 	faculty_name: string;
@@ -238,11 +247,13 @@ export interface AdminCourse {
 }
 
 export interface AdminTest {
-	id: number;
+	test_id: number;
 	course_id: number;
 	course_code: string;
 	course_name: string;
-	name: string;
+	test_name: string;
+	id?: number; // compat
+	name?: string; // compat
 	full_marks: number;
 	pass_marks: number;
 	year: number;
@@ -255,6 +266,8 @@ export interface CreateUserRequest {
 	email: string;
 	password: string;
 	role: "admin" | "faculty" | "staff";
+	designation?: string | null;
+	phone?: string | null;
 	department_id?: number | null;
 }
 
@@ -315,6 +328,8 @@ export interface DepartmentFaculty {
 	employee_id: number;
 	username: string;
 	email: string;
+	designation: string | null;
+	phone: string | null;
 	role: string;
 	department_id: number;
 	is_hod?: boolean;
@@ -349,6 +364,8 @@ export interface CreateHODRequest extends AppointHODRequest {
 	username: string;
 	email: string;
 	password: string;
+	designation: string | null;
+	phone: string | null;
 }
 
 // HOD User Management Types
@@ -358,6 +375,8 @@ export interface HODCreateUserRequest {
 	email: string;
 	password: string;
 	role: "faculty" | "staff";
+	designation: string | null;
+	phone: string | null;
 }
 
 export interface HODUpdateUserRequest {
@@ -365,6 +384,8 @@ export interface HODUpdateUserRequest {
 	email?: string;
 	password?: string;
 	role?: "faculty" | "staff";
+	designation?: string | null;
+	phone?: string | null;
 }
 
 // School Types
@@ -475,6 +496,8 @@ export interface DeanUser {
 	employee_id: number;
 	username: string;
 	email: string;
+	designation: string | null;
+	phone: string | null;
 	role: string;
 	department_id: number | null;
 	department_name: string | null;

@@ -74,7 +74,12 @@ class DepartmentRepository
     public function findAll()
     {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM departments ORDER BY department_name");
+            $stmt = $this->db->prepare("
+                SELECT d.*, s.school_name, s.school_code 
+                FROM departments d 
+                LEFT JOIN schools s ON d.school_id = s.school_id 
+                ORDER BY d.department_name
+            ");
             $stmt->execute();
             $departments = [];
 
@@ -84,6 +89,8 @@ class DepartmentRepository
                     'department_name' => $deptData['department_name'],
                     'department_code' => $deptData['department_code'],
                     'school_id' => $deptData['school_id'],
+                    'school_name' => $deptData['school_name'] ?? null,
+                    'school_code' => $deptData['school_code'] ?? null,
                     'description' => $deptData['description'],
                     'created_at' => $deptData['created_at']
                 ];

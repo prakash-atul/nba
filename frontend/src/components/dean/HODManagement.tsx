@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, UserPlus, UserMinus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { deanApi, type DeanDepartment } from "@/services/api";
+import { generateAppointmentOrder } from "@/utils/appointmentUtils";
 
 interface HODManagementProps {
 	departments: DeanDepartment[];
@@ -52,6 +53,18 @@ export function HODManagement({
 	);
 	const [selectedFaculty, setSelectedFaculty] = useState<string>("");
 	const [appointmentOrder, setAppointmentOrder] = useState("");
+
+	// Auto-generate appointment order when dialog opens and department is selected
+	useEffect(() => {
+		if (appointDialogOpen && selectedDepartment) {
+			setAppointmentOrder(
+				generateAppointmentOrder(
+					"HOD",
+					selectedDepartment.department_id,
+				),
+			);
+		}
+	}, [appointDialogOpen, selectedDepartment]);
 
 	// Form state for creating new HOD
 	const [newHODForm, setNewHODForm] = useState({
@@ -143,7 +156,9 @@ export function HODManagement({
 
 			if (appointMode === "promote") {
 				if (!selectedFaculty || !appointmentOrder.trim()) {
-					toast.error("Please select a faculty member and enter appointment order");
+					toast.error(
+						"Please select a faculty member and enter appointment order",
+					);
 					return;
 				}
 				await appointMutation.mutateAsync({
@@ -162,7 +177,9 @@ export function HODManagement({
 					!newHODForm.password ||
 					!appointmentOrder.trim()
 				) {
-					toast.error("Please fill all fields including appointment order");
+					toast.error(
+						"Please fill all fields including appointment order",
+					);
 					return;
 				}
 				await appointMutation.mutateAsync({
@@ -381,11 +398,15 @@ export function HODManagement({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="appointment-order">Appointment Order No.</Label>
+							<Label htmlFor="appointment-order">
+								Appointment Order No.
+							</Label>
 							<Input
 								id="appointment-order"
 								value={appointmentOrder}
-								onChange={(e) => setAppointmentOrder(e.target.value)}
+								onChange={(e) =>
+									setAppointmentOrder(e.target.value)
+								}
 								placeholder="e.g. ORD/HOD/2026/01"
 							/>
 						</div>

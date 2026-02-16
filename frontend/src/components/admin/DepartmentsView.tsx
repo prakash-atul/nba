@@ -1,14 +1,10 @@
+import { DataTable } from "@/components/shared/DataTable";
+import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 import {
 	Dialog,
 	DialogContent,
@@ -39,7 +35,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Building2, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import type { Department, School } from "@/services/api";
@@ -75,6 +71,128 @@ export function DepartmentsView({
 		description: "",
 	});
 
+	const columns: ColumnDef<Department>[] = [
+		{
+			accessorKey: "department_code",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Code
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<Badge variant="outline" className="font-mono">
+					{row.getValue("department_code")}
+				</Badge>
+			),
+		},
+		{
+			accessorKey: "department_name",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Name
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<div className="font-medium text-purple-900 dark:text-purple-200">
+					{row.getValue("department_name")}
+				</div>
+			),
+		},
+		{
+			accessorKey: "school_name",
+			header: "School",
+			filterFn: (row, id, value) => {
+				return value.includes(row.getValue(id));
+			},
+			cell: ({ row }) => {
+				const schoolName = row.getValue("school_name") as string;
+				const schoolCode = row.original.school_code;
+				return schoolName ? (
+					<div className="text-sm">
+						<div className="font-medium text-gray-700 dark:text-gray-300">
+							{schoolName}
+						</div>
+						<div className="text-xs text-gray-500 font-mono">
+							({schoolCode})
+						</div>
+					</div>
+				) : (
+					<span className="text-gray-400">-</span>
+				);
+			},
+		},
+		{
+			id: "actions",
+			header: () => <div className="text-center">Actions</div>,
+			cell: ({ row }) => {
+				const dept = row.original;
+				return (
+					<div className="flex justify-center gap-2">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => openEditDialog(dept)}
+							className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+						>
+							<Pencil className="w-4 h-4" />
+						</Button>
+						<AlertDialog>
+							<AlertDialogTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="text-red-600 hover:text-red-700 hover:bg-red-50"
+								>
+									<Trash2 className="w-4 h-4" />
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>
+										Are you absolutely sure?
+									</AlertDialogTitle>
+									<AlertDialogDescription>
+										This will permanently delete the{" "}
+										<strong>{dept.department_name}</strong>{" "}
+										department. This action cannot be
+										undone.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>
+										Cancel
+									</AlertDialogCancel>
+									<AlertDialogAction
+										onClick={() =>
+											handleDeleteDepartment(dept)
+										}
+										className="bg-red-600 hover:bg-red-700 text-white"
+									>
+										Delete
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
+				);
+			},
+		},
+	];
+
 	const resetForm = () => {
 		setFormData({
 			department_name: "",
@@ -100,7 +218,9 @@ export function DepartmentsView({
 			await apiService.createDepartment({
 				department_name: formData.department_name,
 				department_code: formData.department_code.toUpperCase(),
-				school_id: formData.school_id ? parseInt(formData.school_id) : undefined,
+				school_id: formData.school_id
+					? parseInt(formData.school_id)
+					: undefined,
 				description: formData.description,
 			});
 			toast.success("Department created successfully");
@@ -112,7 +232,7 @@ export function DepartmentsView({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to create department"
+					: "Failed to create department",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -124,7 +244,9 @@ export function DepartmentsView({
 		setEditFormData({
 			department_name: department.department_name,
 			department_code: department.department_code,
-			school_id: department.school_id ? department.school_id.toString() : "",
+			school_id: department.school_id
+				? department.school_id.toString()
+				: "",
 			description: department.description || "",
 		});
 		setIsEditDialogOpen(true);
@@ -150,9 +272,11 @@ export function DepartmentsView({
 				{
 					department_name: editFormData.department_name,
 					department_code: editFormData.department_code.toUpperCase(),
-					school_id: editFormData.school_id ? parseInt(editFormData.school_id) : null,
+					school_id: editFormData.school_id
+						? parseInt(editFormData.school_id)
+						: null,
 					description: editFormData.description,
-				}
+				},
 			);
 			toast.success("Department updated successfully");
 			setIsEditDialogOpen(false);
@@ -163,7 +287,7 @@ export function DepartmentsView({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to update department"
+					: "Failed to update department",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -180,266 +304,184 @@ export function DepartmentsView({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to delete department"
+					: "Failed to delete department",
 			);
 		}
 	};
 
+	const schoolOptions = Array.from(
+		new Set(
+			departments
+				.map((d) => d.school_name)
+				.filter((n): n is string => !!n),
+		),
+	)
+		.sort()
+		.map((name) => ({ label: name, value: name }));
+
 	return (
-		<Card>
-			<CardHeader className="flex flex-row items-center justify-between">
-				<div className="flex items-center gap-3">
-					<div className="w-10 h-10 rounded-lg bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-						<Building2 className="w-5 h-5 text-white" />
-					</div>
-					<div>
-						<CardTitle>Departments</CardTitle>
-						<p className="text-sm text-muted-foreground">
-							Manage university departments
-						</p>
-					</div>
-				</div>
-				<Dialog
-					open={isAddDialogOpen}
-					onOpenChange={setIsAddDialogOpen}
-				>
-					<DialogTrigger asChild>
-						<Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-							<Plus className="w-4 h-4" />
-							Add Department
-						</Button>
-					</DialogTrigger>
-					<DialogContent className="sm:max-w-[450px]">
-						<DialogHeader>
-							<DialogTitle>Add New Department</DialogTitle>
-							<DialogDescription>
-								Create a new department in the system
-							</DialogDescription>
-						</DialogHeader>
-						<div className="grid gap-4 py-4">
-							<div className="space-y-2">
-								<Label htmlFor="department_name">
-									Department Name *
-								</Label>
-								<Input
-									id="department_name"
-									placeholder="e.g., Computer Science & Engineering"
-									value={formData.department_name}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											department_name: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="department_code">
-									Department Code *
-								</Label>
-								<Input
-									id="department_code"
-									placeholder="e.g., CSE"
-									maxLength={10}
-									value={formData.department_code}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											department_code:
-												e.target.value.toUpperCase(),
-										})
-									}
-								/>
-								<p className="text-xs text-muted-foreground">
-									Short code (max 10 characters), will be
-									auto-capitalized
-								</p>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="school_id">School</Label>
-								<Select
-									value={formData.school_id || "none"}
-									onValueChange={(val) =>
-										setFormData({
-											...formData,
-											school_id:
-												val === "none" ? "" : val,
-										})
-									}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="Select a school" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="none">
-											None
-										</SelectItem>
-										{schools.map((school) => (
-											<SelectItem
-												key={school.school_id}
-												value={school.school_id.toString()}
-											>
-												{school.school_name} (
-												{school.school_code})
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="description">
-									Description (Optional)
-								</Label>
-								<Input
-									id="description"
-									placeholder="Department description"
-									value={formData.description}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											description: e.target.value,
-										})
-									}
-								/>
-							</div>
+		<div className="space-y-4">
+			<Card className="border-none shadow-none bg-transparent">
+				<div className="flex flex-row items-center justify-between p-0 mb-4">
+					<div className="flex items-center gap-3">
+						<div className="w-10 h-10 rounded-lg bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+							<Building2 className="w-5 h-5 text-white" />
 						</div>
-						<DialogFooter>
-							<Button
-								variant="outline"
-								onClick={() => {
-									setIsAddDialogOpen(false);
-									resetForm();
-								}}
-							>
-								Cancel
-							</Button>
-							<Button
-								onClick={handleCreateDepartment}
-								disabled={isSubmitting}
-								className="bg-blue-600 hover:bg-blue-700"
-							>
-								{isSubmitting
-									? "Creating..."
-									: "Create Department"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
-			</CardHeader>
-			<CardContent>
-				{refreshing ? (
-					<div className="flex items-center justify-center py-8">
-						<RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+						<div>
+							<h3 className="text-xl font-bold">Departments</h3>
+							<p className="text-sm text-muted-foreground">
+								Manage university departments
+							</p>
+						</div>
 					</div>
-				) : departments.length === 0 ? (
-					<div className="text-center py-8 text-muted-foreground">
-						<Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-						<p>No departments found</p>
-						<p className="text-sm">
-							Click "Add Department" to create one
-						</p>
-					</div>
-				) : (
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>ID</TableHead>
-								<TableHead>Department Name</TableHead>
-								<TableHead>Code</TableHead>
-								<TableHead>School</TableHead>
-								<TableHead className="text-right">
-									Actions
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{departments.map((dept) => (
-								<TableRow key={dept.department_id}>
-									<TableCell className="font-medium">
-										{dept.department_id}
-									</TableCell>
-									<TableCell>
-										{dept.department_name}
-									</TableCell>
-									<TableCell>
-										<Badge
-											variant="outline"
-											className="font-mono"
-										>
-											{dept.department_code}
-										</Badge>
-									</TableCell>
-									<TableCell>
-										{schools.find(
-											(s) =>
-												s.school_id === dept.school_id
-										)?.school_name || "-"}
-									</TableCell>
-									<TableCell className="text-right">
-										<div className="flex items-center justify-end gap-2">
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-												onClick={() =>
-													openEditDialog(dept)
-												}
-											>
-												<Pencil className="w-4 h-4" />
-											</Button>
-											<AlertDialog>
-												<AlertDialogTrigger asChild>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-													>
-														<Trash2 className="w-4 h-4" />
-													</Button>
-												</AlertDialogTrigger>
-												<AlertDialogContent>
-													<AlertDialogHeader>
-														<AlertDialogTitle>
-															Delete Department
-														</AlertDialogTitle>
-														<AlertDialogDescription>
-															Are you sure you
-															want to delete "
-															{
-																dept.department_name
-															}
-															"? This action
-															cannot be undone.
-															Note: Departments
-															with assigned users
-															cannot be deleted.
-														</AlertDialogDescription>
-													</AlertDialogHeader>
-													<AlertDialogFooter>
-														<AlertDialogCancel>
-															Cancel
-														</AlertDialogCancel>
-														<AlertDialogAction
-															onClick={() =>
-																handleDeleteDepartment(
-																	dept
-																)
-															}
-															className="bg-red-600 hover:bg-red-700"
-														>
-															Delete
-														</AlertDialogAction>
-													</AlertDialogFooter>
-												</AlertDialogContent>
-											</AlertDialog>
-										</div>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
+					<Dialog
+						open={isAddDialogOpen}
+						onOpenChange={setIsAddDialogOpen}
+					>
+						<DialogTrigger asChild>
+							<Button className="gap-2 bg-blue-600 hover:bg-blue-700">
+								<Plus className="w-4 h-4" />
+								Add Department
+							</Button>
+						</DialogTrigger>
+						<DialogContent className="sm:max-w-[450px]">
+							<DialogHeader>
+								<DialogTitle>Add New Department</DialogTitle>
+								<DialogDescription>
+									Create a new department in the system
+								</DialogDescription>
+							</DialogHeader>
+							<div className="grid gap-4 py-4">
+								<div className="space-y-2">
+									<Label htmlFor="department_name">
+										Department Name *
+									</Label>
+									<Input
+										id="department_name"
+										placeholder="e.g., Computer Science & Engineering"
+										value={formData.department_name}
+										onChange={(e) =>
+											setFormData({
+												...formData,
+												department_name: e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="department_code">
+										Department Code *
+									</Label>
+									<Input
+										id="department_code"
+										placeholder="e.g., CSE"
+										maxLength={10}
+										value={formData.department_code}
+										onChange={(e) =>
+											setFormData({
+												...formData,
+												department_code:
+													e.target.value.toUpperCase(),
+											})
+										}
+									/>
+									<p className="text-xs text-muted-foreground">
+										Short code (max 10 characters), will be
+										auto-capitalized
+									</p>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="school_id">School</Label>
+									<Select
+										value={formData.school_id || "none"}
+										onValueChange={(val) =>
+											setFormData({
+												...formData,
+												school_id:
+													val === "none" ? "" : val,
+											})
+										}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a school" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="none">
+												None
+											</SelectItem>
+											{schools.map((school) => (
+												<SelectItem
+													key={school.school_id}
+													value={school.school_id.toString()}
+												>
+													{school.school_name} (
+													{school.school_code})
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="description">
+										Description (Optional)
+									</Label>
+									<Input
+										id="description"
+										placeholder="Department description"
+										value={formData.description}
+										onChange={(e) =>
+											setFormData({
+												...formData,
+												description: e.target.value,
+											})
+										}
+									/>
+								</div>
+							</div>
+							<DialogFooter>
+								<Button
+									variant="outline"
+									onClick={() => {
+										setIsAddDialogOpen(false);
+										resetForm();
+									}}
+								>
+									Cancel
+								</Button>
+								<Button
+									onClick={handleCreateDepartment}
+									disabled={isSubmitting}
+									className="bg-blue-600 hover:bg-blue-700"
+								>
+									{isSubmitting
+										? "Creating..."
+										: "Create Department"}
+								</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
+				</div>
+			</Card>
+
+			<DataTable
+				columns={columns}
+				data={departments}
+				searchKey="department_name"
+				searchPlaceholder="Search by name..."
+				refreshing={refreshing}
+			>
+				{(table) => (
+					<>
+						<DataTableFacetedFilter
+							column={table.getColumn("school_name")}
+							title="School"
+							options={schoolOptions}
+						/>
+					</>
 				)}
-			</CardContent>
+			</DataTable>
+
+			{/* Edit Dialog */}
 
 			{/* Edit Dialog */}
 			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -551,6 +593,6 @@ export function DepartmentsView({
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-		</Card>
+		</div>
 	);
 }

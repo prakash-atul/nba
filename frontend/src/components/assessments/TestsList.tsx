@@ -1,14 +1,9 @@
+import { DataTable } from "@/components/shared/DataTable";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
@@ -41,6 +36,81 @@ export function TestsList({ course, refreshTrigger }: TestsListProps) {
 	const [testToDelete, setTestToDelete] = useState<Test | null>(null);
 	const [deleteConfirmation, setDeleteConfirmation] = useState("");
 	const [isDeleting, setIsDeleting] = useState(false);
+
+	const columns: ColumnDef<Test>[] = [
+		{
+			accessorKey: "name",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Test Name
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<div className="font-medium">{row.getValue("name")}</div>
+			),
+		},
+		{
+			accessorKey: "full_marks",
+			header: "Full Marks",
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge variant="outline">
+						{row.getValue("full_marks")}
+					</Badge>
+				</div>
+			),
+		},
+		{
+			accessorKey: "pass_marks",
+			header: "Pass Marks",
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge variant="outline">
+						{row.getValue("pass_marks")}
+					</Badge>
+				</div>
+			),
+		},
+		{
+			id: "actions",
+			header: () => <div className="text-center">Actions</div>,
+			cell: ({ row }) => {
+				const test = row.original;
+				return (
+					<div className="flex justify-center gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								setSelectedTestId(test.id);
+								setShowDetailsDialog(true);
+							}}
+							className="gap-2"
+						>
+							<Eye className="w-4 h-4" />
+							View Details
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleDeleteClick(test)}
+							className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+						>
+							<Trash2 className="w-4 h-4" />
+							Delete
+						</Button>
+					</div>
+				);
+			},
+		},
+	];
 
 	useEffect(() => {
 		if (course) {
@@ -131,8 +201,8 @@ export function TestsList({ course, refreshTrigger }: TestsListProps) {
 	}
 
 	return (
-		<Card>
-			<CardHeader>
+		<Card className="border-none shadow-none bg-transparent">
+			<CardHeader className="px-0">
 				<CardTitle>
 					Assessments for {course.course_code} - {course.name}
 				</CardTitle>
@@ -140,90 +210,14 @@ export function TestsList({ course, refreshTrigger }: TestsListProps) {
 					{course.semester} Semester, Year {course.year}
 				</p>
 			</CardHeader>
-			<CardContent>
-				{loading ? (
-					<div className="text-center py-8 text-gray-500">
-						Loading...
-					</div>
-				) : tests.length === 0 ? (
-					<div className="text-center py-12">
-						<FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-						<p className="text-gray-500 dark:text-gray-400">
-							No assessments found for this course
-						</p>
-						<p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-							Click "Create Assessment" to add one
-						</p>
-					</div>
-				) : (
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Test Name</TableHead>
-								<TableHead className="text-center">
-									Full Marks
-								</TableHead>
-								<TableHead className="text-center">
-									Pass Marks
-								</TableHead>
-								<TableHead className="text-right">
-									Actions
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{Array.isArray(tests) &&
-								tests.map((test) => (
-									<TableRow key={test.id}>
-										<TableCell className="text-left font-medium">
-											{test.name}
-										</TableCell>
-										<TableCell className="text-center">
-											<Badge variant="outline">
-												{test.full_marks}
-											</Badge>
-										</TableCell>
-										<TableCell className="text-center">
-											<Badge variant="outline">
-												{test.pass_marks}
-											</Badge>
-										</TableCell>
-										<TableCell className="text-right">
-											<div className="flex justify-end gap-2">
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={() => {
-														setSelectedTestId(
-															test.id
-														);
-														setShowDetailsDialog(
-															true
-														);
-													}}
-													className="gap-2"
-												>
-													<Eye className="w-4 h-4" />
-													View Details
-												</Button>
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={() =>
-														handleDeleteClick(test)
-													}
-													className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-												>
-													<Trash2 className="w-4 h-4" />
-													Delete
-												</Button>
-											</div>
-										</TableCell>
-									</TableRow>
-								))}
-						</TableBody>
-					</Table>
-				)}
+			<CardContent className="px-0">
+				<DataTable
+					columns={columns}
+					data={tests}
+					searchKey="name"
+					searchPlaceholder="Search by test name..."
+					refreshing={loading}
+				/>
 			</CardContent>
 
 			{/* View Assessment Details Dialog */}

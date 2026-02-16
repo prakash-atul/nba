@@ -34,6 +34,8 @@ class JWTService
             'email' => $user->getEmail(),
             'role' => $user->getRole(),
             'department_id' => $user->getDepartmentId(),
+            'designation' => $user->getDesignation(),
+            'phone' => $user->getPhone(),
             'iat' => time(),
             'exp' => time() + $this->tokenExpiry
         ];

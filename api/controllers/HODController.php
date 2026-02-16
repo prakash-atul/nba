@@ -442,7 +442,9 @@ class HODController
                 $input['email'],
                 $hashedPassword,
                 $input['role'],
-                $departmentId
+                $departmentId,
+                $input['designation'] ?? null,
+                $input['phone'] ?? null
             );
 
             $this->userRepository->save($user);
@@ -452,13 +454,7 @@ class HODController
             echo json_encode([
                 'success' => true,
                 'message' => ucfirst($input['role']) . ' created successfully',
-                'data' => [
-                    'employee_id' => $user->getEmployeeId(),
-                    'username' => $user->getUsername(),
-                    'email' => $user->getEmail(),
-                    'role' => $user->getRole(),
-                    'department_id' => $user->getDepartmentId()
-                ]
+                'data' => $user->toArray()
             ]);
         } catch (Exception $e) {
             http_response_code(500);
@@ -518,6 +514,8 @@ class HODController
             $username = isset($input['username']) ? $input['username'] : $existingUser->getUsername();
             $email = isset($input['email']) ? $input['email'] : $existingUser->getEmail();
             $role = isset($input['role']) ? $input['role'] : $existingUser->getRole();
+            $designation = isset($input['designation']) ? $input['designation'] : $existingUser->getDesignation();
+            $phone = isset($input['phone']) ? $input['phone'] : $existingUser->getPhone();
             $password = $existingUser->getPassword();
 
             // Validate role if provided
@@ -554,7 +552,9 @@ class HODController
                 $email,
                 $password,
                 $role,
-                $departmentId
+                $departmentId,
+                $designation,
+                $phone
             );
 
             $this->userRepository->save($updatedUser);

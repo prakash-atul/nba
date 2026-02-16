@@ -1,14 +1,9 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { DataTable } from "@/components/shared/DataTable";
+import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
 import type { AdminTest } from "@/services/api";
 
 interface TestsViewProps {
@@ -17,6 +12,91 @@ interface TestsViewProps {
 }
 
 export function TestsView({ tests, refreshing }: TestsViewProps) {
+	const columns: ColumnDef<AdminTest>[] = [
+		{
+			accessorKey: "test_id",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					ID
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.getValue("test_id")}</span>
+			),
+		},
+		{
+			accessorKey: "test_name",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+					className="p-0 hover:bg-transparent"
+				>
+					Test Name
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+		},
+		{
+			accessorKey: "course_code",
+			header: "Course",
+			cell: ({ row }) => (
+				<div>
+					<span className="font-medium">
+						{row.getValue("course_code")}
+					</span>
+					<span className="block text-xs text-gray-500">
+						{row.original.course_name}
+					</span>
+				</div>
+			),
+		},
+		{
+			accessorKey: "full_marks",
+			header: "Full Marks",
+		},
+		{
+			accessorKey: "pass_marks",
+			header: "Pass Marks",
+		},
+		{
+			accessorKey: "year",
+			header: "Year",
+			filterFn: (row, id, value) => {
+				return value.includes(row.getValue(id)?.toString());
+			},
+		},
+		{
+			accessorKey: "semester",
+			header: "Semester",
+			filterFn: (row, id, value) => {
+				return value.includes(row.getValue(id)?.toString());
+			},
+			cell: ({ row }) => (
+				<Badge variant="secondary">
+					Sem {row.getValue("semester")}
+				</Badge>
+			),
+		},
+	];
+
+	const yearOptions = Array.from(new Set(tests.map((t) => t.year)))
+		.sort()
+		.map((year) => ({ label: year.toString(), value: year.toString() }));
+
+	const semesterOptions = Array.from(new Set(tests.map((t) => t.semester)))
+		.sort((a, b) => a - b)
+		.map((sem) => ({ label: `Sem ${sem}`, value: sem.toString() }));
+
 	return (
 		<div className="space-y-4">
 			<div>
@@ -26,71 +106,28 @@ export function TestsView({ tests, refreshing }: TestsViewProps) {
 				</p>
 			</div>
 
-			<Card>
-				<CardContent className="p-0">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>ID</TableHead>
-								<TableHead>Test Name</TableHead>
-								<TableHead>Course</TableHead>
-								<TableHead>Full Marks</TableHead>
-								<TableHead>Pass Marks</TableHead>
-								<TableHead>Year</TableHead>
-								<TableHead>Semester</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{refreshing ? (
-								<TableRow>
-									<TableCell
-										colSpan={7}
-										className="text-center py-8"
-									>
-										<RefreshCw className="h-6 w-6 animate-spin mx-auto text-gray-400" />
-									</TableCell>
-								</TableRow>
-							) : tests.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={7}
-										className="text-center py-8 text-gray-500"
-									>
-										No tests found
-									</TableCell>
-								</TableRow>
-							) : (
-								tests.map((test) => (
-									<TableRow key={test.id}>
-										<TableCell className="font-medium">
-											{test.id}
-										</TableCell>
-										<TableCell>{test.name}</TableCell>
-										<TableCell>
-											<div>
-												<span className="font-medium">
-													{test.course_code}
-												</span>
-												<span className="block text-xs text-gray-500">
-													{test.course_name}
-												</span>
-											</div>
-										</TableCell>
-										<TableCell>{test.full_marks}</TableCell>
-										<TableCell>{test.pass_marks}</TableCell>
-										<TableCell>{test.year}</TableCell>
-										<TableCell>
-											<Badge variant="secondary">
-												Sem {test.semester}
-											</Badge>
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</CardContent>
-			</Card>
+			<DataTable
+				columns={columns}
+				data={tests}
+				searchKey="test_name"
+				searchPlaceholder="Search by test name..."
+				refreshing={refreshing}
+			>
+				{(table) => (
+					<>
+						<DataTableFacetedFilter
+							column={table.getColumn("year")}
+							title="Year"
+							options={yearOptions}
+						/>
+						<DataTableFacetedFilter
+							column={table.getColumn("semester")}
+							title="Semester"
+							options={semesterOptions}
+						/>
+					</>
+				)}
+			</DataTable>
 		</div>
 	);
 }

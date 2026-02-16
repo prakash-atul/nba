@@ -157,6 +157,14 @@ class UserController
                 $user->setPassword(password_hash($data['password'], PASSWORD_DEFAULT));
             }
 
+            if (isset($data['designation'])) {
+                $user->setDesignation($data['designation']);
+            }
+
+            if (isset($data['phone'])) {
+                $user->setPhone($data['phone']);
+            }
+
             // Note: Role changes are not allowed via self-profile update for security reasons
             // Only admins can change user roles via dedicated endpoints
 
@@ -381,7 +389,9 @@ class UserController
                 $data['email'],
                 password_hash($data['password'], PASSWORD_DEFAULT),
                 $data['role'],
-                isset($data['department_id']) ? (int)$data['department_id'] : null
+                isset($data['department_id']) ? (int)$data['department_id'] : null,
+                $data['designation'] ?? null,
+                $data['phone'] ?? null
             );
 
             if ($this->userRepository->save($newUser)) {
