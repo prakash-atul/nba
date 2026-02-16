@@ -147,6 +147,47 @@ class HODAssignmentRepository
             // Begin transaction to ensure data consistency
             $this->db->beginTransaction();
 
+            // Check if there's an existing assignment with same dept, employee, and start_date
+            // (handles case where HOD is demoted and re-appointed on the same day)
+            $checkStmt = $this->db->prepare("
+                SELECT id FROM hod_assignments 
+                WHERE department_id = ? AND employee_id = ? AND start_date = ?
+            ");
+            $checkStmt->execute([
+                $assignment->getDepartmentId(),
+                $assignment->getEmployeeId(),
+                $assignment->getStartDate()
+            ]);
+            $existingId = $checkStmt->fetchColumn();
+
+            if ($existingId) {
+                // Reactivate existing assignment instead of creating duplicate
+                $updateStmt = $this->db->prepare("
+                    UPDATE hod_assignments 
+                    SET is_current = ?, end_date = ?, appointment_order = ?
+                    WHERE id = ?
+                ");
+                $updateStmt->execute([
+                    $assignment->getIsCurrent(),
+                    $assignment->getEndDate(),
+                    $assignment->getAppointmentOrder(),
+                    $existingId
+                ]);
+                
+                // Also end any other current assignments for this department
+                if ($assignment->getIsCurrent()) {
+                    $endOthersStmt = $this->db->prepare("
+                        UPDATE hod_assignments 
+                        SET is_current = 0, end_date = CURDATE()
+                        WHERE department_id = ? AND is_current = 1 AND id != ?
+                    ");
+                    $endOthersStmt->execute([$assignment->getDepartmentId(), $existingId]);
+                }
+                
+                $this->db->commit();
+                return $existingId;
+            }
+
             // If this is marked as current, unset other current assignments for the same department
             if ($assignment->getIsCurrent()) {
                 $stmt = $this->db->prepare("

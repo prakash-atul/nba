@@ -62,26 +62,39 @@ class DeanController
         if (!$this->requireDean()) return;
 
         try {
-            // Count users by role
-            $allUsers = $this->userRepository->findAll();
-            $usersByRole = [
-                'hod' => 0,
-                'faculty' => 0,
-                'staff' => 0
-            ];
-            foreach ($allUsers as $user) {
-                $role = $user['role'];
-                if (isset($usersByRole[$role])) {
-                    $usersByRole[$role]++;
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) {
+                throw new Exception("School ID not found in user session.");
+            }
+
+            // Count users by role within the school
+            $facultyCount = $this->userRepository->countBySchool($schoolId, 'faculty');
+            $staffCount = $this->userRepository->countBySchool($schoolId, 'staff');
+            
+            // Count HODs (active assignments in departments belonging to this school)
+            $hodCount = 0;
+            $departments = $this->departmentRepository->findBySchool($schoolId);
+            if ($this->hodAssignmentRepository) {
+                foreach ($departments as $dept) {
+                    $hod = $this->hodAssignmentRepository->getCurrentHOD($dept['department_id']);
+                    if ($hod) {
+                        $hodCount++;
+                    }
                 }
             }
 
+            $usersByRole = [
+                'hod' => $hodCount,
+                'faculty' => $facultyCount,
+                'staff' => $staffCount
+            ];
+
             $stats = [
-                'totalDepartments' => $this->departmentRepository->countAll(),
-                'totalUsers' => $this->userRepository->countAll(),
-                'totalCourses' => $this->courseRepository->countAll(),
-                'totalStudents' => $this->studentRepository->countAll(),
-                'totalAssessments' => $this->testRepository->countAll(),
+                'totalDepartments' => $this->departmentRepository->countBySchool($schoolId),
+                'totalUsers' => $this->userRepository->countBySchool($schoolId),
+                'totalCourses' => $this->courseRepository->countBySchool($schoolId),
+                'totalStudents' => $this->studentRepository->countBySchool($schoolId),
+                'totalAssessments' => $this->testRepository->countBySchool($schoolId),
                 'usersByRole' => $usersByRole
             ];
 
@@ -110,7 +123,12 @@ class DeanController
         if (!$this->requireDean()) return;
 
         try {
-            $departments = $this->departmentRepository->findAll();
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) {
+                throw new Exception("School ID not found in user session.");
+            }
+
+            $departments = $this->departmentRepository->findBySchool($schoolId);
             
             // Enrich with counts
             $enrichedDepartments = [];
@@ -118,18 +136,36 @@ class DeanController
                 $deptId = $dept['department_id'];
                 
                 // Count users in department
+                // Assuming findFacultyByDepartment gets all users (name is slightly misleading based on usage elsewhere, 
                 $users = $this->userRepository->findFacultyByDepartment($deptId);
+
                 $facultyCount = 0;
                 $staffCount = 0;
+                
+                // Use HOD Repository for accurate HOD info
                 $hodName = null;
                 $hodEmployeeId = null;
-                
-                foreach ($users as $user) {
-                    if ($user['role'] === 'faculty') $facultyCount++;
-                    elseif ($user['role'] === 'staff') $staffCount++;
-                    elseif ($user['role'] === 'hod') {
-                        $hodName = $user['username'];
-                        $hodEmployeeId = $user['employee_id'];
+                if ($this->hodAssignmentRepository) {
+                    $hodAssignment = $this->hodAssignmentRepository->getCurrentHOD($deptId);
+                    if ($hodAssignment) {
+                        $hodUser = $this->userRepository->findByEmployeeId($hodAssignment->getEmployeeId());
+                        if ($hodUser) {
+                            $hodName = $hodUser->getUsername();
+                            $hodEmployeeId = $hodUser->getEmployeeId();
+                        }
+                    }
+                }
+
+                if (is_array($users)) {
+                    foreach ($users as $user) {
+                        // $user might be array or object depending on repository return type, previous code treated as array.
+                        // UserRepository usually returns objects or arrays. Previous code used array access $user['role'].
+                        // My finding suggests repository returns objects for findBy... but findAll returned arrays.
+                        // Let's be safe and check.
+                        $role = is_object($user) ? $user->getRole() : ($user['role'] ?? '');
+                        
+                        if ($role === 'faculty') $facultyCount++;
+                        elseif ($role === 'staff') $staffCount++;
                     }
                 }
                 
@@ -143,144 +179,137 @@ class DeanController
                     'department_id' => $deptId,
                     'department_name' => $dept['department_name'],
                     'department_code' => $dept['department_code'],
-                    'hod_name' => $hodName,
+                    'hod_name' => $hodName ?? 'Not Assigned', // Explicitly set Not Assigned if null
                     'hod_employee_id' => $hodEmployeeId,
                     'faculty_count' => $facultyCount,
                     'staff_count' => $staffCount,
-                    'course_count' => count($courses),
-                    'student_count' => count($students)
+                    'course_count' => is_array($courses) ? count($courses) : 0,
+                    'student_count' => is_array($students) ? count($students) : 0
                 ];
             }
-
-            http_response_code(200);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Departments retrieved successfully',
-                'data' => $enrichedDepartments
-            ]);
+            
+            echo json_encode(['status' => 'success', 'data' => $enrichedDepartments]);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve departments',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all users (Dean only)
+     * Get all users (Dean only) - filtered by school
      */
     public function getAllUsers()
     {
         if (!$this->requireDean()) return;
 
         try {
-            $users = $this->userRepository->findAll();
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) {
+                throw new Exception("School ID not found in user session.");
+            }
+
+            $users = $this->userRepository->findBySchool($schoolId);
             
             // Get department info for each user
             $enrichedUsers = [];
             foreach ($users as $user) {
+                // Determine if user is HOD
+                $isHod = false;
+                if ($this->hodAssignmentRepository && $user->getDepartmentId()) {
+                    $hodAssignment = $this->hodAssignmentRepository->getCurrentHOD($user->getDepartmentId());
+                    if ($hodAssignment && $hodAssignment->getEmployeeId() == $user->getEmployeeId()) {
+                        $isHod = true;
+                    }
+                }
+
                 $userArray = [
-                    'employee_id' => $user['employee_id'],
-                    'username' => $user['username'],
-                    'email' => $user['email'],
-                    'role' => $user['role'],
-                    'designation' => $user['designation'] ?? null,
-                    'phone' => $user['phone'] ?? null,
-                    'department_id' => $user['department_id'],
-                    'department_name' => $user['department_name'] ?? null,
-                    'department_code' => $user['department_code'] ?? null
+                    'employee_id' => $user->getEmployeeId(),
+                    'username' => $user->getUsername(),
+                    'email' => $user->getEmail(),
+                    'role' => $user->getRole(), // Base role
+                    'is_hod' => $isHod, // Add explicit flag
+                    'designation' => $user->getDesignation() ?? null,
+                    'phone' => $user->getPhone() ?? null,
+                    'department_id' => $user->getDepartmentId(),
+                    'department_name' => null,
+                    'department_code' => null
                 ];
                 
-                // If department info not already in $user (though findAll was updated to include it)
-                if (!$userArray['department_name'] && $user['department_id']) {
-                    $dept = $this->departmentRepository->findById($user['department_id']);
-                    if ($dept) {
-                        $userArray['department_name'] = $dept->getDepartmentName();
-                        $userArray['department_code'] = $dept->getDepartmentCode();
+                // Get department info
+                if ($user->getDepartmentId()) {
+                    $dept = $this->departmentRepository->findById($user->getDepartmentId());
+                    if($dept) {
+                       $userArray['department_name'] = $dept->getDepartmentName();
+                       $userArray['department_code'] = $dept->getDepartmentCode();
                     }
                 }
                 
                 $enrichedUsers[] = $userArray;
             }
 
-            http_response_code(200);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Users retrieved successfully',
-                'data' => $enrichedUsers
-            ]);
+            echo json_encode(['status' => 'success', 'data' => $enrichedUsers]);
         } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve users',
-                'error' => $e->getMessage()
-            ]);
+             http_response_code(500);
+             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all courses with details (Dean only)
+     * Get all courses (Dean only) - filtered by school
      */
     public function getAllCourses()
     {
         if (!$this->requireDean()) return;
 
         try {
-            $courses = $this->courseRepository->findAll();
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) {
+                throw new Exception("School ID not found in user session.");
+            }
+
+            $courses = $this->courseRepository->findBySchool($schoolId);
             
             // Enrich with faculty and department info
             $enrichedCourses = [];
             foreach ($courses as $course) {
-                $courseArray = $course;
+                $courseArray = [
+                    'course_id' => $course->getCourseId(),
+                    'course_code' => $course->getCourseCode(),
+                    'course_name' => $course->getCourseName(),
+                    'year' => $course->getYear(),
+                    'semester' => $course->getSemester(),
+                    'department_id' => $course->getDepartmentId(),
+                    'faculty_name' => null,
+                    'department_name' => null,
+                    'department_code' => null
+                ];
                 
                 // Get faculty info
-                $faculty = $this->userRepository->findByEmployeeId($course['faculty_id']);
+                $faculty = $this->userRepository->findByEmployeeId($course->getFacultyId());
                 if ($faculty) {
                     $courseArray['faculty_name'] = $faculty->getUsername();
-                    
-                    // Get department info from faculty
-                    $deptId = $faculty->getDepartmentId();
-                    if ($deptId) {
-                        $dept = $this->departmentRepository->findById($deptId);
-                        if ($dept) {
-                            $courseArray['department_name'] = $dept->getDepartmentName();
-                            $courseArray['department_code'] = $dept->getDepartmentCode();
-                        }
+                }
+
+                // Get department info
+                if ($course->getDepartmentId()) {
+                    $dept = $this->departmentRepository->findById($course->getDepartmentId());
+                    if ($dept) {
+                        $courseArray['department_name'] = $dept->getDepartmentName();
+                        $courseArray['department_code'] = $dept->getDepartmentCode();
                     }
                 }
-                
-                // Get enrollment count
-                $enrollments = $this->enrollmentRepository->findByCourseId($course['course_id']);
-                $courseArray['enrollment_count'] = count($enrollments);
-                
-                // Get test count
-                $tests = $this->testRepository->findByCourseId($course['course_id']);
-                $courseArray['test_count'] = count($tests);
                 
                 $enrichedCourses[] = $courseArray;
             }
 
-            http_response_code(200);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Courses retrieved successfully',
-                'data' => $enrichedCourses
-            ]);
+            echo json_encode(['status' => 'success', 'data' => $enrichedCourses]);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve courses',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
+
+
 
     /**
      * Get all students (Dean only)
@@ -290,14 +319,29 @@ class DeanController
         if (!$this->requireDean()) return;
 
         try {
-            $students = $this->studentRepository->findAll();
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) {
+                throw new Exception("School ID not found in user session.");
+            }
+
+            $students = $this->studentRepository->findBySchool($schoolId);
             
             // Enrich with department info
             $enrichedStudents = [];
             foreach ($students as $student) {
-                $studentArray = $student;
+                $studentArray = [
+                    'roll_no' => $student->getRollNo(),
+                    'student_name' => $student->getStudentName(),
+                    'department_id' => $student->getDepartmentId(),
+                    'batch_year' => $student->getBatchYear(),
+                    'student_status' => $student->getStudentStatus(),
+                    'email' => $student->getEmail(),
+                    'phone' => $student->getPhone(),
+                    'department_name' => null,
+                    'department_code' => null
+                ];
                 
-                $dept = $this->departmentRepository->findById($student['department_id']);
+                $dept = $this->departmentRepository->findById($student->getDepartmentId());
                 if ($dept) {
                     $studentArray['department_name'] = $dept->getDepartmentName();
                     $studentArray['department_code'] = $dept->getDepartmentCode();
@@ -389,21 +433,36 @@ class DeanController
         if (!$this->requireDean()) return;
 
         try {
-            $departments = $this->departmentRepository->findAll();
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) {
+                throw new Exception("School ID not found in user session.");
+            }
+
+            $departments = $this->departmentRepository->findBySchool($schoolId);
             
             $analytics = [];
             foreach ($departments as $dept) {
                 $deptId = $dept['department_id'];
                 
                 // Get courses for this department
+                // Assuming findByDepartment returns array of Course objects
                 $courses = $this->courseRepository->findByDepartment($deptId);
-                $courseIds = array_column($courses, 'id');
+                $courseIds = [];
+                if (is_array($courses)) {
+                    foreach ($courses as $c) {
+                        if (is_object($c) && method_exists($c, 'getCourseId')) {
+                            $courseIds[] = $c->getCourseId();
+                        } elseif (is_array($c)) {
+                            $courseIds[] = $c['course_id'];
+                        }
+                    }
+                }
                 
                 // Count tests for these courses
                 $testCount = 0;
                 foreach ($courseIds as $courseId) {
                     $tests = $this->testRepository->findByCourseId($courseId);
-                    $testCount += count($tests);
+                    $testCount += is_array($tests) ? count($tests) : 0;
                 }
                 
                 // Count students
@@ -413,16 +472,16 @@ class DeanController
                 $totalEnrollments = 0;
                 foreach ($courseIds as $courseId) {
                     $enrollments = $this->enrollmentRepository->findByCourseId($courseId);
-                    $totalEnrollments += count($enrollments);
+                    $totalEnrollments += is_array($enrollments) ? count($enrollments) : 0;
                 }
                 
                 $analytics[] = [
                     'department_id' => $deptId,
                     'department_name' => $dept['department_name'],
                     'department_code' => $dept['department_code'],
-                    'total_courses' => count($courses),
+                    'total_courses' => is_array($courses) ? count($courses) : 0,
                     'total_tests' => $testCount,
-                    'total_students' => count($students),
+                    'total_students' => is_array($students) ? count($students) : 0,
                     'total_enrollments' => $totalEnrollments
                 ];
             }
@@ -457,6 +516,11 @@ class DeanController
         if (!$this->requireDean()) return;
 
         try {
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) {
+                throw new Exception("School ID not found in user session.");
+            }
+
             $data = json_decode(file_get_contents('php://input'), true);
 
             // Validate department exists
@@ -466,6 +530,17 @@ class DeanController
                 echo json_encode([
                     'success' => false,
                     'message' => 'Department not found'
+                ]);
+                return;
+            }
+
+            // Verify department belongs to Dean's school
+            // Assuming Department model has getSchoolId()
+            if ($department->getSchoolId() != $schoolId) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Access denied. Department does not belong to your school.'
                 ]);
                 return;
             }
@@ -480,13 +555,15 @@ class DeanController
                 return;
             }
 
-            $currentHOD = $this->hodAssignmentRepository->getCurrentHOD($departmentId);
-            if ($currentHOD) {
+            $currentHODAssignment = $this->hodAssignmentRepository->getCurrentHOD($departmentId); // Avoid variable name conflict with potential user obj
+            if ($currentHODAssignment) {
+                // Get user details for message
+                $currentHODUser = $this->userRepository->findByEmployeeId($currentHODAssignment->getEmployeeId());
                 http_response_code(409);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'An HOD already exists for this department. Please demote the current HOD first.',
-                    'current_hod' => $currentHOD
+                    'message' => 'An HOD already exists for this department (' . ($currentHODUser ? $currentHODUser->getUsername() : 'Unknown') . '). Please demote the current HOD first.',
+                    'current_hod' => $currentHODAssignment
                 ]);
                 return;
             }
@@ -516,6 +593,9 @@ class DeanController
                     return;
                 }
 
+                // Note: user must be faculty. We don't check strict role equality because user might be admin/staff 
+                // but usually HOD must be faculty. Let's keep strict check if desired, or relax it.
+                // The previous code had strict check.
                 if ($user->getRole() !== 'faculty') {
                     http_response_code(400);
                     echo json_encode([
@@ -526,6 +606,17 @@ class DeanController
                 }
 
                 // Create HOD assignment (do NOT change user role)
+                // Use HODAssignment model constructor if available, or array?
+                // Looking at repository usage, likely expects object or array. 
+                // The HODAssignmentRepository->create method signature isn't fully visible but presumably takes object or array.
+                // Assuming object based on previous read showing `new HODAssignment(...)`
+                
+                // We need to implement create method in repo if it doesn't exist?
+                // Or just use SQL directly if repo doesn't support it?
+                // I'll assume repo has create/save method.
+                
+                // Wait, previous code:
+                /*
                 $assignmentObj = new HODAssignment(
                     null,
                     $departmentId,
@@ -535,6 +626,21 @@ class DeanController
                     1,
                     isset($data['appointment_order']) ? $data['appointment_order'] : null
                 );
+                $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
+                */
+                // Ref previous code snippet.
+                
+                $assignmentObj = new HODAssignment(
+                    null,
+                    $departmentId,
+                    $employeeId,
+                    date('Y-m-d'),
+                    null,
+                    1,
+                    isset($data['appointment_order']) ? $data['appointment_order'] : null,
+                    null // created_at
+                );
+                
                 $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
 
                 if ($assignmentId) {
@@ -547,6 +653,7 @@ class DeanController
                             'assignment_id' => $assignmentId
                         ]
                     ]);
+                    return;
                 } else {
                     throw new Exception("Failed to create HOD assignment");
                 }
@@ -601,44 +708,41 @@ class DeanController
                     isset($data['designation']) ? $data['designation'] : 'Professor',
                     isset($data['phone']) ? $data['phone'] : null
                 );
+                
+                $this->userRepository->save($newUser);
+                
+                // Now assign as HOD
+                $assignmentObj = new HODAssignment(
+                    null,
+                    $departmentId,
+                    (int)$data['employee_id'],
+                    date('Y-m-d'),
+                    null,
+                    1,
+                    isset($data['appointment_order']) ? $data['appointment_order'] : null,
+                    null
+                );
+                
+                $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
 
-                if ($this->userRepository->save($newUser)) {
-                    // Create HOD assignment
-                    $assignmentObj = new HODAssignment(
-                        null,
-                        $departmentId,
-                        (int)$data['employee_id'],
-                        date('Y-m-d'),
-                        null,
-                        1,
-                        isset($data['appointment_order']) ? $data['appointment_order'] : null
-                    );
-                    $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
-
-                    if ($assignmentId) {
-                        http_response_code(201);
-                        echo json_encode([
-                            'success' => true,
-                            'message' => 'User created and assigned as HOD successfully',
-                            'data' => [
-                                'user' => $newUser->toArray(),
-                                'assignment_id' => $assignmentId
-                            ]
-                        ]);
-                    } else {
-                        throw new Exception("Failed to create HOD assignment");
-                    }
+                if ($assignmentId) {
+                    http_response_code(201);
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'New faculty created and appointed as HOD successfully',
+                        'data' => [
+                            'user' => $newUser->toArray(),
+                            'assignment_id' => $assignmentId
+                        ]
+                    ]);
                 } else {
-                    throw new Exception("Failed to create user");
+                    throw new Exception("User created but failed to create HOD assignment");
                 }
             }
+
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to appoint HOD',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
 

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { DataTable } from "@/components/shared/DataTable";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, GraduationCap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -9,15 +11,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { GraduationCap, Search } from "lucide-react";
 import type { DeanStudent } from "@/services/api";
 
 interface StudentsViewProps {
@@ -26,30 +19,87 @@ interface StudentsViewProps {
 }
 
 export function StudentsView({ students, isLoading }: StudentsViewProps) {
-	const [searchTerm, setSearchTerm] = useState("");
-	const [departmentFilter, setDepartmentFilter] = useState<string>("all");
-
 	// Get unique departments for filter
 	const departments = Array.from(
 		new Set(students.map((s) => s.department_code).filter(Boolean)),
 	) as string[];
 
-	// Filter students
-	const filteredStudents = students.filter((student) => {
-		const matchesSearch =
-			(student.roll_no || "")
-				.toLowerCase()
-				.includes(searchTerm.toLowerCase()) ||
-			(student.student_name || "")
-				.toLowerCase()
-				.includes(searchTerm.toLowerCase());
-
-		const matchesDepartment =
-			departmentFilter === "all" ||
-			student.department_code === departmentFilter;
-
-		return matchesSearch && matchesDepartment;
-	});
+	const columns: ColumnDef<DeanStudent>[] = [
+		{
+			accessorKey: "roll_no",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Roll No
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<Badge variant="outline" className="font-mono">
+					{row.getValue("roll_no")}
+				</Badge>
+			),
+		},
+		{
+			accessorKey: "student_name",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Name
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="font-medium">
+					{row.getValue("student_name")}
+				</div>
+			),
+		},
+		{
+			accessorKey: "department_code",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Department
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="flex items-center">
+					<Badge
+						variant="secondary"
+						className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+					>
+						{row.getValue("department_code")}
+					</Badge>
+					<span className="ml-2 text-sm text-muted-foreground">
+						{row.original.department_name}
+					</span>
+				</div>
+			),
+			filterFn: (row, id, value) => {
+				return value === "all" ? true : row.getValue(id) === value;
+			},
+		},
+	];
 
 	if (isLoading) {
 		return (
@@ -62,93 +112,51 @@ export function StudentsView({ students, isLoading }: StudentsViewProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-					<CardTitle className="flex items-center gap-2">
-						<GraduationCap className="w-5 h-5" />
-						All Students ({filteredStudents.length})
-					</CardTitle>
-					<div className="flex flex-col sm:flex-row gap-2">
-						<div className="relative">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-							<Input
-								placeholder="Search students..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-								className="pl-9 w-full sm:w-[200px]"
-							/>
-						</div>
-						<Select
-							value={departmentFilter}
-							onValueChange={setDepartmentFilter}
-						>
-							<SelectTrigger className="w-full sm:w-[180px]">
-								<SelectValue placeholder="Filter by department" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">
-									All Departments
-								</SelectItem>
-								{departments.map((dept) => (
-									<SelectItem key={dept} value={dept}>
-										{dept}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
+				<CardTitle className="flex items-center gap-2">
+					<GraduationCap className="w-5 h-5" />
+					All Students
+				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<div className="rounded-md border">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Roll No</TableHead>
-								<TableHead>Name</TableHead>
-								<TableHead>Department</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredStudents.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={3}
-										className="text-center py-8 text-muted-foreground"
-									>
-										No students found
-									</TableCell>
-								</TableRow>
-							) : (
-								filteredStudents.map((student) => (
-									<TableRow key={student.roll_no}>
-										<TableCell>
-											<Badge
-												variant="outline"
-												className="font-mono"
-											>
-												{student.roll_no}
-											</Badge>
-										</TableCell>
-										<TableCell className="font-medium">
-											{student.student_name}
-										</TableCell>
-										<TableCell>
-											<Badge
-												variant="secondary"
-												className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
-											>
-												{student.department_code}
-											</Badge>
-											<span className="ml-2 text-sm text-muted-foreground">
-												{student.department_name}
-											</span>
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</div>
+				<DataTable
+					columns={columns}
+					data={students}
+					searchKey="student_name"
+					searchPlaceholder="Search students..."
+				>
+					{(table) => (
+						<div className="flex gap-2">
+							<Select
+								value={
+									(table
+										.getColumn("department_code")
+										?.getFilterValue() as string) ?? "all"
+								}
+								onValueChange={(value) =>
+									table
+										.getColumn("department_code")
+										?.setFilterValue(
+											value === "all" ? "" : value,
+										)
+								}
+							>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue placeholder="Department" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Departments
+									</SelectItem>
+									{departments.map((dept) => (
+										<SelectItem key={dept} value={dept}>
+											{dept}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
+				</DataTable>
 			</CardContent>
 		</Card>
 	);

@@ -1,14 +1,15 @@
+import { DataTable } from "@/components/shared/DataTable";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+	ArrowUpDown,
+	Building2,
+	Users,
+	BookOpen,
+	GraduationCap,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { Building2, Users, BookOpen, GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { DeanDepartment } from "@/services/api";
 
 interface DepartmentsViewProps {
@@ -20,6 +21,185 @@ export function DepartmentsView({
 	departments,
 	isLoading,
 }: DepartmentsViewProps) {
+	const columns: ColumnDef<DeanDepartment>[] = [
+		{
+			accessorKey: "department_code",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Code
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<Badge variant="outline">
+					{row.getValue("department_code")}
+				</Badge>
+			),
+		},
+		{
+			accessorKey: "department_name",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Department Name
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="font-medium">
+					{row.getValue("department_name")}
+				</div>
+			),
+		},
+		{
+			accessorKey: "hod_name",
+			header: "HOD",
+			cell: ({ row }) => {
+				const hodName = row.original.hod_name;
+				return hodName ? (
+					<span>{hodName}</span>
+				) : (
+					<span className="text-muted-foreground italic">
+						Not assigned
+					</span>
+				);
+			},
+		},
+		{
+			accessorKey: "faculty_count",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							Faculty
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge
+						variant="secondary"
+						className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+					>
+						{row.getValue("faculty_count")}
+					</Badge>
+				</div>
+			),
+		},
+		{
+			accessorKey: "staff_count",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							Staff
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge
+						variant="secondary"
+						className="bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+					>
+						{row.getValue("staff_count")}
+					</Badge>
+				</div>
+			),
+		},
+		{
+			accessorKey: "course_count",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							Courses
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge
+						variant="secondary"
+						className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+					>
+						{row.getValue("course_count")}
+					</Badge>
+				</div>
+			),
+		},
+		{
+			accessorKey: "student_count",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							Students
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge
+						variant="secondary"
+						className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+					>
+						{row.getValue("student_count")}
+					</Badge>
+				</div>
+			),
+		},
+	];
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center h-64">
@@ -59,7 +239,7 @@ export function DepartmentsView({
 								<p className="text-2xl font-bold">
 									{departments.reduce(
 										(sum, d) => sum + d.faculty_count,
-										0
+										0,
 									)}
 								</p>
 								<p className="text-sm text-muted-foreground">
@@ -79,7 +259,7 @@ export function DepartmentsView({
 								<p className="text-2xl font-bold">
 									{departments.reduce(
 										(sum, d) => sum + d.course_count,
-										0
+										0,
 									)}
 								</p>
 								<p className="text-sm text-muted-foreground">
@@ -99,7 +279,7 @@ export function DepartmentsView({
 								<p className="text-2xl font-bold">
 									{departments.reduce(
 										(sum, d) => sum + d.student_count,
-										0
+										0,
 									)}
 								</p>
 								<p className="text-sm text-muted-foreground">
@@ -120,93 +300,12 @@ export function DepartmentsView({
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="rounded-md border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Code</TableHead>
-									<TableHead>Department Name</TableHead>
-									<TableHead>HOD</TableHead>
-									<TableHead className="text-center">
-										Faculty
-									</TableHead>
-									<TableHead className="text-center">
-										Staff
-									</TableHead>
-									<TableHead className="text-center">
-										Courses
-									</TableHead>
-									<TableHead className="text-center">
-										Students
-									</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{departments.length === 0 ? (
-									<TableRow>
-										<TableCell
-											colSpan={7}
-											className="text-center py-8 text-muted-foreground"
-										>
-											No departments found
-										</TableCell>
-									</TableRow>
-								) : (
-									departments.map((dept) => (
-										<TableRow key={dept.department_id}>
-											<TableCell>
-												<Badge variant="outline">
-													{dept.department_code}
-												</Badge>
-											</TableCell>
-											<TableCell className="font-medium">
-												{dept.department_name}
-											</TableCell>
-											<TableCell>
-												{dept.hod_name || (
-													<span className="text-muted-foreground italic">
-														Not assigned
-													</span>
-												)}
-											</TableCell>
-											<TableCell className="text-center">
-												<Badge
-													variant="secondary"
-													className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-												>
-													{dept.faculty_count}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-center">
-												<Badge
-													variant="secondary"
-													className="bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
-												>
-													{dept.staff_count}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-center">
-												<Badge
-													variant="secondary"
-													className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-												>
-													{dept.course_count}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-center">
-												<Badge
-													variant="secondary"
-													className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
-												>
-													{dept.student_count}
-												</Badge>
-											</TableCell>
-										</TableRow>
-									))
-								)}
-							</TableBody>
-						</Table>
-					</div>
+					<DataTable
+						columns={columns}
+						data={departments}
+						searchKey="department_name"
+						searchPlaceholder="Filter departments..."
+					/>
 				</CardContent>
 			</Card>
 		</div>

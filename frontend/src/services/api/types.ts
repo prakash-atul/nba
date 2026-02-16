@@ -475,6 +475,7 @@ export interface DeanStats {
 	totalStudents: number;
 	totalAssessments: number;
 	usersByRole: {
+		hod?: number;
 		faculty: number;
 		staff: number;
 	};

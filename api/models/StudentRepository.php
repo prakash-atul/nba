@@ -60,6 +60,62 @@ class StudentRepository
     }
 
     /**
+     * Find students by school ID
+     * @param int $schoolId
+     * @return array
+     */
+    public function findBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT s.* 
+                FROM students s
+                JOIN departments d ON s.department_id = d.department_id
+                WHERE d.school_id = ?
+                ORDER BY s.roll_no
+            ");
+            $stmt->execute([$schoolId]);
+            $students = [];
+
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $students[] = new Student(
+                    $row['roll_no'], 
+                    $row['student_name'], 
+                    $row['department_id'],
+                    $row['batch_year'] ?? null,
+                    $row['student_status'] ?? 'Active',
+                    $row['email'] ?? null,
+                    $row['phone'] ?? null
+                );
+            }
+            return $students;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count students by school ID
+     * @param int $schoolId
+     * @return int
+     */
+    public function countBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM students s
+                JOIN departments d ON s.department_id = d.department_id
+                WHERE d.school_id = ?
+            ");
+            $stmt->execute([$schoolId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Create a new student
      */
     public function save(Student $student)

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { DataTable } from "@/components/shared/DataTable";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, BookOpen, ClipboardList, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -9,15 +11,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { BookOpen, Search, Users, ClipboardList } from "lucide-react";
 import type { DeanCourse } from "@/services/api";
 
 interface CoursesViewProps {
@@ -26,10 +19,6 @@ interface CoursesViewProps {
 }
 
 export function CoursesView({ courses, isLoading }: CoursesViewProps) {
-	const [searchTerm, setSearchTerm] = useState("");
-	const [departmentFilter, setDepartmentFilter] = useState<string>("all");
-	const [yearFilter, setYearFilter] = useState<string>("all");
-
 	// Get unique departments and years for filters
 	const departments = Array.from(
 		new Set(courses.map((c) => c.department_code).filter(Boolean)),
@@ -38,27 +27,242 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 		(a, b) => b - a,
 	);
 
-	// Filter courses
-	const filteredCourses = courses.filter((course) => {
-		const matchesSearch =
-			course.course_code
-				.toLowerCase()
-				.includes(searchTerm.toLowerCase()) ||
-			course.course_name
-				.toLowerCase()
-				.includes(searchTerm.toLowerCase()) ||
-			course.faculty_name
-				?.toLowerCase()
-				.includes(searchTerm.toLowerCase());
-
-		const matchesDepartment =
-			departmentFilter === "all" ||
-			course.department_code === departmentFilter;
-		const matchesYear =
-			yearFilter === "all" || course.year.toString() === yearFilter;
-
-		return matchesSearch && matchesDepartment && matchesYear;
-	});
+	const columns: ColumnDef<DeanCourse>[] = [
+		{
+			accessorKey: "course_code",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Code
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<Badge variant="outline" className="font-mono">
+					{row.getValue("course_code")}
+				</Badge>
+			),
+		},
+		{
+			accessorKey: "course_name",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Course Name
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div
+					className="font-medium max-w-[200px] truncate"
+					title={row.getValue("course_name")}
+				>
+					{row.getValue("course_name")}
+				</div>
+			),
+		},
+		{
+			accessorKey: "faculty_name",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Faculty
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-muted-foreground">
+					{row.getValue("faculty_name") || "N/A"}
+				</div>
+			),
+		},
+		{
+			accessorKey: "department_code",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Dept
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => {
+				const dept = row.getValue("department_code") as string;
+				return dept ? (
+					<Badge
+						variant="secondary"
+						className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+					>
+						{dept}
+					</Badge>
+				) : (
+					"N/A"
+				);
+			},
+			filterFn: (row, id, value) => {
+				return value === "all" ? true : row.getValue(id) === value;
+			},
+		},
+		{
+			accessorKey: "year",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							Year
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">{row.getValue("year")}</div>
+			),
+			filterFn: (row, id, value) => {
+				return value === "all"
+					? true
+					: String(row.getValue(id)) === value;
+			},
+		},
+		{
+			accessorKey: "semester",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							Sem
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">{row.getValue("semester")}</div>
+			),
+		},
+		{
+			accessorKey: "credit",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							Credit
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">{row.getValue("credit")}</div>
+			),
+		},
+		{
+			accessorKey: "enrollment_count",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							<Users className="w-4 h-4 mr-2" />
+							Enrolled
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge
+						variant="secondary"
+						className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+					>
+						{row.getValue("enrollment_count")}
+					</Badge>
+				</div>
+			),
+		},
+		{
+			accessorKey: "test_count",
+			header: ({ column }) => {
+				return (
+					<div className="text-center">
+						<Button
+							variant="ghost"
+							onClick={() =>
+								column.toggleSorting(
+									column.getIsSorted() === "asc",
+								)
+							}
+						>
+							<ClipboardList className="w-4 h-4 mr-2" />
+							Tests
+							<ArrowUpDown className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-center">
+					<Badge
+						variant="secondary"
+						className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+					>
+						{row.getValue("test_count")}
+					</Badge>
+				</div>
+			),
+		},
+	];
 
 	if (isLoading) {
 		return (
@@ -71,157 +275,82 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-					<CardTitle className="flex items-center gap-2">
-						<BookOpen className="w-5 h-5" />
-						All Courses ({filteredCourses.length})
-					</CardTitle>
-					<div className="flex flex-col sm:flex-row gap-2">
-						<div className="relative">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-							<Input
-								placeholder="Search courses..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-								className="pl-9 w-full sm:w-[200px]"
-							/>
-						</div>
-						<Select
-							value={departmentFilter}
-							onValueChange={setDepartmentFilter}
-						>
-							<SelectTrigger className="w-full sm:w-[150px]">
-								<SelectValue placeholder="Department" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">All Depts</SelectItem>
-								{departments.map((dept) => (
-									<SelectItem key={dept} value={dept}>
-										{dept}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<Select
-							value={yearFilter}
-							onValueChange={setYearFilter}
-						>
-							<SelectTrigger className="w-full sm:w-[120px]">
-								<SelectValue placeholder="Year" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">All Years</SelectItem>
-								{years.map((year) => (
-									<SelectItem
-										key={year}
-										value={year.toString()}
-									>
-										{year}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
+				<CardTitle className="flex items-center gap-2">
+					<BookOpen className="w-5 h-5" />
+					All Courses
+				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<div className="rounded-md border">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Code</TableHead>
-								<TableHead>Course Name</TableHead>
-								<TableHead>Faculty</TableHead>
-								<TableHead>Dept</TableHead>
-								<TableHead className="text-center">
-									Year
-								</TableHead>
-								<TableHead className="text-center">
-									Sem
-								</TableHead>
-								<TableHead className="text-center">
-									Credit
-								</TableHead>
-								<TableHead className="text-center">
-									<Users className="w-4 h-4 inline mr-1" />
-									Enrolled
-								</TableHead>
-								<TableHead className="text-center">
-									<ClipboardList className="w-4 h-4 inline mr-1" />
-									Tests
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredCourses.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={9}
-										className="text-center py-8 text-muted-foreground"
-									>
-										No courses found
-									</TableCell>
-								</TableRow>
-							) : (
-								filteredCourses.map((course) => (
-									<TableRow key={course.course_id}>
-										<TableCell>
-											<Badge
-												variant="outline"
-												className="font-mono"
-											>
-												{course.course_code}
-											</Badge>
-										</TableCell>
-										<TableCell className="font-medium max-w-[200px] truncate">
-											{course.course_name}
-										</TableCell>
-										<TableCell className="text-muted-foreground">
-											{course.faculty_name || "N/A"}
-										</TableCell>
-										<TableCell>
-											{course.department_code ? (
-												<Badge
-													variant="secondary"
-													className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
-												>
-													{course.department_code}
-												</Badge>
-											) : (
-												"N/A"
-											)}
-										</TableCell>
-										<TableCell className="text-center">
-											{course.year}
-										</TableCell>
-										<TableCell className="text-center">
-											{course.semester}
-										</TableCell>
-										<TableCell className="text-center">
-											{course.credit}
-										</TableCell>
-										<TableCell className="text-center">
-											<Badge
-												variant="secondary"
-												className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-											>
-												{course.enrollment_count}
-											</Badge>
-										</TableCell>
-										<TableCell className="text-center">
-											<Badge
-												variant="secondary"
-												className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-											>
-												{course.test_count}
-											</Badge>
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</div>
+				<DataTable
+					columns={columns}
+					data={courses}
+					searchKey="course_name"
+					searchPlaceholder="Search courses..."
+				>
+					{(table) => (
+						<div className="flex gap-2">
+							<Select
+								value={
+									(table
+										.getColumn("department_code")
+										?.getFilterValue() as string) ?? "all"
+								}
+								onValueChange={(value) =>
+									table
+										.getColumn("department_code")
+										?.setFilterValue(
+											value === "all" ? "" : value,
+										)
+								}
+							>
+								<SelectTrigger className="w-[150px]">
+									<SelectValue placeholder="Department" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Depts
+									</SelectItem>
+									{departments.map((dept) => (
+										<SelectItem key={dept} value={dept}>
+											{dept}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Select
+								value={
+									(table
+										.getColumn("year")
+										?.getFilterValue() as string) ?? "all"
+								}
+								onValueChange={(value) =>
+									table
+										.getColumn("year")
+										?.setFilterValue(
+											value === "all" ? "" : value,
+										)
+								}
+							>
+								<SelectTrigger className="w-[120px]">
+									<SelectValue placeholder="Year" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Years
+									</SelectItem>
+									{years.map((year) => (
+										<SelectItem
+											key={year}
+											value={year.toString()}
+										>
+											{year}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
+				</DataTable>
 			</CardContent>
 		</Card>
 	);

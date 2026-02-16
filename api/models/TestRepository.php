@@ -94,6 +94,70 @@ class TestRepository
     }
 
     /**
+     * Count tests by school ID
+     * @param int $schoolId
+     * @return int
+     */
+    public function countBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM tests t
+                JOIN courses c ON t.course_id = c.course_id
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+            ");
+            $stmt->execute([$schoolId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Find tests by school ID
+     * @param int $schoolId
+     * @return array
+     */
+    public function findBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT t.*, c.course_code, c.year, c.semester 
+                FROM tests t
+                JOIN courses c ON t.course_id = c.course_id
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+                ORDER BY t.test_date DESC
+            ");
+            $stmt->execute([$schoolId]);
+            $tests = [];
+
+            while ($data = $stmt->fetch()) {
+                $tests[] = new Test(
+                    $data['test_id'],
+                    $data['course_id'],
+                    $data['test_name'],
+                    $data['full_marks'],
+                    $data['pass_marks'],
+                    $data['question_paper_pdf'],
+                    $data['test_type'] ?? null,
+                    $data['test_date'] ?? null,
+                    $data['max_marks'] ?? null,
+                    $data['weightage'] ?? null,
+                    $data['course_code'],
+                    $data['year'],
+                    $data['semester']
+                );
+            }
+            return $tests;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Save test
      */
     public function save(Test $test)

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { DataTable } from "@/components/shared/DataTable";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -9,15 +11,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { Users, Search } from "lucide-react";
 import type { DeanUser } from "@/services/api";
 
 interface UsersViewProps {
@@ -43,29 +36,143 @@ const getRoleBadgeColor = (role: string) => {
 };
 
 export function UsersView({ users, isLoading }: UsersViewProps) {
-	const [searchTerm, setSearchTerm] = useState("");
-	const [roleFilter, setRoleFilter] = useState<string>("all");
-	const [departmentFilter, setDepartmentFilter] = useState<string>("all");
-
 	// Get unique departments for filter
 	const departments = Array.from(
-		new Set(users.map((u) => u.department_name).filter(Boolean))
+		new Set(users.map((u) => u.department_name).filter(Boolean)),
 	) as string[];
 
-	// Filter users
-	const filteredUsers = users.filter((user) => {
-		const matchesSearch =
-			user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			user.employee_id.toString().includes(searchTerm);
-
-		const matchesRole = roleFilter === "all" || user.role === roleFilter;
-		const matchesDepartment =
-			departmentFilter === "all" ||
-			user.department_name === departmentFilter;
-
-		return matchesSearch && matchesRole && matchesDepartment;
-	});
+	const columns: ColumnDef<DeanUser>[] = [
+		{
+			accessorKey: "employee_id",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Employee ID
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="font-mono">{row.getValue("employee_id")}</div>
+			),
+		},
+		{
+			accessorKey: "username",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Name
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="font-medium">{row.getValue("username")}</div>
+			),
+		},
+		{
+			accessorKey: "email",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Email
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="text-muted-foreground">
+					{row.getValue("email")}
+				</div>
+			),
+		},
+		{
+			accessorKey: "role",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Role
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => {
+				const role = row.getValue("role") as string;
+				const user = row.original;
+				return (
+					<div className="flex gap-1 flex-wrap">
+						<Badge
+							variant="secondary"
+							className={getRoleBadgeColor(role)}
+						>
+							{role.toUpperCase()}
+						</Badge>
+						{user.is_hod === 1 && (
+							<Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
+								HOD
+							</Badge>
+						)}
+						{user.is_dean === 1 && (
+							<Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+								DEAN
+							</Badge>
+						)}
+					</div>
+				);
+			},
+			filterFn: (row, id, value) => {
+				return value === "all" ? true : row.getValue(id) === value;
+			},
+		},
+		{
+			accessorKey: "department_name",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Department
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => {
+				const deptName = row.getValue("department_name") as string;
+				const deptCode = row.original.department_code;
+				return deptCode ? (
+					<Badge variant="outline">{deptCode}</Badge>
+				) : (
+					<span className="text-muted-foreground italic">N/A</span>
+				);
+			},
+			filterFn: (row, id, value) => {
+				return value === "all" ? true : row.getValue(id) === value;
+			},
+		},
+	];
 
 	if (isLoading) {
 		return (
@@ -78,119 +185,81 @@ export function UsersView({ users, isLoading }: UsersViewProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-					<CardTitle className="flex items-center gap-2">
-						<Users className="w-5 h-5" />
-						All Users ({filteredUsers.length})
-					</CardTitle>
-					<div className="flex flex-col sm:flex-row gap-2">
-						<div className="relative">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-							<Input
-								placeholder="Search users..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-								className="pl-9 w-full sm:w-[200px]"
-							/>
-						</div>
-						<Select
-							value={roleFilter}
-							onValueChange={setRoleFilter}
-						>
-							<SelectTrigger className="w-full sm:w-[150px]">
-								<SelectValue placeholder="Filter by role" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">All Roles</SelectItem>
-								<SelectItem value="admin">Admin</SelectItem>
-								<SelectItem value="dean">Dean</SelectItem>
-								<SelectItem value="hod">HOD</SelectItem>
-								<SelectItem value="faculty">Faculty</SelectItem>
-								<SelectItem value="staff">Staff</SelectItem>
-							</SelectContent>
-						</Select>
-						<Select
-							value={departmentFilter}
-							onValueChange={setDepartmentFilter}
-						>
-							<SelectTrigger className="w-full sm:w-[180px]">
-								<SelectValue placeholder="Filter by department" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">
-									All Departments
-								</SelectItem>
-								{departments.map((dept) => (
-									<SelectItem key={dept} value={dept}>
-										{dept}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
+				<CardTitle className="flex items-center gap-2">
+					<Users className="w-5 h-5" />
+					All Users
+				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<div className="rounded-md border">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Employee ID</TableHead>
-								<TableHead>Name</TableHead>
-								<TableHead>Email</TableHead>
-								<TableHead>Role</TableHead>
-								<TableHead>Department</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredUsers.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={5}
-										className="text-center py-8 text-muted-foreground"
-									>
-										No users found
-									</TableCell>
-								</TableRow>
-							) : (
-								filteredUsers.map((user) => (
-									<TableRow key={user.employee_id}>
-										<TableCell className="font-mono">
-											{user.employee_id}
-										</TableCell>
-										<TableCell className="font-medium">
-											{user.username}
-										</TableCell>
-										<TableCell className="text-muted-foreground">
-											{user.email}
-										</TableCell>
-										<TableCell>
-											<Badge
-												variant="secondary"
-												className={getRoleBadgeColor(
-													user.role
-												)}
-											>
-												{user.role.toUpperCase()}
-											</Badge>
-										</TableCell>
-										<TableCell>
-											{user.department_code ? (
-												<Badge variant="outline">
-													{user.department_code}
-												</Badge>
-											) : (
-												<span className="text-muted-foreground italic">
-													N/A
-												</span>
-											)}
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</div>
+				<DataTable
+					columns={columns}
+					data={users}
+					searchKey="username"
+					searchPlaceholder="Search users..."
+				>
+					{(table) => (
+						<div className="flex gap-2">
+							<Select
+								value={
+									(table
+										.getColumn("role")
+										?.getFilterValue() as string) ?? "all"
+								}
+								onValueChange={(value) =>
+									table
+										.getColumn("role")
+										?.setFilterValue(
+											value === "all" ? "" : value,
+										)
+								}
+							>
+								<SelectTrigger className="w-[150px]">
+									<SelectValue placeholder="Role" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Roles
+									</SelectItem>
+									<SelectItem value="admin">Admin</SelectItem>
+									<SelectItem value="dean">Dean</SelectItem>
+									<SelectItem value="hod">HOD</SelectItem>
+									<SelectItem value="faculty">
+										Faculty
+									</SelectItem>
+									<SelectItem value="staff">Staff</SelectItem>
+								</SelectContent>
+							</Select>
+							<Select
+								value={
+									(table
+										.getColumn("department_name")
+										?.getFilterValue() as string) ?? "all"
+								}
+								onValueChange={(value) =>
+									table
+										.getColumn("department_name")
+										?.setFilterValue(
+											value === "all" ? "" : value,
+										)
+								}
+							>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue placeholder="Department" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Departments
+									</SelectItem>
+									{departments.map((dept) => (
+										<SelectItem key={dept} value={dept}>
+											{dept}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
+				</DataTable>
 			</CardContent>
 		</Card>
 	);

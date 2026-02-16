@@ -1,13 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/shared/DataTable";
 import {
 	BarChart3,
 	Building2,
@@ -17,11 +10,101 @@ import {
 	Users,
 } from "lucide-react";
 import type { DepartmentAnalytics } from "@/services/api";
+import type { ColumnDef } from "@tanstack/react-table";
 
 interface AnalyticsViewProps {
 	analytics: DepartmentAnalytics[];
 	isLoading: boolean;
 }
+
+const columns: ColumnDef<DepartmentAnalytics>[] = [
+	{
+		accessorKey: "department_code",
+		header: "Department",
+		cell: ({ row }) => (
+			<div className="flex items-center gap-2">
+				<Building2 className="w-4 h-4 text-purple-500" />
+				<div>
+					<Badge variant="outline" className="font-mono">
+						{row.original.department_code}
+					</Badge>
+					<p className="text-xs text-muted-foreground mt-1">
+						{row.original.department_name}
+					</p>
+				</div>
+			</div>
+		),
+	},
+	{
+		accessorKey: "total_courses",
+		header: () => <div className="text-center">Courses</div>,
+		cell: ({ row }) => (
+			<div className="text-center">
+				<Badge
+					variant="secondary"
+					className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+				>
+					{row.getValue("total_courses")}
+				</Badge>
+			</div>
+		),
+	},
+	{
+		accessorKey: "total_tests",
+		header: () => <div className="text-center">Tests</div>,
+		cell: ({ row }) => (
+			<div className="text-center">
+				<Badge
+					variant="secondary"
+					className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+				>
+					{row.getValue("total_tests")}
+				</Badge>
+			</div>
+		),
+	},
+	{
+		accessorKey: "total_students",
+		header: () => <div className="text-center">Students</div>,
+		cell: ({ row }) => (
+			<div className="text-center">
+				<Badge
+					variant="secondary"
+					className="bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+				>
+					{row.getValue("total_students")}
+				</Badge>
+			</div>
+		),
+	},
+	{
+		accessorKey: "total_enrollments",
+		header: () => <div className="text-center">Enrollments</div>,
+		cell: ({ row }) => (
+			<div className="text-center">
+				<Badge
+					variant="secondary"
+					className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+				>
+					{row.getValue("total_enrollments")}
+				</Badge>
+			</div>
+		),
+	},
+	{
+		id: "avg_enrollment",
+		header: () => <div className="text-center">Avg Enrollment/Course</div>,
+		cell: ({ row }) => {
+			const courses = row.original.total_courses;
+			const enrollments = row.original.total_enrollments;
+			return (
+				<div className="text-center font-medium">
+					{courses > 0 ? (enrollments / courses).toFixed(1) : "0"}
+				</div>
+			);
+		},
+	},
+];
 
 export function AnalyticsView({ analytics, isLoading }: AnalyticsViewProps) {
 	if (isLoading) {
@@ -40,12 +123,14 @@ export function AnalyticsView({ analytics, isLoading }: AnalyticsViewProps) {
 			students: acc.students + dept.total_students,
 			enrollments: acc.enrollments + dept.total_enrollments,
 		}),
-		{ courses: 0, tests: 0, students: 0, enrollments: 0 }
+		{ courses: 0, tests: 0, students: 0, enrollments: 0 },
 	);
 
-	// Sort by total courses (descending)
+	// Sort by total courses (descending) - Initial sort for Datatable or keep as is?
+	// The previous code sorted explicitly. `DataTable` handles local sorting if configured,
+	// but providing pre-sorted data is fine too.
 	const sortedAnalytics = [...analytics].sort(
-		(a, b) => b.total_courses - a.total_courses
+		(a, b) => b.total_courses - a.total_courses,
 	);
 
 	return (
@@ -131,144 +216,12 @@ export function AnalyticsView({ analytics, isLoading }: AnalyticsViewProps) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="rounded-md border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Department</TableHead>
-									<TableHead className="text-center">
-										<BookOpen className="w-4 h-4 inline mr-1" />
-										Courses
-									</TableHead>
-									<TableHead className="text-center">
-										<ClipboardList className="w-4 h-4 inline mr-1" />
-										Tests
-									</TableHead>
-									<TableHead className="text-center">
-										<GraduationCap className="w-4 h-4 inline mr-1" />
-										Students
-									</TableHead>
-									<TableHead className="text-center">
-										<Users className="w-4 h-4 inline mr-1" />
-										Enrollments
-									</TableHead>
-									<TableHead className="text-center">
-										Avg Enrollment/Course
-									</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{sortedAnalytics.length === 0 ? (
-									<TableRow>
-										<TableCell
-											colSpan={6}
-											className="text-center py-8 text-muted-foreground"
-										>
-											No analytics data available
-										</TableCell>
-									</TableRow>
-								) : (
-									<>
-										{sortedAnalytics.map((dept) => (
-											<TableRow key={dept.department_id}>
-												<TableCell>
-													<div className="flex items-center gap-2">
-														<Building2 className="w-4 h-4 text-purple-500" />
-														<div>
-															<Badge
-																variant="outline"
-																className="font-mono"
-															>
-																{
-																	dept.department_code
-																}
-															</Badge>
-															<p className="text-xs text-muted-foreground mt-1">
-																{
-																	dept.department_name
-																}
-															</p>
-														</div>
-													</div>
-												</TableCell>
-												<TableCell className="text-center">
-													<Badge
-														variant="secondary"
-														className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-													>
-														{dept.total_courses}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-center">
-													<Badge
-														variant="secondary"
-														className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-													>
-														{dept.total_tests}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-center">
-													<Badge
-														variant="secondary"
-														className="bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
-													>
-														{dept.total_students}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-center">
-													<Badge
-														variant="secondary"
-														className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
-													>
-														{dept.total_enrollments}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-center">
-													<span className="font-medium">
-														{dept.total_courses > 0
-															? (
-																	dept.total_enrollments /
-																	dept.total_courses
-															  ).toFixed(1)
-															: "0"}
-													</span>
-												</TableCell>
-											</TableRow>
-										))}
-										{/* Totals Row */}
-										<TableRow className="bg-gray-50 dark:bg-gray-800/50 font-semibold">
-											<TableCell>
-												<span className="text-gray-700 dark:text-gray-300">
-													TOTAL ({analytics.length}{" "}
-													Departments)
-												</span>
-											</TableCell>
-											<TableCell className="text-center">
-												{totals.courses}
-											</TableCell>
-											<TableCell className="text-center">
-												{totals.tests}
-											</TableCell>
-											<TableCell className="text-center">
-												{totals.students}
-											</TableCell>
-											<TableCell className="text-center">
-												{totals.enrollments}
-											</TableCell>
-											<TableCell className="text-center">
-												{totals.courses > 0
-													? (
-															totals.enrollments /
-															totals.courses
-													  ).toFixed(1)
-													: "0"}
-											</TableCell>
-										</TableRow>
-									</>
-								)}
-							</TableBody>
-						</Table>
-					</div>
+					<DataTable
+						columns={columns}
+						data={sortedAnalytics}
+						searchKey="department_code" // filtering by code seems reasonable, or I can add a code column search
+						// Actually in columns I have 'department_code' accessorey.
+					/>
 				</CardContent>
 			</Card>
 
@@ -285,7 +238,7 @@ export function AnalyticsView({ analytics, isLoading }: AnalyticsViewProps) {
 						{sortedAnalytics.map((dept) => {
 							const maxCourses = Math.max(
 								...analytics.map((d) => d.total_courses),
-								1
+								1,
 							);
 							const percentage =
 								(dept.total_courses / maxCourses) * 100;
@@ -305,7 +258,7 @@ export function AnalyticsView({ analytics, isLoading }: AnalyticsViewProps) {
 									</div>
 									<div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
 										<div
-											className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-500"
+											className="h-full bg-linear-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-500"
 											style={{ width: `${percentage}%` }}
 										/>
 									</div>

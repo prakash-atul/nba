@@ -18,16 +18,16 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { DataTable } from "@/components/shared/DataTable";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+	ArrowUpDown,
+	Building2,
+	UserPlus,
+	UserMinus,
+	Users,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, UserMinus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { deanApi, type DeanDepartment } from "@/services/api";
 import { generateAppointmentOrder } from "@/utils/appointmentUtils";
@@ -135,7 +135,7 @@ export function HODManagement({
 	const handleAppointSubmit = async () => {
 		if (!selectedDepartment) return;
 
-		const isReplacing = !!selectedDepartment.hod_name;
+		const isReplacing = !!selectedDepartment.hod_employee_id;
 
 		try {
 			// If replacing, demote current HOD first
@@ -211,6 +211,112 @@ export function HODManagement({
 		}
 	};
 
+	const columns: ColumnDef<DeanDepartment>[] = [
+		{
+			accessorKey: "department_name",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Department
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="font-medium">
+					{row.getValue("department_name")}
+				</div>
+			),
+		},
+		{
+			accessorKey: "department_code",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Code
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="font-medium">
+					{row.getValue("department_code")}
+				</div>
+			),
+		},
+		{
+			accessorKey: "hod_name",
+			header: "HOD",
+			cell: ({ row }) => {
+				const hod = row.getValue("hod_name") as string;
+				return hod ? (
+					<Badge variant="default">{hod}</Badge>
+				) : (
+					<Badge variant="secondary">No HOD</Badge>
+				);
+			},
+		},
+		{
+			accessorKey: "faculty_count",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Faculty Count
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => (
+				<div className="flex items-center gap-2">
+					<Users className="w-4 h-4 text-muted-foreground" />
+					{row.getValue("faculty_count")}
+				</div>
+			),
+		},
+		{
+			id: "actions",
+			cell: ({ row }) => {
+				const dept = row.original;
+				return (
+					<div className="text-right">
+						{dept.hod_name ? (
+							<Button
+								size="sm"
+								variant="outline"
+								onClick={() => handleDemoteClick(dept)}
+							>
+								Replace HOD
+							</Button>
+						) : (
+							<Button
+								size="sm"
+								onClick={() => handleAppointClick(dept)}
+							>
+								<UserPlus className="w-4 h-4 mr-2" />
+								Appoint HOD
+							</Button>
+						)}
+					</div>
+				);
+			},
+		},
+	];
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center h-64">
@@ -285,71 +391,7 @@ export function HODManagement({
 					<CardTitle>Department HOD Status</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Department</TableHead>
-								<TableHead>Code</TableHead>
-								<TableHead>HOD</TableHead>
-								<TableHead>Faculty Count</TableHead>
-								<TableHead className="text-right">
-									Actions
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{departments.map((dept) => (
-								<TableRow key={dept.department_id}>
-									<TableCell className="font-medium">
-										{dept.department_name}
-									</TableCell>
-									<TableCell>
-										{dept.department_code}
-									</TableCell>
-									<TableCell>
-										{dept.hod_name ? (
-											<Badge variant="default">
-												{dept.hod_name}
-											</Badge>
-										) : (
-											<Badge variant="secondary">
-												No HOD
-											</Badge>
-										)}
-									</TableCell>
-									<TableCell>
-										<div className="flex items-center gap-2">
-											<Users className="w-4 h-4 text-muted-foreground" />
-											{dept.faculty_count}
-										</div>
-									</TableCell>
-									<TableCell className="text-right">
-										{dept.hod_name ? (
-											<Button
-												size="sm"
-												variant="outline"
-												onClick={() =>
-													handleDemoteClick(dept)
-												}
-											>
-												Replace HOD
-											</Button>
-										) : (
-											<Button
-												size="sm"
-												onClick={() =>
-													handleAppointClick(dept)
-												}
-											>
-												<UserPlus className="w-4 h-4 mr-2" />
-												Appoint HOD
-											</Button>
-										)}
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
+					<DataTable columns={columns} data={departments} />
 				</CardContent>
 			</Card>
 

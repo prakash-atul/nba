@@ -30,7 +30,10 @@ class DepartmentRepository
                 return new Department(
                     $deptData['department_id'],
                     $deptData['department_name'],
-                    $deptData['department_code']
+                    $deptData['department_code'],
+                    $deptData['school_id'] ?? null,
+                    $deptData['description'] ?? null,
+                    $deptData['created_at'] ?? null
                 );
             }
             return null;
@@ -97,6 +100,59 @@ class DepartmentRepository
             }
 
             return $departments;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Find departments by school ID
+     * @param int $schoolId
+     * @return array
+     */
+    public function findBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT d.*, s.school_name, s.school_code 
+                FROM departments d 
+                LEFT JOIN schools s ON d.school_id = s.school_id 
+                WHERE d.school_id = ?
+                ORDER BY d.department_name
+            ");
+            $stmt->execute([$schoolId]);
+            $departments = [];
+
+            while ($deptData = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $departments[] = [
+                    'department_id' => $deptData['department_id'],
+                    'department_name' => $deptData['department_name'],
+                    'department_code' => $deptData['department_code'],
+                    'school_id' => $deptData['school_id'],
+                    'school_name' => $deptData['school_name'] ?? null,
+                    'school_code' => $deptData['school_code'] ?? null,
+                    'description' => $deptData['description'],
+                    'created_at' => $deptData['created_at']
+                ];
+            }
+
+            return $departments;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count departments by school ID
+     * @param int $schoolId
+     * @return int
+     */
+    public function countBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM departments WHERE school_id = ?");
+            $stmt->execute([$schoolId]);
+            return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         }

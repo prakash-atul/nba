@@ -102,6 +102,76 @@ class UserRepository
     }
 
     /**
+     * Find users by school ID
+     * @param int $schoolId
+     * @return array
+     */
+    public function findBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.* 
+                FROM users u
+                JOIN departments d ON u.department_id = d.department_id
+                WHERE d.school_id = ?
+                ORDER BY u.employee_id
+            ");
+            $stmt->execute([$schoolId]);
+            $users = [];
+
+            while ($userData = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                // Determine roles based on assignments if needed, but for now stick to base user data
+                // The Controller will handle role assignment checks
+                $users[] = new User(
+                    $userData['employee_id'],
+                    $userData['username'],
+                    $userData['email'],
+                    $userData['password'],
+                    $userData['role'],
+                    $userData['department_id'],
+                    $userData['designation'] ?? null,
+                    $userData['phone'] ?? null,
+                    $userData['created_at'] ?? null,
+                    $userData['updated_at'] ?? null
+                );
+            }
+            return $users;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count users by school ID
+     * @param int $schoolId
+     * @param string|null $role
+     * @return int
+     */
+    public function countBySchool($schoolId, $role = null)
+    {
+        try {
+            $sql = "
+                SELECT COUNT(*) 
+                FROM users u
+                JOIN departments d ON u.department_id = d.department_id
+                WHERE d.school_id = ?
+            ";
+            $params = [$schoolId];
+
+            if ($role) {
+                $sql .= " AND u.role = ?";
+                $params[] = $role;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Find user by email
      * @param string $email
      * @return User|null

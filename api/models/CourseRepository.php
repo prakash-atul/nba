@@ -124,6 +124,72 @@ class CourseRepository
     }
 
     /**
+     * Find courses by School ID
+     * @param int $schoolId
+     * @return array
+     */
+    public function findBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT c.* 
+                FROM courses c
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+                ORDER BY c.year DESC, c.semester, c.course_code
+            ");
+            $stmt->execute([$schoolId]);
+            $courses = [];
+
+            while ($data = $stmt->fetch()) {
+                $courses[] = new Course(
+                    $data['course_id'],
+                    $data['course_code'],
+                    $data['course_name'],
+                    $data['credit'],
+                    $data['faculty_id'],
+                    $data['year'],
+                    $data['semester'],
+                    $data['syllabus_pdf'],
+                    $data['co_threshold'] ?? 40.00,
+                    $data['passing_threshold'] ?? 60.00,
+                    $data['department_id'] ?? null,
+                    $data['course_type'] ?? 'Theory',
+                    $data['course_level'] ?? 'Undergraduate',
+                    $data['is_active'] ?? 1,
+                    $data['created_at'] ?? null,
+                    $data['updated_at'] ?? null
+                );
+            }
+
+            return $courses;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count courses by school ID
+     * @param int $schoolId
+     * @return int
+     */
+    public function countBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM courses c
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+            ");
+            $stmt->execute([$schoolId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Get unique years and semesters for a faculty
      */
     public function getYearSemestersByFaculty($facultyId)
