@@ -68,7 +68,7 @@ export async function apiPost<T, R>(endpoint: string, body: T): Promise<R> {
 		throw new Error(
 			data.errors
 				? data.errors.join(", ")
-				: data.message || "Request failed"
+				: data.message || "Request failed",
 		);
 	}
 
@@ -105,7 +105,7 @@ export async function apiPut<T, R>(endpoint: string, body: T): Promise<R> {
 		throw new Error(
 			data.errors
 				? data.errors.join(", ")
-				: data.message || "Request failed"
+				: data.message || "Request failed",
 		);
 	}
 
@@ -114,7 +114,7 @@ export async function apiPut<T, R>(endpoint: string, body: T): Promise<R> {
 
 // Helper for full response (when we need success, message, data)
 export async function apiGetFull<T>(
-	endpoint: string
+	endpoint: string,
 ): Promise<{ success: boolean; message: string; data: T }> {
 	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
 		headers: tokenManager.getAuthHeaders(),
@@ -131,7 +131,7 @@ export async function apiGetFull<T>(
 
 export async function apiPostFull<T, R>(
 	endpoint: string,
-	body: T
+	body: T,
 ): Promise<{ success: boolean; message: string; data: R }> {
 	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
 		method: "POST",
@@ -145,9 +145,42 @@ export async function apiPostFull<T, R>(
 		throw new Error(
 			data.errors
 				? data.errors.join(", ")
-				: data.message || "Request failed"
+				: data.message || "Request failed",
 		);
 	}
 
 	return data;
+}
+
+// Helper for paginated GET requests — returns full {data, pagination} envelope
+export async function apiGetPaginated<T>(
+	endpoint: string,
+	params?: Record<string, string | number | undefined>,
+): Promise<import("./types").PaginatedResponse<T>> {
+	let url = `${API_BASE_URL}${endpoint}`;
+	if (params) {
+		const filtered = Object.fromEntries(
+			Object.entries(params).filter(
+				([, v]) => v !== undefined && v !== null && v !== "",
+			),
+		) as Record<string, string>;
+		const qs = new URLSearchParams(
+			Object.fromEntries(
+				Object.entries(filtered).map(([k, v]) => [k, String(v)]),
+			),
+		).toString();
+		if (qs) url += "?" + qs;
+	}
+
+	const response = await fetch(url, {
+		headers: tokenManager.getAuthHeaders(),
+	});
+
+	const data = await response.json();
+
+	if (!response.ok) {
+		throw new Error(data.message || "Request failed");
+	}
+
+	return data as import("./types").PaginatedResponse<T>;
 }

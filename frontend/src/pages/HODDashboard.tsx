@@ -4,13 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
-import type {
-	User,
-	HODStats,
-	DepartmentCourse,
-	DepartmentFaculty,
-	Course,
-} from "@/services/api";
+import type { User, HODStats, Course } from "@/services/api";
 import {
 	HODStatsCards,
 	HODQuickAccess,
@@ -55,15 +49,13 @@ export function HODDashboard() {
 	const [currentPage, setCurrentPage] = useState<HODPage>("dashboard");
 	const [isLoading, setIsLoading] = useState(false);
 
-	// Dashboard data
+	// Dashboard stats
 	const [stats, setStats] = useState<HODStats>({
 		totalCourses: 0,
 		totalFaculty: 0,
 		totalStudents: 0,
 		totalAssessments: 0,
 	});
-	const [courses, setCourses] = useState<DepartmentCourse[]>([]);
-	const [faculty, setFaculty] = useState<DepartmentFaculty[]>([]);
 
 	// Assessment page data (for faculty features)
 	const [facultyCourses, setFacultyCourses] = useState<Course[]>([]);
@@ -78,7 +70,6 @@ export function HODDashboard() {
 			return;
 		}
 		if (!storedUser.is_hod) {
-			// Redirect based on role
 			if (storedUser.role === "admin") {
 				navigate("/dashboard");
 			} else if (storedUser.is_dean) {
@@ -91,21 +82,16 @@ export function HODDashboard() {
 			return;
 		}
 		setUser(storedUser);
-		loadDashboardData();
+		loadStats();
 		loadFacultyCourses();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [navigate]);
 
-	const loadDashboardData = async () => {
+	const loadStats = async () => {
 		setIsLoading(true);
 		try {
-			const [statsData, coursesData, facultyData] = await Promise.all([
-				apiService.getHODStats(),
-				apiService.getDepartmentCourses(),
-				apiService.getDepartmentFaculty(),
-			]);
+			const statsData = await apiService.getHODStats();
 			setStats(statsData);
-			setCourses(coursesData);
-			setFaculty(facultyData);
 		} catch (error) {
 			toast.error("Failed to load dashboard data");
 			console.error(error);
@@ -152,23 +138,10 @@ export function HODDashboard() {
 				);
 
 			case "courses":
-				return (
-					<CoursesManagement
-						courses={courses}
-						faculty={faculty}
-						isLoading={isLoading}
-						onRefresh={loadDashboardData}
-					/>
-				);
+				return <CoursesManagement />;
 
 			case "faculty":
-				return (
-					<FacultyManagement
-						faculty={faculty}
-						isLoading={isLoading}
-						onRefresh={loadDashboardData}
-					/>
-				);
+				return <FacultyManagement />;
 
 			case "assessments":
 				return <FacultyAssessments selectedCourse={selectedCourse} />;
@@ -215,14 +188,14 @@ export function HODDashboard() {
 						}
 						description={
 							["assessments", "marks", "copo"].includes(
-								currentPage
+								currentPage,
 							)
 								? "Manage your academic activities"
 								: undefined
 						}
 					>
 						{["assessments", "marks", "copo"].includes(
-							currentPage
+							currentPage,
 						) ? (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -272,7 +245,7 @@ export function HODDashboard() {
 							<Button
 								variant="outline"
 								size="icon"
-								onClick={loadDashboardData}
+								onClick={loadStats}
 								disabled={isLoading}
 							>
 								<RefreshCw
@@ -288,7 +261,7 @@ export function HODDashboard() {
 					<main className="flex-1 overflow-auto">
 						<ScrollArea className="h-full">
 							{["assessments", "marks", "copo"].includes(
-								currentPage
+								currentPage,
 							) ? (
 								// Faculty components handle their own padding/layout
 								<div className="h-full">{renderContent()}</div>

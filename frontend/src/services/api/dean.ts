@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from "./base";
+import { apiGet, apiPost, apiDelete, apiGetPaginated } from "./base";
 import type {
 	DeanStats,
 	DeanDepartment,
@@ -9,6 +9,8 @@ import type {
 	DepartmentAnalytics,
 	AppointHODRequest,
 	CreateHODRequest,
+	PaginatedResponse,
+	PaginationParams,
 } from "./types";
 
 export const deanApi = {
@@ -16,24 +18,34 @@ export const deanApi = {
 		return apiGet<DeanStats>("/dean/stats");
 	},
 
-	async getAllDepartments(): Promise<DeanDepartment[]> {
-		return apiGet<DeanDepartment[]>("/dean/departments");
+	async getAllDepartments(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<DeanDepartment>> {
+		return apiGetPaginated<DeanDepartment>("/dean/departments", params);
 	},
 
-	async getAllUsers(): Promise<DeanUser[]> {
-		return apiGet<DeanUser[]>("/dean/users");
+	async getAllUsers(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<DeanUser>> {
+		return apiGetPaginated<DeanUser>("/dean/users", params);
 	},
 
-	async getAllCourses(): Promise<DeanCourse[]> {
-		return apiGet<DeanCourse[]>("/dean/courses");
+	async getAllCourses(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<DeanCourse>> {
+		return apiGetPaginated<DeanCourse>("/dean/courses", params);
 	},
 
-	async getAllStudents(): Promise<DeanStudent[]> {
-		return apiGet<DeanStudent[]>("/dean/students");
+	async getAllStudents(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<DeanStudent>> {
+		return apiGetPaginated<DeanStudent>("/dean/students", params);
 	},
 
-	async getAllTests(): Promise<DeanTest[]> {
-		return apiGet<DeanTest[]>("/dean/tests");
+	async getAllTests(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<DeanTest>> {
+		return apiGetPaginated<DeanTest>("/dean/tests", params);
 	},
 
 	async getDepartmentAnalytics(): Promise<DepartmentAnalytics[]> {
@@ -47,11 +59,11 @@ export const deanApi = {
 
 	async appointHOD(
 		departmentId: number,
-		data: AppointHODRequest | CreateHODRequest
+		data: AppointHODRequest | CreateHODRequest,
 	): Promise<DeanUser> {
 		return apiPost<AppointHODRequest | CreateHODRequest, DeanUser>(
 			`/dean/departments/${departmentId}/hod`,
-			data
+			data,
 		);
 	},
 

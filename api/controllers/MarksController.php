@@ -23,9 +23,9 @@ class MarksController
         QuestionRepository $questionRepository,
         TestRepository $testRepository,
         ValidationMiddleware $validationMiddleware,
-        CourseRepository $courseRepository = null,
-        CourseOfferingRepository $courseOfferingRepository = null,
-        CourseFacultyAssignmentRepository $assignmentRepository = null
+        ?CourseRepository $courseRepository = null,
+        ?CourseOfferingRepository $courseOfferingRepository = null,
+        ?CourseFacultyAssignmentRepository $assignmentRepository = null
     ) {
         $this->studentRepository = $studentRepository;
         $this->rawMarksRepository = $rawMarksRepository;

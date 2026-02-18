@@ -5,10 +5,6 @@ import type {
 	User,
 	DeanStats,
 	DeanDepartment,
-	DeanUser,
-	DeanCourse,
-	DeanStudent,
-	DeanTest,
 	DepartmentAnalytics,
 } from "@/services/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,7 +24,6 @@ import {
 } from "@/components/dean";
 import { AppSidebar, AppHeader, type NavItem } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
 	Building2,
 	Users as UsersIcon,
@@ -56,31 +51,17 @@ export function DeanDashboard() {
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const navigate = useNavigate();
 
-	// Data states
 	const [stats, setStats] = useState<DeanStats>({
 		totalDepartments: 0,
 		totalUsers: 0,
 		totalCourses: 0,
 		totalStudents: 0,
 		totalAssessments: 0,
-		usersByRole: {
-			hod: 0,
-			faculty: 0,
-			staff: 0,
-		},
+		usersByRole: { hod: 0, faculty: 0, staff: 0 },
 	});
 	const [departments, setDepartments] = useState<DeanDepartment[]>([]);
-	const [users, setUsers] = useState<DeanUser[]>([]);
-	const [courses, setCourses] = useState<DeanCourse[]>([]);
-	const [students, setStudents] = useState<DeanStudent[]>([]);
-	const [tests, setTests] = useState<DeanTest[]>([]);
 	const [analytics, setAnalytics] = useState<DepartmentAnalytics[]>([]);
-
-	// Loading states
-	const [loading, setLoading] = useState(true);
-	const [refreshing, setRefreshing] = useState(false);
-
-	// Get current user
+	const [statsLoading, setStatsLoading] = useState(true);
 	const [currentUser, setCurrentUser] = useState<User | null>(null);
 
 	useEffect(() => {
@@ -89,115 +70,44 @@ export function DeanDashboard() {
 			navigate("/login");
 			return;
 		}
-		// Only allow dean status
 		if (!storedUser.is_dean) {
-			// Redirect based on role
-			if (storedUser.role === "admin") {
-				navigate("/dashboard");
-			} else if (storedUser.is_hod) {
-				navigate("/hod");
-			} else if (storedUser.role === "faculty") {
-				navigate("/faculty");
-			} else if (storedUser.role === "staff") {
-				navigate("/staff");
-			} else {
-				navigate("/login");
-			}
+			if (storedUser.role === "admin") navigate("/dashboard");
+			else if (storedUser.is_hod) navigate("/hod");
+			else if (storedUser.role === "faculty") navigate("/faculty");
+			else if (storedUser.role === "staff") navigate("/staff");
+			else navigate("/login");
 			return;
 		}
 		setCurrentUser(storedUser);
-		fetchAllData();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		Promise.all([
+			apiService.getDeanStats(),
+			apiService.getDeanDepartments(),
+		])
+			.then(([statsData, deptData]) => {
+				setStats(statsData);
+				setDepartments(deptData.data);
+			})
+			.catch(() => toast.error("Failed to load stats"))
+			.finally(() => setStatsLoading(false));
 	}, [navigate]);
-
-	const fetchAllData = async () => {
-		setLoading(true);
-		try {
-			const [statsData, departmentsData] = await Promise.all([
-				apiService.getDeanStats(),
-				apiService.getDeanDepartments(),
-			]);
-			setStats(statsData);
-			setDepartments(departmentsData);
-
-			// Fetch data based on active view
-			await fetchViewData(currentPage);
-		} catch (error) {
-			console.error("Failed to fetch data:", error);
-			toast.error("Failed to load dashboard data");
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	const fetchViewData = async (view: string) => {
-		try {
-			switch (view) {
-				case "departments":
-				case "hod-management": {
-					const departmentsData =
-						await apiService.getDeanDepartments();
-					setDepartments(departmentsData);
-					break;
-				}
-				case "users":
-					const usersData = await apiService.getDeanUsers();
-					setUsers(usersData);
-					break;
-				case "courses":
-					const coursesData = await apiService.getDeanCourses();
-					setCourses(coursesData);
-					break;
-				case "students":
-					const studentsData = await apiService.getDeanStudents();
-					setStudents(studentsData);
-					break;
-				case "assessments":
-					const testsData = await apiService.getDeanTests();
-					setTests(testsData);
-					break;
-				case "analytics":
-					const analyticsData =
-						await apiService.getDepartmentAnalytics();
-					setAnalytics(analyticsData);
-					break;
-			}
-		} catch (error) {
-			console.error(`Failed to fetch ${view}:`, error);
-		}
-	};
-
-	const handlePageChange = async (page: DeanPage) => {
-		setCurrentPage(page);
-		setRefreshing(true);
-		await fetchViewData(page);
-		setRefreshing(false);
-	};
-
-	const handleRefresh = async () => {
-		setRefreshing(true);
-		try {
-			const [statsData, departmentsData] = await Promise.all([
-				apiService.getDeanStats(),
-				apiService.getDeanDepartments(),
-			]);
-			setStats(statsData);
-			setDepartments(departmentsData);
-			await fetchViewData(currentPage);
-		} catch (error) {
-			toast.error("Failed to refresh data");
-		} finally {
-			setRefreshing(false);
-		}
-	};
 
 	const handleLogout = async () => {
 		await apiService.logout();
 		navigate("/login");
 	};
 
+	const handlePageChange = (page: DeanPage) => {
+		setCurrentPage(page);
+		if (page === "analytics") {
+			apiService
+				.getDepartmentAnalytics()
+				.then(setAnalytics)
+				.catch(() => toast.error("Failed to load analytics"));
+		}
+	};
+
 	const renderContent = () => {
-		if (loading) {
+		if (statsLoading) {
 			return (
 				<div className="flex items-center justify-center h-64">
 					<RefreshCw className="w-8 h-8 animate-spin text-purple-500" />
@@ -209,9 +119,7 @@ export function DeanDashboard() {
 			case "dashboard":
 				return (
 					<div className="space-y-6">
-						<DeanStatsCards stats={stats} isLoading={refreshing} />
-
-						{/* Quick Access Cards */}
+						<DeanStatsCards stats={stats} isLoading={false} />
 						<div>
 							<h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
 								Quick Access
@@ -271,59 +179,39 @@ export function DeanDashboard() {
 						</div>
 					</div>
 				);
-
 			case "departments":
-				return (
-					<DepartmentsView
-						departments={departments}
-						isLoading={refreshing}
-					/>
-				);
-
+				return <DepartmentsView />;
 			case "hod-management":
 				return (
 					<HODManagement
 						departments={departments}
-						isLoading={refreshing}
-						onSuccess={handleRefresh}
+						isLoading={false}
+						onSuccess={() =>
+							apiService
+								.getDeanDepartments()
+								.then((res) => setDepartments(res.data))
+								.catch(() => {})
+						}
 					/>
 				);
-
 			case "users":
-				return <UsersView users={users} isLoading={refreshing} />;
-
+				return <UsersView />;
 			case "courses":
-				return <CoursesView courses={courses} isLoading={refreshing} />;
-
+				return <CoursesView />;
 			case "students":
-				return (
-					<StudentsView students={students} isLoading={refreshing} />
-				);
-
+				return <StudentsView />;
 			case "assessments":
-				return <TestsView tests={tests} isLoading={refreshing} />;
-
+				return <TestsView />;
 			case "analytics":
 				return (
-					<AnalyticsView
-						analytics={analytics}
-						isLoading={refreshing}
-					/>
+					<AnalyticsView analytics={analytics} isLoading={false} />
 				);
-
 			default:
-				return (
-					<div className="space-y-6">
-						<DeanStatsCards stats={stats} isLoading={refreshing} />
-					</div>
-				);
+				return <DeanStatsCards stats={stats} isLoading={false} />;
 		}
 	};
 
-	// Don't render until user is verified
-	if (!currentUser) {
-		return null;
-	}
+	if (!currentUser) return null;
 
 	return (
 		<div className="flex h-screen bg-gray-50 dark:bg-gray-950">
@@ -337,32 +225,13 @@ export function DeanDashboard() {
 				title="Tezpur University"
 				subtitle="Academic Dean"
 			/>
-
-			{/* Main Content */}
 			<div className="flex-1 flex flex-col overflow-hidden">
 				<AppHeader
 					sidebarOpen={sidebarOpen}
 					onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
 					title={currentPage}
-					description={`Welcome back, ${
-						currentUser?.username?.split(" ")[0] || "Dean"
-					}!`}
-				>
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={handleRefresh}
-						disabled={refreshing}
-					>
-						<RefreshCw
-							className={`w-4 h-4 ${
-								refreshing ? "animate-spin" : ""
-							}`}
-						/>
-					</Button>
-				</AppHeader>
-
-				{/* Dashboard Content */}
+					description={`Welcome back, ${currentUser?.username?.split(" ")[0] || "Dean"}!`}
+				/>
 				<main className="flex-1 overflow-auto">
 					<ScrollArea className="h-full">
 						<div className="p-6">{renderContent()}</div>

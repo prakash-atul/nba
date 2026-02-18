@@ -1,5 +1,12 @@
-import type { StaffStats, StaffCourse, Enrollment, Student } from "./types";
-import { apiGet, apiPost, apiPut, apiDelete } from "./base";
+import type {
+	StaffStats,
+	StaffCourse,
+	Enrollment,
+	Student,
+	PaginatedResponse,
+	PaginationParams,
+} from "./types";
+import { apiGet, apiPost, apiPut, apiDelete, apiGetPaginated } from "./base";
 
 export const staffApi = {
 	/**
@@ -10,17 +17,21 @@ export const staffApi = {
 	},
 
 	/**
-	 * Get all courses for the staff's department
+	 * Get all courses for the staff's department — paginated
 	 */
-	async getDepartmentCourses(): Promise<StaffCourse[]> {
-		return apiGet<StaffCourse[]>("/staff/courses");
+	async getDepartmentCourses(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<StaffCourse>> {
+		return apiGetPaginated<StaffCourse>("/staff/courses", params);
 	},
 
 	/**
-	 * Get all students in the department
+	 * Get all students in the department — paginated
 	 */
-	async getDepartmentStudents(): Promise<Student[]> {
-		return apiGet<Student[]>("/staff/students");
+	async getDepartmentStudents(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<Student>> {
+		return apiGetPaginated<Student>("/staff/students", params);
 	},
 
 	/**
@@ -47,7 +58,7 @@ export const staffApi = {
 	 */
 	async bulkEnrollStudents(
 		courseId: number,
-		students: Array<{ rollno: string; name: string }>
+		students: Array<{ rollno: string; name: string }>,
 	): Promise<{
 		success_count: number;
 		failure_count: number;
@@ -73,24 +84,24 @@ export const staffApi = {
 	},
 
 	/**
-	 * Get department faculty list
+	 * Get department faculty list — paginated
 	 */
-	async getDepartmentFaculty(): Promise<
-		Array<{
+	async getDepartmentFaculty(
+		params?: PaginationParams,
+	): Promise<
+		PaginatedResponse<{
 			employee_id: string;
 			username: string;
 			email: string;
 			role: string;
 		}>
 	> {
-		return apiGet<
-			Array<{
-				employee_id: string;
-				username: string;
-				email: string;
-				role: string;
-			}>
-		>("/staff/faculty");
+		return apiGetPaginated<{
+			employee_id: string;
+			username: string;
+			email: string;
+			role: string;
+		}>("/staff/faculty", params);
 	},
 
 	/**
@@ -133,7 +144,7 @@ export const staffApi = {
 			faculty_id?: string;
 			year?: number;
 			semester?: string;
-		}
+		},
 	): Promise<StaffCourse> {
 		return apiPut<
 			{

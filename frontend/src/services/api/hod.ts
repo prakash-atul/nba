@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete, apiPut } from "./base";
+import { apiGet, apiPost, apiDelete, apiPut, apiGetPaginated } from "./base";
 import type {
 	HODStats,
 	DepartmentCourse,
@@ -7,6 +7,8 @@ import type {
 	UpdateCourseRequest,
 	HODCreateUserRequest,
 	HODUpdateUserRequest,
+	PaginatedResponse,
+	PaginationParams,
 } from "./types";
 
 export const hodApi = {
@@ -14,30 +16,34 @@ export const hodApi = {
 		return apiGet<HODStats>("/hod/stats");
 	},
 
-	async getDepartmentCourses(): Promise<DepartmentCourse[]> {
-		return apiGet<DepartmentCourse[]>("/hod/courses");
+	async getDepartmentCourses(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<DepartmentCourse>> {
+		return apiGetPaginated<DepartmentCourse>("/hod/courses", params);
 	},
 
-	async getDepartmentFaculty(): Promise<DepartmentFaculty[]> {
-		return apiGet<DepartmentFaculty[]>("/hod/faculty");
+	async getDepartmentFaculty(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<DepartmentFaculty>> {
+		return apiGetPaginated<DepartmentFaculty>("/hod/faculty", params);
 	},
 
 	async createCourse(
-		courseData: CreateCourseRequest
+		courseData: CreateCourseRequest,
 	): Promise<DepartmentCourse> {
 		return apiPost<CreateCourseRequest, DepartmentCourse>(
 			"/hod/courses",
-			courseData
+			courseData,
 		);
 	},
 
 	async updateCourse(
 		courseId: number,
-		courseData: UpdateCourseRequest
+		courseData: UpdateCourseRequest,
 	): Promise<DepartmentCourse> {
 		return apiPut<UpdateCourseRequest, DepartmentCourse>(
 			`/hod/courses/${courseId}`,
-			courseData
+			courseData,
 		);
 	},
 
@@ -47,21 +53,21 @@ export const hodApi = {
 
 	// User management
 	async createUser(
-		userData: HODCreateUserRequest
+		userData: HODCreateUserRequest,
 	): Promise<DepartmentFaculty> {
 		return apiPost<HODCreateUserRequest, DepartmentFaculty>(
 			"/hod/users",
-			userData
+			userData,
 		);
 	},
 
 	async updateUser(
 		employeeId: number,
-		userData: HODUpdateUserRequest
+		userData: HODUpdateUserRequest,
 	): Promise<DepartmentFaculty> {
 		return apiPut<HODUpdateUserRequest, DepartmentFaculty>(
 			`/hod/users/${employeeId}`,
-			userData
+			userData,
 		);
 	},
 

@@ -14,12 +14,12 @@ class HODController
     private $validationMiddleware;
 
     public function __construct(
-        UserRepository $userRepository,
-        CourseRepository $courseRepository,
-        CourseOfferingRepository $courseOfferingRepository,
-        CourseFacultyAssignmentRepository $courseFacultyAssignmentRepository,
-        DepartmentRepository $departmentRepository,
-        ValidationMiddleware $validationMiddleware
+        ?UserRepository $userRepository = null,
+        ?CourseRepository $courseRepository = null,
+        ?CourseOfferingRepository $courseOfferingRepository = null,
+        ?CourseFacultyAssignmentRepository $courseFacultyAssignmentRepository = null,
+        ?DepartmentRepository $departmentRepository = null,
+        ?ValidationMiddleware $validationMiddleware = null
     ) {
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
@@ -86,70 +86,75 @@ class HODController
      * Get all courses for the HOD's department
      * Can be filtered by year and semester
      */
+    /**
+     * Get courses in the HOD's department — paginated
+     */
     public function getDepartmentCourses()
     {
         try {
             if (!$this->requireHOD()) return;
-            
-            $userData = $_REQUEST['authenticated_user'];
-            $departmentId = $userData['department_id'];
 
-            // Optional filters from query params
-            $year = isset($_GET['year']) ? intval($_GET['year']) : null;
-            $semester = isset($_GET['semester']) ? intval($_GET['semester']) : null;
-
-            if ($year && $semester) {
-                // Get offerings for this session
-                $courses = $this->courseOfferingRepository->findByDepartment($departmentId, $year, $semester);
-            } else {
-                // Fallback to all course templates in department
-                $courses = $this->courseRepository->findByDepartment($departmentId);
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
             }
+
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'c.course_id',
+                'c.course_id',
+                ['c.course_id', 'c.course_code', 'c.course_name', 'c.credit'],
+                ['is_active', 'course_type']
+            );
+
+            $total  = $this->courseRepository->countByDepartmentPaginated($departmentId, $params);
+            $rows   = $this->courseRepository->findByDepartmentPaginated($departmentId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'course_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Department courses retrieved successfully',
-                'data' => $courses
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Department courses retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve courses',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve courses', 'error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all faculty members in the HOD's department
+     * Get faculty/staff in the HOD's department — paginated
      */
     public function getDepartmentFaculty()
     {
         try {
             if (!$this->requireHOD()) return;
-            
-            $userData = $_REQUEST['authenticated_user'];
-            $departmentId = $userData['department_id'];
 
-            $faculty = $this->userRepository->findFacultyByDepartment($departmentId);
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'employee_id',
+                'employee_id',
+                ['employee_id', 'username', 'email', 'role', 'designation'],
+                ['role']
+            );
+
+            $total  = $this->userRepository->countByDepartmentPaginated($departmentId, $params);
+            $rows   = $this->userRepository->findByDepartmentPaginated($departmentId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'employee_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Department faculty retrieved successfully',
-                'data' => $faculty
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Department faculty retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve faculty',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve faculty', 'error' => $e->getMessage()]);
         }
     }
 
@@ -226,7 +231,6 @@ class HODController
 
             // 3. Create Course Offering
             $offering = new CourseOffering(
-                null,
                 $course->getCourseId(),
                 intval($input['year']),
                 intval($input['semester']),

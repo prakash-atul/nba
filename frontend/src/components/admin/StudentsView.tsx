@@ -1,17 +1,20 @@
-import { DataTable } from "@/components/shared/DataTable";
-import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
+﻿import { DataTable } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Student } from "@/services/api";
+import { adminApi } from "@/services/api/admin";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface StudentsViewProps {
-	students: Student[];
-	refreshing: boolean;
-}
+export function StudentsView() {
+	const { data: students, loading, error, pagination, goNext, goPrev, canPrev, pageIndex, search, setSearch } =
+		usePaginatedData<Student>({
+			fetchFn: (params) => adminApi.getAllStudents(params),
+			limit: 20,
+			defaultSort: "s.roll_no",
+		});
 
-export function StudentsView({ students, refreshing }: StudentsViewProps) {
 	const columns: ColumnDef<Student>[] = [
 		{
 			accessorKey: "roll_no",
@@ -69,16 +72,10 @@ export function StudentsView({ students, refreshing }: StudentsViewProps) {
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			),
-			filterFn: (row, id, value) => {
-				return value.includes(String(row.getValue(id)));
-			},
 		},
 		{
 			accessorKey: "department_code",
 			header: "Department",
-			filterFn: (row, id, value) => {
-				return value.includes(row.getValue(id));
-			},
 			cell: ({ row }) => {
 				const student = row.original;
 				return (
@@ -91,9 +88,6 @@ export function StudentsView({ students, refreshing }: StudentsViewProps) {
 		{
 			accessorKey: "student_status",
 			header: "Status",
-			filterFn: (row, id, value) => {
-				return value.includes(row.getValue(id));
-			},
 			cell: ({ row }) => {
 				const status = row.getValue("student_status") as string;
 				return (
@@ -107,27 +101,11 @@ export function StudentsView({ students, refreshing }: StudentsViewProps) {
 		},
 	];
 
-	const departmentOptions = Array.from(
-		new Set(
-			students
-				.map((s) => s.department_code)
-				.filter((n): n is string => !!n),
-		),
-	)
-		.sort()
-		.map((name) => ({ label: name, value: name }));
-
-	const batchOptions = Array.from(
-		new Set(students.map((s) => s.batch_year).filter(Boolean)),
-	)
-		.sort((a, b) => b - a)
-		.map((year) => ({ label: String(year), value: String(year) }));
-
-	const statusOptions = Array.from(
-		new Set(students.map((s) => s.student_status).filter(Boolean)),
-	)
-		.sort()
-		.map((status) => ({ label: status, value: status }));
+	if (error) {
+		return (
+			<div className="text-red-500 p-4">Failed to load students: {error}</div>
+		);
+	}
 
 	return (
 		<div className="space-y-4">
@@ -141,36 +119,18 @@ export function StudentsView({ students, refreshing }: StudentsViewProps) {
 			<DataTable
 				columns={columns}
 				data={students}
-				searchKey="student_name"
-				searchPlaceholder="Filter by name..."
-				refreshing={refreshing}
-			>
-				{(table) => (
-					<>
-						{table.getColumn("department_code") && (
-							<DataTableFacetedFilter
-								column={table.getColumn("department_code")}
-								title="Department"
-								options={departmentOptions}
-							/>
-						)}
-						{table.getColumn("batch_year") && (
-							<DataTableFacetedFilter
-								column={table.getColumn("batch_year")}
-								title="Batch"
-								options={batchOptions}
-							/>
-						)}
-						{table.getColumn("student_status") && (
-							<DataTableFacetedFilter
-								column={table.getColumn("student_status")}
-								title="Status"
-								options={statusOptions}
-							/>
-						)}
-					</>
-				)}
-			</DataTable>
+				searchPlaceholder="Search by roll no, name or email..."
+				refreshing={loading}
+				serverPagination={{
+					pagination,
+					onNext: goNext,
+					onPrev: goPrev,
+					canPrev,
+					pageIndex,
+					search,
+					onSearch: setSearch,
+				}}
+			/>
 		</div>
 	);
 }

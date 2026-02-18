@@ -43,6 +43,29 @@ class CourseRepository
         }
     }
 
+    /**
+     * Find course by ID with faculty info (compatibility method)
+     */
+    public function findByIdWithFaculty($id)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT c.*, u.username as faculty_name
+                FROM courses c
+                LEFT JOIN course_offerings co ON c.course_id = co.course_id
+                LEFT JOIN course_faculty_assignments cfa ON co.offering_id = cfa.offering_id
+                LEFT JOIN users u ON cfa.employee_id = u.employee_id
+                WHERE c.course_id = ?
+                ORDER BY co.year DESC, co.semester DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$id]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
 
 
     /**
@@ -218,6 +241,160 @@ class CourseRepository
     }
 
     /**
+     * Paginated list of courses (admin view).
+     * Cursor is on course_id (BIGINT).
+     *
+     * @param array $params Result of PaginationHelper::parseParams()
+     * @return array raw rows
+     */
+    public function findPaginated(array $params): array
+    {
+        try {
+            $sql = "
+                SELECT c.course_id, c.course_code, c.course_name, c.credit,
+                       c.department_id, c.course_type, c.course_level,
+                       c.is_active, c.created_at, c.updated_at,
+                       d.department_name, d.department_code
+                FROM courses c
+                LEFT JOIN departments d ON c.department_id = d.department_id
+                WHERE 1=1
+            ";
+            $bindings = [];
+
+            if ($params['search']) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (isset($params['filters']['is_active'])) {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 'c.course_id', $params['cursor'], $params['sortDir']);
+
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count courses matching pagination filters.
+     */
+    public function countPaginated(array $params): int
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM courses c WHERE 1=1";
+            $bindings = [];
+
+            if ($params['search']) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (isset($params['filters']['is_active'])) {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginated courses scoped to a school (dean view).
+     */
+    public function findBySchoolPaginated(int $schoolId, array $params): array
+    {
+        try {
+            $sql = "
+                SELECT c.course_id, c.course_code, c.course_name, c.credit,
+                       c.department_id, c.course_type, c.course_level, c.is_active,
+                       d.department_name, d.department_code
+                FROM courses c
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+            ";
+            $bindings = [$schoolId];
+
+            if ($params['search']) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 'c.course_id', $params['cursor'], $params['sortDir']);
+
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count courses in a school matching filters.
+     */
+    public function countBySchoolPaginated(int $schoolId, array $params): int
+    {
+        try {
+            $sql = "
+                SELECT COUNT(*)
+                FROM courses c
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+            ";
+            $bindings = [$schoolId];
+
+            if ($params['search']) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Find course by course code
      * @param string $courseCode
      * @return Course|null
@@ -377,6 +554,85 @@ class CourseRepository
                 WHERE c.department_id = ?
             ");
             $stmt->execute([$departmentId]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginated courses scoped to a department (HOD / Staff view).
+     *
+     * @param int   $departmentId
+     * @param array $params Result of PaginationHelper::parseParams()
+     * @return array raw rows
+     */
+    public function findByDepartmentPaginated(int $departmentId, array $params): array
+    {
+        try {
+            $sql = "
+                SELECT c.course_id, c.course_code, c.course_name, c.credit,
+                       c.department_id, c.course_type, c.course_level,
+                       c.is_active, c.created_at, c.updated_at
+                FROM courses c
+                WHERE c.department_id = ?
+            ";
+            $bindings = [$departmentId];
+
+            if ($params['search']) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (isset($params['filters']['is_active'])) {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 'c.course_id', $params['cursor'], $params['sortDir']);
+
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count courses in a department matching filters.
+     */
+    public function countByDepartmentPaginated(int $departmentId, array $params): int
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM courses c WHERE c.department_id = ?";
+            $bindings = [$departmentId];
+
+            if ($params['search']) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (isset($params['filters']['is_active'])) {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
             return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());

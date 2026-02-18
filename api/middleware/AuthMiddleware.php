@@ -38,8 +38,24 @@ class AuthMiddleware
      */
     public function getTokenFromHeader()
     {
-        $headers = getallheaders();
-        $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+        $headers = [];
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+            if ($headers === false) {
+                $headers = [];
+            }
+        }
+        
+        $authHeader = '';
+        if (isset($headers['Authorization'])) {
+            $authHeader = $headers['Authorization'];
+        } elseif (isset($_SERVER['Authorization'])) {
+            $authHeader = $_SERVER['Authorization'];
+        } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+             $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
 
         if (empty($authHeader)) {
             return null;

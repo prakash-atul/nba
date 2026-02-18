@@ -45,6 +45,33 @@ class CourseFacultyAssignmentRepository
     }
 
     /**
+     * Save/Create a faculty assignment
+     */
+    public function save(CourseFacultyAssignment $assignment)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO course_faculty_assignments (
+                    offering_id, employee_id, assignment_type, is_active
+                ) VALUES (?, ?, ?, ?)
+            ");
+            $result = $stmt->execute([
+                $assignment->getOfferingId(),
+                $assignment->getEmployeeId(),
+                $assignment->getAssignmentType() ?? 'Primary',
+                $assignment->getIsActive() ?? 1
+            ]);
+
+            if ($result) {
+                $assignment->setId($this->db->lastInsertId());
+            }
+            return $result;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Get active assignments for a course offering
      * @param int $offeringId
      * @return array

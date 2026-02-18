@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { apiService, staffApi } from "@/services/api";
-import type { User, StaffStats, StaffCourse } from "@/services/api";
+import type { User, StaffStats } from "@/services/api";
 import {
 	StaffStatsCards,
 	StaffQuickAccess,
@@ -28,13 +28,12 @@ export function StaffDashboard() {
 	const [currentPage, setCurrentPage] = useState<StaffPage>("dashboard");
 	const [isLoading, setIsLoading] = useState(false);
 
-	// Dashboard data
+	// Dashboard stats
 	const [stats, setStats] = useState<StaffStats>({
 		totalCourses: 0,
 		totalStudents: 0,
 		totalEnrollments: 0,
 	});
-	const [courses, setCourses] = useState<StaffCourse[]>([]);
 
 	const navigate = useNavigate();
 
@@ -58,18 +57,15 @@ export function StaffDashboard() {
 			return;
 		}
 		setUser(storedUser);
-		loadDashboardData();
+		loadStats();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [navigate]);
 
-	const loadDashboardData = async () => {
+	const loadStats = async () => {
 		setIsLoading(true);
 		try {
-			const [statsData, coursesData] = await Promise.all([
-				staffApi.getStats(),
-				staffApi.getDepartmentCourses(),
-			]);
+			const statsData = await staffApi.getStats();
 			setStats(statsData);
-			setCourses(coursesData);
 		} catch (error) {
 			toast.error("Failed to load dashboard data");
 			console.error(error);
@@ -107,22 +103,10 @@ export function StaffDashboard() {
 				);
 
 			case "courses":
-				return (
-					<CourseManagement
-						courses={courses}
-						isLoading={isLoading}
-						onRefresh={loadDashboardData}
-					/>
-				);
+				return <CourseManagement />;
 
 			case "enrollments":
-				return (
-					<StaffEnrollmentView
-						courses={courses}
-						isLoading={isLoading}
-						onRefresh={loadDashboardData}
-					/>
-				);
+				return <StaffEnrollmentView />;
 
 			default:
 				return null;
@@ -159,7 +143,7 @@ export function StaffDashboard() {
 						<Button
 							variant="outline"
 							size="icon"
-							onClick={loadDashboardData}
+							onClick={loadStats}
 							disabled={isLoading}
 						>
 							<RefreshCw

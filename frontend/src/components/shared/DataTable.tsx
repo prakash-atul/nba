@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import {
 	type ColumnDef,
 	type ColumnFiltersState,
@@ -32,6 +32,28 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { PaginationMeta } from "@/services/api/types";
+
+/**
+ * When provided, DataTable operates in "server-side" mode:
+ * pagination, sorting and search are all controlled externally.
+ */
+export interface ServerPaginationProps {
+	/** Metadata from the last server response */
+	pagination: PaginationMeta | null;
+	/** Navigate to next page */
+	onNext: () => void;
+	/** Navigate to previous page */
+	onPrev: () => void;
+	/** Whether backward navigation is available */
+	canPrev: boolean;
+	/** Current zero-based page index (for display) */
+	pageIndex: number;
+	/** Controlled search string */
+	search: string;
+	/** Called whenever search input changes */
+	onSearch: (value: string) => void;
+}
 
 interface DataTableProps<TData, TValue> {
 	columns: ColumnDef<TData, TValue>[];
@@ -40,6 +62,8 @@ interface DataTableProps<TData, TValue> {
 	searchPlaceholder?: string;
 	refreshing?: boolean;
 	children?: React.ReactNode | ((table: TableType<TData>) => React.ReactNode);
+	/** Pass to enable server-side pagination mode */
+	serverPagination?: ServerPaginationProps;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,6 +73,7 @@ export function DataTable<TData, TValue>({
 	searchPlaceholder = "Search...",
 	refreshing = false,
 	children,
+	serverPagination,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] =
@@ -56,6 +81,8 @@ export function DataTable<TData, TValue>({
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
+
+	const isServerMode = !!serverPagination;
 
 	const table = useReactTable({
 		data,
@@ -81,11 +108,29 @@ export function DataTable<TData, TValue>({
 
 	const isFiltered = table.getState().columnFilters.length > 0;
 
+	// ----- pagination footer helpers -----
+	const sp = serverPagination;
+	const serverCanNext = !!sp?.pagination?.has_more;
+	const serverCanPrev = !!sp?.canPrev;
+	const serverPage = sp ? sp.pageIndex + 1 : null;
+	const serverTotal = sp?.pagination?.total ?? null;
+	const serverLimit = sp?.pagination?.limit ?? null;
+
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<div className="flex flex-1 items-center space-x-2">
-					{searchKey && (
+					{/* Server-side search input */}
+					{isServerMode && (
+						<Input
+							placeholder={searchPlaceholder}
+							value={sp!.search}
+							onChange={(e) => sp!.onSearch(e.target.value)}
+							className="h-8 w-[150px] lg:w-[250px]"
+						/>
+					)}
+					{/* Client-side search input */}
+					{!isServerMode && searchKey && (
 						<Input
 							placeholder={searchPlaceholder}
 							value={
@@ -104,7 +149,7 @@ export function DataTable<TData, TValue>({
 					{typeof children === "function"
 						? children(table)
 						: children}
-					{isFiltered && (
+					{!isServerMode && isFiltered && (
 						<Button
 							variant="ghost"
 							onClick={() => table.resetColumnFilters()}
@@ -220,32 +265,66 @@ export function DataTable<TData, TValue>({
 				</Table>
 			</div>
 			<div className="flex items-center justify-end space-x-2 py-4">
-				<div className="flex-1 text-sm text-muted-foreground">
-					{table.getFilteredSelectedRowModel().rows.length} of{" "}
-					{table.getFilteredRowModel().rows.length} row(s) selected.
-				</div>
-				<div className="text-sm text-muted-foreground">
-					Page {table.getState().pagination.pageIndex + 1} of{" "}
-					{table.getPageCount()}
-				</div>
-				<div className="space-x-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}
-					>
-						Previous
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}
-					>
-						Next
-					</Button>
-				</div>
+				{isServerMode ? (
+					<>
+						<div className="flex-1 text-sm text-muted-foreground">
+							{serverTotal !== null && serverLimit !== null
+								? `${serverTotal.toLocaleString()} total rows · ${serverLimit} per page`
+								: ""}
+						</div>
+						<div className="text-sm text-muted-foreground">
+							Page {serverPage}
+						</div>
+						<div className="space-x-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={sp!.onPrev}
+								disabled={!serverCanPrev}
+							>
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={sp!.onNext}
+								disabled={!serverCanNext}
+							>
+								Next
+							</Button>
+						</div>
+					</>
+				) : (
+					<>
+						<div className="flex-1 text-sm text-muted-foreground">
+							{table.getFilteredSelectedRowModel().rows.length} of{" "}
+							{table.getFilteredRowModel().rows.length} row(s)
+							selected.
+						</div>
+						<div className="text-sm text-muted-foreground">
+							Page {table.getState().pagination.pageIndex + 1} of{" "}
+							{table.getPageCount()}
+						</div>
+						<div className="space-x-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => table.previousPage()}
+								disabled={!table.getCanPreviousPage()}
+							>
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => table.nextPage()}
+								disabled={!table.getCanNextPage()}
+							>
+								Next
+							</Button>
+						</div>
+					</>
+				)}
 			</div>
 		</div>
 	);

@@ -16,9 +16,9 @@ class AuthService
     public function __construct(
         UserRepository $userRepository, 
         JWTService $jwtService, 
-        DepartmentRepository $departmentRepository = null,
-        $hodAssignmentRepository = null,
-        $deanAssignmentRepository = null
+        ?DepartmentRepository $departmentRepository = null,
+        ?HODAssignmentRepository $hodAssignmentRepository = null,
+        ?DeanAssignmentRepository $deanAssignmentRepository = null
     ) {
         $this->userRepository = $userRepository;
         $this->jwtService = $jwtService;

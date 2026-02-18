@@ -28,23 +28,37 @@ import {
 	School as SchoolIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { apiService } from "@/services/api";
-import type { School, User } from "@/services/api";
+import { adminApi } from "@/services/api/admin";
+import type { School, User } from "@/services/api/types";
 import { generateAppointmentOrder } from "@/utils/appointmentUtils";
 
-interface SchoolsViewProps {
-	schools: School[];
-	users: User[];
-	refreshing: boolean;
-	onDataRefresh: () => void;
-}
+export function SchoolsView() {
+	const [schools, setSchools] = useState<School[]>([]);
+	const [users, setUsers] = useState<User[]>([]);
+	const [refreshing, setRefreshing] = useState(true);
 
-export function SchoolsView({
-	schools = [],
-	users = [],
-	refreshing,
-	onDataRefresh,
-}: SchoolsViewProps) {
+	const onDataRefresh = async () => {
+		setRefreshing(true);
+		try {
+			const schoolsData = await adminApi.getAllSchools();
+			setSchools(schoolsData);
+
+			const usersData = await adminApi.getAllUsers({ limit: 1000 });
+			setUsers(usersData.data);
+		} catch (error: any) {
+			console.error("Failed to refresh schools data:", error);
+			toast.error("Failed to load data");
+		} finally {
+			setRefreshing(false);
+		}
+	};
+
+	useEffect(() => {
+		onDataRefresh();
+	}, []);
+
+	console.log("SchoolsView Render - Schools:", schools);
+	console.log("SchoolsView Render - Users:", users);
 	const [isCreateSchoolOpen, setIsCreateSchoolOpen] = useState(false);
 	const [isEditSchoolOpen, setIsEditSchoolOpen] = useState(false);
 	const [isAppointDeanOpen, setIsAppointDeanOpen] = useState(false);
@@ -99,7 +113,7 @@ export function SchoolsView({
 
 		setSubmitting(true);
 		try {
-			await apiService.createSchool(schoolForm);
+			await adminApi.createSchool(schoolForm);
 			toast.success("School created successfully");
 			setIsCreateSchoolOpen(false);
 			resetForm();
@@ -133,7 +147,7 @@ export function SchoolsView({
 
 		setSubmitting(true);
 		try {
-			await apiService.updateSchool(selectedSchool.school_id, schoolForm);
+			await adminApi.updateSchool(selectedSchool.school_id, schoolForm);
 			toast.success("School updated successfully");
 			setIsEditSchoolOpen(false);
 			resetForm();
@@ -155,7 +169,7 @@ export function SchoolsView({
 		}
 
 		try {
-			await apiService.deleteSchool(school.school_id);
+			await adminApi.deleteSchool(school.school_id);
 			toast.success("School deleted successfully");
 			onDataRefresh();
 		} catch (error: any) {
@@ -181,7 +195,7 @@ export function SchoolsView({
 
 		setSubmitting(true);
 		try {
-			await apiService.appointDean(selectedSchool.school_id, {
+			await adminApi.appointDean(selectedSchool.school_id, {
 				employee_id: parseInt(appointDeanForm.employee_id),
 				appointment_order: appointDeanForm.appointment_order,
 			});
@@ -205,7 +219,7 @@ export function SchoolsView({
 		}
 
 		try {
-			await apiService.demoteDean(user.employee_id);
+			await adminApi.demoteDean(user.employee_id);
 			toast.success("Dean demoted successfully");
 			onDataRefresh();
 		} catch (error: any) {

@@ -17,6 +17,13 @@ class Course
     private $createdAt;
     private $updatedAt;
 
+    // Legacy fields for compatibility during refactor
+    private $facultyId;
+    private $year;
+    private $semester;
+    private $coThreshold = 40.00;
+    private $passingThreshold = 60.00;
+
     public function __construct(
         $course_id, 
         $courseCode, 
@@ -153,6 +160,18 @@ class Course
     {
         $this->updatedAt = $updatedAt;
     }
+
+    // Legacy compatibility methods
+    public function setFacultyId($facultyId) { $this->facultyId = $facultyId; }
+    public function getFacultyId() { return $this->facultyId; }
+    public function setYear($year) { $this->year = $year; }
+    public function getYear() { return $this->year; }
+    public function setSemester($semester) { $this->semester = $semester; }
+    public function getSemester() { return $this->semester; }
+    public function setCoThreshold($threshold) { $this->coThreshold = $threshold; }
+    public function getCoThreshold() { return $this->coThreshold; }
+    public function setPassingThreshold($threshold) { $this->passingThreshold = $threshold; }
+    public function getPassingThreshold() { return $this->passingThreshold; }
 
     /**
      * Convert to array

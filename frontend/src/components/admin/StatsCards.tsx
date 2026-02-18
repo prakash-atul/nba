@@ -8,6 +8,7 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
+	console.log("StatsCards Render - Stats:", stats);
 	const statItems: StatItem[] = [
 		{
 			label: "Total Users",

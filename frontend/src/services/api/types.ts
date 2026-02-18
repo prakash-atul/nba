@@ -4,6 +4,34 @@ export interface LoginCredentials {
 	password: string;
 }
 
+// ─── Pagination ─────────────────────────────────────────────────────────────
+
+export interface PaginationMeta {
+	next_cursor: string | null;
+	prev_cursor: string | null;
+	has_more: boolean;
+	total: number;
+	limit: number;
+}
+
+export interface PaginatedResponse<T> {
+	success: boolean;
+	message: string;
+	data: T[];
+	pagination: PaginationMeta;
+}
+
+export interface PaginationParams {
+	cursor?: string;
+	limit?: number;
+	sort?: string;
+	sort_dir?: "ASC" | "DESC";
+	search?: string;
+	[key: string]: string | number | undefined;
+}
+
+// ─── Auth / Users ────────────────────────────────────────────────────────────
+
 export interface User {
 	employee_id: number;
 	username: string;
@@ -227,6 +255,14 @@ export interface Department {
 	school_name?: string;
 	school_code?: string;
 	description?: string;
+	created_at?: string;
+	hod_employee_id?: number | null;
+	hod_name?: string | null;
+	faculty_count?: number;
+	student_count?: number;
+	course_count?: number;
+	active_offerings_count?: number;
+	latest_offering?: string | null;
 }
 
 // Admin Types

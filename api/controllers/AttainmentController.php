@@ -8,13 +8,19 @@ require_once __DIR__ . '/../models/CoPoRepository.php';
 
 class AttainmentController
 {
-    private CourseRepository $courseRepo;
-    private AttainmentScaleRepository $scaleRepo;
-    private CoPoRepository $coPoRepo;
+    private ?CourseRepository $courseRepo;
+    private ?CourseOfferingRepository $offeringRepo;
+    private ?AttainmentScaleRepository $scaleRepo;
+    private ?CoPoRepository $coPoRepo;
 
-    public function __construct(CourseRepository $courseRepo, AttainmentScaleRepository $scaleRepo, CoPoRepository $coPoRepo = null)
-    {
+    public function __construct(
+        ?CourseRepository $courseRepo = null, 
+        ?CourseOfferingRepository $offeringRepo = null,
+        ?AttainmentScaleRepository $scaleRepo = null, 
+        ?CoPoRepository $coPoRepo = null
+    ) {
         $this->courseRepo = $courseRepo;
+        $this->offeringRepo = $offeringRepo;
         $this->scaleRepo = $scaleRepo;
         $this->coPoRepo = $coPoRepo;
     }
@@ -112,6 +118,10 @@ class AttainmentController
                 return;
             }
 
+            // Get the latest offering for this course to get thresholds
+            $offerings = $this->offeringRepo->findByCourseId($courseId);
+            $latestOffering = !empty($offerings) ? $offerings[0] : null;
+
             // Get attainment thresholds
             $scales = $this->scaleRepo->getByCourseId((int)$courseId);
 
@@ -119,8 +129,8 @@ class AttainmentController
                 'success' => true,
                 'data' => [
                     'course_id' => $course->getCourseId(),
-                    'co_threshold' => $course->getCoThreshold(),
-                    'passing_threshold' => $course->getPassingThreshold(),
+                    'co_threshold' => $latestOffering ? (float)$latestOffering['co_threshold'] : 40.00,
+                    'passing_threshold' => $latestOffering ? (float)$latestOffering['passing_threshold'] : 60.00,
                     'attainment_thresholds' => array_map(function ($scale) {
                         return [
                             'id' => $scale->id,
@@ -199,8 +209,12 @@ class AttainmentController
                 return;
             }
 
-            // Update course thresholds
-            $this->courseRepo->updateThresholds($courseId, $coThreshold, $passingThreshold);
+            // Update latest offering thresholds if one exists
+            $offerings = $this->offeringRepo->findByCourseId($courseId);
+            if (!empty($offerings)) {
+                $latestOfferingId = $offerings[0]['offering_id'];
+                $this->offeringRepo->updateThresholds($latestOfferingId, $coThreshold, $passingThreshold);
+            }
 
             // Prepare scale data with proper levels
             // Sort by percentage descending to assign levels correctly

@@ -364,6 +364,178 @@ class UserRepository
     }
 
     /**
+     * Paginated list of users (admin view).
+     * Uses keyset cursor on employee_id.
+     *
+     * Fetches limit+1 rows so the caller can detect has_more.
+     *
+     * @param array $params Result of PaginationHelper::parseParams()
+     * @return array raw rows
+     */
+    public function findPaginated(array $params): array
+    {
+        try {
+            $sql = "
+                SELECT u.employee_id, u.username, u.email, u.role,
+                       u.designation, u.phone, u.department_id,
+                       u.created_at, u.updated_at,
+                       d.department_name, d.department_code, d.school_id
+                FROM users u
+                LEFT JOIN departments d ON u.department_id = d.department_id
+                WHERE 1=1
+            ";
+            $bindings = [];
+
+            // Search filter
+            if ($params['search']) {
+                $sql .= " AND (u.username LIKE ? OR u.email LIKE ? OR u.designation LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+
+            // Extra filters
+            if (!empty($params['filters']['role'])) {
+                $sql .= " AND u.role = ?";
+                $bindings[] = $params['filters']['role'];
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND u.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+
+            // Cursor
+            PaginationHelper::applyCursor($sql, $bindings, 'u.employee_id', $params['cursor'], $params['sortDir']);
+
+            // Sort + limit (fetch one extra to detect next page)
+            $safeSort = $params['sort'];
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$safeSort} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count users matching pagination filters (for total count).
+     *
+     * @param array $params Result of PaginationHelper::parseParams()
+     * @return int
+     */
+    public function countPaginated(array $params): int
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM users u WHERE 1=1";
+            $bindings = [];
+
+            if ($params['search']) {
+                $sql .= " AND (u.username LIKE ? OR u.email LIKE ? OR u.designation LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['role'])) {
+                $sql .= " AND u.role = ?";
+                $bindings[] = $params['filters']['role'];
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND u.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginated users scoped to a school (dean view).
+     *
+     * @param int   $schoolId
+     * @param array $params   Result of PaginationHelper::parseParams()
+     * @return array raw rows
+     */
+    public function findBySchoolPaginated(int $schoolId, array $params): array
+    {
+        try {
+            $sql = "
+                SELECT u.employee_id, u.username, u.email, u.role,
+                       u.designation, u.phone, u.department_id,
+                       u.created_at, u.updated_at,
+                       d.department_name, d.department_code
+                FROM users u
+                JOIN departments d ON u.department_id = d.department_id
+                WHERE d.school_id = ?
+            ";
+            $bindings = [$schoolId];
+
+            if ($params['search']) {
+                $sql .= " AND (u.username LIKE ? OR u.email LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['role'])) {
+                $sql .= " AND u.role = ?";
+                $bindings[] = $params['filters']['role'];
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 'u.employee_id', $params['cursor'], $params['sortDir']);
+
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count users in a school matching filters.
+     */
+    public function countBySchoolPaginated(int $schoolId, array $params): int
+    {
+        try {
+            $sql = "
+                SELECT COUNT(*)
+                FROM users u
+                JOIN departments d ON u.department_id = d.department_id
+                WHERE d.school_id = ?
+            ";
+            $bindings = [$schoolId];
+
+            if ($params['search']) {
+                $sql .= " AND (u.username LIKE ? OR u.email LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['role'])) {
+                $sql .= " AND u.role = ?";
+                $bindings[] = $params['filters']['role'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Find faculty and staff by department
      * @param int $departmentId
      * @return array
@@ -495,6 +667,78 @@ class UserRepository
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginated faculty/staff scoped to a department (HOD / Staff view).
+     *
+     * @param int   $departmentId
+     * @param array $params Result of PaginationHelper::parseParams()
+     * @return array raw rows
+     */
+    public function findByDepartmentPaginated(int $departmentId, array $params): array
+    {
+        try {
+            $sql = "
+                SELECT employee_id, username, email, role,
+                       designation, phone, department_id, created_at, updated_at
+                FROM users
+                WHERE department_id = ? AND role IN ('faculty', 'staff')
+            ";
+            $bindings = [$departmentId];
+
+            if ($params['search']) {
+                $sql .= " AND (username LIKE ? OR email LIKE ? OR designation LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['role'])) {
+                $sql .= " AND role = ?";
+                $bindings[] = $params['filters']['role'];
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 'employee_id', $params['cursor'], $params['sortDir']);
+
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count faculty/staff in a department matching filters.
+     */
+    public function countByDepartmentPaginated(int $departmentId, array $params): int
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM users WHERE department_id = ? AND role IN ('faculty', 'staff')";
+            $bindings = [$departmentId];
+
+            if ($params['search']) {
+                $sql .= " AND (username LIKE ? OR email LIKE ? OR designation LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['role'])) {
+                $sql .= " AND role = ?";
+                $bindings[] = $params['filters']['role'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         }

@@ -11,6 +11,7 @@ export function QuickAccessCards({
 	stats,
 	onNavChange,
 }: QuickAccessCardsProps) {
+	console.log("QuickAccessCards Render - Stats:", stats);
 	const items: QuickAccessItem[] = [
 		{
 			id: "users",

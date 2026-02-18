@@ -197,7 +197,7 @@ class Test
 
         return [
             'test_id' => $this->test_id,
-            'course_id' => $this->courseId,
+            'course_id' => $this->offeringId,
             'test_name' => $this->test_name,
             'full_marks' => $this->fullMarks,
             'pass_marks' => $this->passMarks,

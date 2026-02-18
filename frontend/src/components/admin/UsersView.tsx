@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
-import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,28 +23,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
-import type {
-	User,
-	Department,
-	CreateUserRequest,
-	AdminStats,
-} from "@/services/api";
+import type { User, Department, CreateUserRequest } from "@/services/api";
+import { adminApi } from "@/services/api/admin";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface UsersViewProps {
-	users: User[];
-	departments: Department[];
-	currentUser: User | null;
-	refreshing: boolean;
-	onDataRefresh: (stats: AdminStats, users: User[]) => void;
-}
+export function UsersView({ currentUser }: { currentUser?: User | null }) {
+	const {
+		data: users,
+		loading: refreshing,
+		refresh,
+		pagination,
+		goNext,
+		goPrev,
+		canPrev,
+		pageIndex,
+		search,
+		setSearch,
+	} = usePaginatedData<User>({
+		fetchFn: (params) => adminApi.getAllUsers(params),
+		limit: 20,
+		defaultSort: "u.employee_id",
+	});
 
-export function UsersView({
-	users = [],
-	departments = [],
-	currentUser,
-	refreshing,
-	onDataRefresh,
-}: UsersViewProps) {
+	const { data: departments } = usePaginatedData<Department>({
+		fetchFn: (params) => adminApi.getAllDepartments(params),
+		limit: 100,
+		defaultSort: "d.department_code",
+	});
 	const [isAddUserOpen, setIsAddUserOpen] = useState(false);
 	const [isDeleteUserOpen, setIsDeleteUserOpen] = useState(false);
 	const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -219,12 +223,7 @@ export function UsersView({
 				designation: "",
 				phone: "",
 			});
-			// Refresh data
-			const [statsData, usersData] = await Promise.all([
-				apiService.getAdminStats(),
-				apiService.getAllUsers(),
-			]);
-			onDataRefresh(statsData, usersData);
+			refresh();
 		} catch (error: any) {
 			toast.error(error.message || "Failed to create user");
 		} finally {
@@ -241,30 +240,13 @@ export function UsersView({
 			toast.success("User deleted successfully");
 			setIsDeleteUserOpen(false);
 			setUserToDelete(null);
-			// Refresh data
-			const [statsData, usersData] = await Promise.all([
-				apiService.getAdminStats(),
-				apiService.getAllUsers(),
-			]);
-			onDataRefresh(statsData, usersData);
+			refresh();
 		} catch (error: any) {
 			toast.error(error.message || "Failed to delete user");
 		} finally {
 			setSubmitting(false);
 		}
 	};
-
-	const roleOptions = [
-		{ label: "Admin", value: "admin" },
-		{ label: "Faculty", value: "faculty" },
-		{ label: "Staff", value: "staff" },
-	];
-
-	const departmentOptions =
-		departments?.map((d) => ({
-			label: d.department_code,
-			value: d.department_code,
-		})) || [];
 
 	return (
 		<div className="space-y-4">
@@ -463,27 +445,19 @@ export function UsersView({
 			<DataTable
 				columns={columns}
 				data={users}
-				searchKey="username"
-				searchPlaceholder="Search by name..."
+				searchPlaceholder="Search users..."
 				refreshing={refreshing}
-			>
-				{(table) => (
-					<>
-						<DataTableFacetedFilter
-							column={table.getColumn("role")}
-							title="Role"
-							options={roleOptions}
-						/>
-						<DataTableFacetedFilter
-							column={table.getColumn("department_code")}
-							title="Department"
-							options={departmentOptions}
-						/>
-					</>
-				)}
-			</DataTable>
+				serverPagination={{
+					pagination,
+					onNext: goNext,
+					onPrev: goPrev,
+					canPrev,
+					pageIndex,
+					search,
+					onSearch: setSearch,
+				}}
+			/>
 
-			{/* Delete User Dialog */}
 			<Dialog open={isDeleteUserOpen} onOpenChange={setIsDeleteUserOpen}>
 				<DialogContent>
 					<DialogHeader>

@@ -1,15 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
-import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
 import { ClipboardList } from "lucide-react";
 import type { DeanTest } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";
-
-interface TestsViewProps {
-	tests: DeanTest[];
-	isLoading: boolean;
-}
+import { deanApi } from "@/services/api/dean";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
 const columns: ColumnDef<DeanTest>[] = [
 	{
@@ -58,13 +54,10 @@ const columns: ColumnDef<DeanTest>[] = [
 				"N/A"
 			);
 		},
-		filterFn: (row, id, value) => {
-			return value.includes(row.getValue(id));
-		},
 	},
 	{
 		accessorKey: "full_marks",
-		header: ({ column }) => <div className="text-center">Full Marks</div>,
+		header: () => <div className="text-center">Full Marks</div>,
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -78,7 +71,7 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "pass_marks",
-		header: ({ column }) => <div className="text-center">Pass Marks</div>,
+		header: () => <div className="text-center">Pass Marks</div>,
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -92,21 +85,22 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 ];
 
-export function TestsView({ tests, isLoading }: TestsViewProps) {
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-			</div>
-		);
-	}
-
-	const uniqueDepartments = Array.from(
-		new Set(tests.map((t) => t.department_code).filter(Boolean)),
-	).map((dept) => ({
-		label: dept as string,
-		value: dept as string,
-	}));
+export function TestsView() {
+	const {
+		data: tests,
+		loading,
+		pagination,
+		goNext,
+		goPrev,
+		canPrev,
+		pageIndex,
+		search,
+		setSearch,
+	} = usePaginatedData<DeanTest>({
+		fetchFn: (params) => deanApi.getAllTests(params),
+		limit: 20,
+		defaultSort: "t.test_id",
+	});
 
 	return (
 		<Card>
@@ -120,19 +114,18 @@ export function TestsView({ tests, isLoading }: TestsViewProps) {
 				<DataTable
 					columns={columns}
 					data={tests}
-					searchKey="test_name"
 					searchPlaceholder="Search tests..."
-				>
-					{(table) =>
-						uniqueDepartments.length > 0 && (
-							<DataTableFacetedFilter
-								column={table.getColumn("department_code")}
-								title="Department"
-								options={uniqueDepartments}
-							/>
-						)
-					}
-				</DataTable>
+					refreshing={loading}
+					serverPagination={{
+						pagination,
+						onNext: goNext,
+						onPrev: goPrev,
+						canPrev,
+						pageIndex,
+						search,
+						onSearch: setSearch,
+					}}
+				/>
 			</CardContent>
 		</Card>
 	);

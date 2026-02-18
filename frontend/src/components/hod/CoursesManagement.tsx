@@ -47,24 +47,29 @@ import type {
 	CreateCourseRequest,
 	UpdateCourseRequest,
 } from "@/services/api";
-
-interface CoursesManagementProps {
-	courses: DepartmentCourse[];
-	faculty: DepartmentFaculty[];
-	isLoading: boolean;
-	onRefresh: () => void;
-}
+import { hodApi } from "@/services/api/hod";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
 const currentYear = new Date().getFullYear();
 const years = [currentYear - 1, currentYear, currentYear + 1];
 const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
 
-export function CoursesManagement({
-	courses,
-	faculty,
-	isLoading,
-	onRefresh,
-}: CoursesManagementProps) {
+export function CoursesManagement() {
+	const {
+		data: courses,
+		loading: isLoading,
+		refresh: onRefresh,
+	} = usePaginatedData<DepartmentCourse>({
+		fetchFn: (params) => hodApi.getDepartmentCourses(params),
+		limit: 50,
+		defaultSort: "c.course_code",
+	});
+
+	const { data: faculty } = usePaginatedData<DepartmentFaculty>({
+		fetchFn: (params) => hodApi.getDepartmentFaculty(params),
+		limit: 100,
+		defaultSort: "u.username",
+	});
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,7 +120,7 @@ export function CoursesManagement({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to create course"
+					: "Failed to create course",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -131,7 +136,7 @@ export function CoursesManagement({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to delete course"
+					: "Failed to delete course",
 			);
 		}
 	};
@@ -172,7 +177,7 @@ export function CoursesManagement({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to update course"
+					: "Failed to update course",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -297,13 +302,13 @@ export function CoursesManagement({
 											.filter(
 												(f) =>
 													f.role === "faculty" ||
-													f.role === "hod"
+													f.role === "hod",
 											)
 											.map((f) => (
 												<SelectItem
 													key={f.employee_id}
 													value={String(
-														f.employee_id
+														f.employee_id,
 													)}
 												>
 													{f.username}{" "}
@@ -489,7 +494,7 @@ export function CoursesManagement({
 															onClick={() =>
 																handleDeleteCourse(
 																	course.id,
-																	course.name
+																	course.name,
 																)
 															}
 															className="bg-red-600 hover:bg-red-700"
@@ -602,7 +607,7 @@ export function CoursesManagement({
 										.filter(
 											(f) =>
 												f.role === "faculty" ||
-												f.role === "hod"
+												f.role === "hod",
 										)
 										.map((f) => (
 											<SelectItem

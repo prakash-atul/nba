@@ -1,17 +1,30 @@
-import { DataTable } from "@/components/shared/DataTable";
-import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
+﻿import { DataTable } from "@/components/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { AdminTest } from "@/services/api";
+import { adminApi } from "@/services/api/admin";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface TestsViewProps {
-	tests: AdminTest[];
-	refreshing: boolean;
-}
+export function TestsView() {
+	const {
+		data: tests,
+		loading,
+		error,
+		pagination,
+		goNext,
+		goPrev,
+		canPrev,
+		pageIndex,
+		search,
+		setSearch,
+	} = usePaginatedData<AdminTest>({
+		fetchFn: (params) => adminApi.getAllTests(params),
+		limit: 20,
+		defaultSort: "t.test_id",
+	});
 
-export function TestsView({ tests, refreshing }: TestsViewProps) {
 	const columns: ColumnDef<AdminTest>[] = [
 		{
 			accessorKey: "test_id",
@@ -71,16 +84,10 @@ export function TestsView({ tests, refreshing }: TestsViewProps) {
 		{
 			accessorKey: "year",
 			header: "Year",
-			filterFn: (row, id, value) => {
-				return value.includes(row.getValue(id)?.toString());
-			},
 		},
 		{
 			accessorKey: "semester",
 			header: "Semester",
-			filterFn: (row, id, value) => {
-				return value.includes(row.getValue(id)?.toString());
-			},
 			cell: ({ row }) => (
 				<Badge variant="secondary">
 					Sem {row.getValue("semester")}
@@ -89,13 +96,13 @@ export function TestsView({ tests, refreshing }: TestsViewProps) {
 		},
 	];
 
-	const yearOptions = Array.from(new Set(tests.map((t) => t.year)))
-		.sort()
-		.map((year) => ({ label: year.toString(), value: year.toString() }));
-
-	const semesterOptions = Array.from(new Set(tests.map((t) => t.semester)))
-		.sort((a, b) => a - b)
-		.map((sem) => ({ label: `Sem ${sem}`, value: sem.toString() }));
+	if (error) {
+		return (
+			<div className="text-red-500 p-4">
+				Failed to load tests: {error}
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-4">
@@ -109,25 +116,18 @@ export function TestsView({ tests, refreshing }: TestsViewProps) {
 			<DataTable
 				columns={columns}
 				data={tests}
-				searchKey="test_name"
-				searchPlaceholder="Search by test name..."
-				refreshing={refreshing}
-			>
-				{(table) => (
-					<>
-						<DataTableFacetedFilter
-							column={table.getColumn("year")}
-							title="Year"
-							options={yearOptions}
-						/>
-						<DataTableFacetedFilter
-							column={table.getColumn("semester")}
-							title="Semester"
-							options={semesterOptions}
-						/>
-					</>
-				)}
-			</DataTable>
+				searchPlaceholder="Search by test name or course..."
+				refreshing={loading}
+				serverPagination={{
+					pagination,
+					onNext: goNext,
+					onPrev: goPrev,
+					canPrev,
+					pageIndex,
+					search,
+					onSearch: setSearch,
+				}}
+			/>
 		</div>
 	);
 }

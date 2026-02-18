@@ -1,8 +1,7 @@
 import { DataTable } from "@/components/shared/DataTable";
-import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,27 +31,46 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Info, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import type { Department, School } from "@/services/api";
+import { adminApi } from "@/services/api/admin";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface DepartmentsViewProps {
-	departments: Department[];
-	schools?: School[];
-	refreshing: boolean;
-	onDataRefresh: () => void;
-}
+export function DepartmentsView() {
+	const {
+		data: departments,
+		loading: refreshing,
+		refresh: onDataRefresh,
+		pagination,
+		goNext,
+		goPrev,
+		canPrev,
+		pageIndex,
+		search,
+		setSearch,
+	} = usePaginatedData<Department>({
+		fetchFn: (params) => adminApi.getAllDepartments(params),
+		limit: 20,
+		defaultSort: "d.department_code",
+	});
 
-export function DepartmentsView({
-	departments = [],
-	schools = [],
-	refreshing,
-	onDataRefresh,
-}: DepartmentsViewProps) {
+	const [schools, setSchools] = useState<School[]>([]);
+	useEffect(() => {
+		adminApi
+			.getAllSchools()
+			.then(setSchools)
+			.catch(() => {});
+	}, []);
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,6 +150,120 @@ export function DepartmentsView({
 					</div>
 				) : (
 					<span className="text-gray-400">-</span>
+				);
+			},
+		},
+		{
+			accessorKey: "hod_name",
+			header: "HOD",
+			cell: ({ row }) => {
+				const hodName = row.getValue("hod_name") as string | null;
+				const hodId = row.original.hod_employee_id;
+				return hodName ? (
+					<div className="text-sm">
+						<div className="font-medium text-gray-700 dark:text-gray-300">
+							{hodName}
+						</div>
+						{hodId && (
+							<div className="text-xs text-gray-500 font-mono">
+								ID: {hodId}
+							</div>
+						)}
+					</div>
+				) : (
+					<span className="text-gray-400">Not Assigned</span>
+				);
+			},
+		},
+		{
+			id: "counts",
+			header: "Statistics",
+			cell: ({ row }) => {
+				const dept = row.original;
+				return (
+					<div className="flex flex-wrap gap-1.5">
+						{typeof dept.faculty_count !== "undefined" && (
+							<Badge variant="outline" className="text-xs">
+								👨‍🏫 {dept.faculty_count}
+							</Badge>
+						)}
+						{typeof dept.student_count !== "undefined" && (
+							<Badge variant="outline" className="text-xs">
+								🎓 {dept.student_count}
+							</Badge>
+						)}
+						{typeof dept.course_count !== "undefined" && (
+							<Badge variant="outline" className="text-xs">
+								📚 {dept.course_count}
+							</Badge>
+						)}
+					</div>
+				);
+			},
+		},
+		{
+			accessorKey: "active_offerings_count",
+			header: "Active Offerings",
+			filterFn: (row, id, value) => {
+				const count = row.getValue(id) as number;
+				return value.includes(String(count));
+			},
+			cell: ({ row }) => {
+				const count = row.getValue("active_offerings_count") as number;
+				const latest = row.original.latest_offering;
+				return (
+					<div className="text-sm">
+						<Badge variant="secondary" className="font-semibold">
+							{count} courses
+						</Badge>
+						{latest && (
+							<div className="text-xs text-gray-500 mt-1">
+								Latest: {latest}
+							</div>
+						)}
+					</div>
+				);
+			},
+		},
+		{
+			id: "info",
+			header: "Info",
+			cell: ({ row }) => {
+				const dept = row.original;
+				return (
+					<Popover>
+						<PopoverTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="text-gray-500 hover:text-gray-700"
+							>
+								<Info className="w-4 h-4" />
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent className="w-80">
+							<div className="space-y-4">
+								<h4 className="font-medium leading-none">
+									{dept.department_name}
+								</h4>
+								<div className="space-y-2">
+									<p className="text-sm text-gray-500">
+										{dept.description ||
+											"No description available."}
+									</p>
+									<div className="flex items-center pt-2 border-t text-xs text-gray-400">
+										<Calendar className="mr-2 h-3 w-3" />
+										Created:{" "}
+										{dept.created_at
+											? new Date(
+													dept.created_at,
+												).toLocaleDateString()
+											: "N/A"}
+									</div>
+								</div>
+							</div>
+						</PopoverContent>
+					</Popover>
 				);
 			},
 		},
@@ -226,7 +358,6 @@ export function DepartmentsView({
 			toast.success("Department created successfully");
 			setIsAddDialogOpen(false);
 			resetForm();
-			// Refresh data
 			onDataRefresh();
 		} catch (error) {
 			toast.error(
@@ -281,7 +412,6 @@ export function DepartmentsView({
 			toast.success("Department updated successfully");
 			setIsEditDialogOpen(false);
 			setSelectedDepartment(null);
-			// Refresh data
 			onDataRefresh();
 		} catch (error) {
 			toast.error(
@@ -298,7 +428,6 @@ export function DepartmentsView({
 		try {
 			await apiService.deleteDepartment(department.department_id);
 			toast.success(`Department "${department.department_name}" deleted`);
-			// Refresh data
 			onDataRefresh();
 		} catch (error) {
 			toast.error(
@@ -308,16 +437,6 @@ export function DepartmentsView({
 			);
 		}
 	};
-
-	const schoolOptions = Array.from(
-		new Set(
-			departments
-				.map((d) => d.school_name)
-				.filter((n): n is string => !!n),
-		),
-	)
-		.sort()
-		.map((name) => ({ label: name, value: name }));
 
 	return (
 		<div className="space-y-4">
@@ -466,22 +585,18 @@ export function DepartmentsView({
 			<DataTable
 				columns={columns}
 				data={departments}
-				searchKey="department_name"
-				searchPlaceholder="Search by name..."
+				searchPlaceholder="Search departments..."
 				refreshing={refreshing}
-			>
-				{(table) => (
-					<>
-						<DataTableFacetedFilter
-							column={table.getColumn("school_name")}
-							title="School"
-							options={schoolOptions}
-						/>
-					</>
-				)}
-			</DataTable>
-
-			{/* Edit Dialog */}
+				serverPagination={{
+					pagination,
+					onNext: goNext,
+					onPrev: goPrev,
+					canPrev,
+					pageIndex,
+					search,
+					onSearch: setSearch,
+				}}
+			/>
 
 			{/* Edit Dialog */}
 			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

@@ -1,17 +1,20 @@
-import { DataTable } from "@/components/shared/DataTable";
-import { DataTableFacetedFilter } from "@/components/shared/DataTableFacetedFilter";
+﻿import { DataTable } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AdminCourse } from "@/services/api";
+import { adminApi } from "@/services/api/admin";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface CoursesViewProps {
-	courses: AdminCourse[];
-	refreshing: boolean;
-}
+export function CoursesView() {
+	const { data: courses, loading, error, pagination, goNext, goPrev, canPrev, pageIndex, search, setSearch } =
+		usePaginatedData<AdminCourse>({
+			fetchFn: (params) => adminApi.getAllCourses(params),
+			limit: 20,
+			defaultSort: "c.course_code",
+		});
 
-export function CoursesView({ courses, refreshing }: CoursesViewProps) {
 	const columns: ColumnDef<AdminCourse>[] = [
 		{
 			accessorKey: "course_code",
@@ -56,11 +59,6 @@ export function CoursesView({ courses, refreshing }: CoursesViewProps) {
 		{
 			accessorKey: "department_name",
 			header: "Department",
-			filterFn: (row, id, value) => {
-				const val = row.getValue(id) as string;
-				if (!val) return false;
-				return value.includes(val);
-			},
 			cell: ({ row }) => {
 				const name = row.getValue("department_name") as string;
 				return name || "N/A";
@@ -69,11 +67,6 @@ export function CoursesView({ courses, refreshing }: CoursesViewProps) {
 		{
 			accessorKey: "course_type",
 			header: "Type",
-			filterFn: (row, id, value) => {
-				const val = row.getValue(id) as string;
-				if (!val) return false;
-				return value.includes(val);
-			},
 			cell: ({ row }) => {
 				const val = row.getValue("course_type") as string;
 				return <Badge variant="secondary">{val}</Badge>;
@@ -82,17 +75,12 @@ export function CoursesView({ courses, refreshing }: CoursesViewProps) {
 		{
 			accessorKey: "course_level",
 			header: "Level",
-			filterFn: (row, id, value) => {
-				const val = row.getValue(id) as string;
-				if (!val) return false;
-				return value.includes(val);
-			},
 		},
 		{
 			accessorKey: "is_active",
 			header: "Status",
 			cell: ({ row }) => {
-				const isActive = row.getValue("is_active") === 1;
+				const isActive = row.getValue("is_active") === 1 || row.getValue("is_active") === true;
 				return (
 					<Badge variant={isActive ? "default" : "destructive"}>
 						{isActive ? "Active" : "Inactive"}
@@ -102,20 +90,13 @@ export function CoursesView({ courses, refreshing }: CoursesViewProps) {
 		},
 	];
 
-	// Extract unique values for filters
-	const getUniqueValues = (key: keyof AdminCourse) => {
-		return Array.from(new Set(courses.map((c) => c[key])))
-			.filter(Boolean)
-			.sort()
-			.map((val) => ({
-				label: String(val),
-				value: String(val),
-			}));
-	};
-
-	const departmentOptions = getUniqueValues("department_name");
-	const typeOptions = getUniqueValues("course_type");
-	const levelOptions = getUniqueValues("course_level");
+	if (error) {
+		return (
+			<div className="text-red-500 p-4">
+				Failed to load courses: {error}
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-4">
@@ -129,36 +110,18 @@ export function CoursesView({ courses, refreshing }: CoursesViewProps) {
 			<DataTable
 				columns={columns}
 				data={courses}
-				searchKey="course_name"
-				searchPlaceholder="Filter by course name..."
-				refreshing={refreshing}
-			>
-				{(table) => (
-					<>
-						{table.getColumn("department_name") && (
-							<DataTableFacetedFilter
-								column={table.getColumn("department_name")}
-								title="Department"
-								options={departmentOptions}
-							/>
-						)}
-						{table.getColumn("course_type") && (
-							<DataTableFacetedFilter
-								column={table.getColumn("course_type")}
-								title="Type"
-								options={typeOptions}
-							/>
-						)}
-						{table.getColumn("course_level") && (
-							<DataTableFacetedFilter
-								column={table.getColumn("course_level")}
-								title="Level"
-								options={levelOptions}
-							/>
-						)}
-					</>
-				)}
-			</DataTable>
+				searchPlaceholder="Search by course name or code..."
+				refreshing={loading}
+				serverPagination={{
+					pagination,
+					onNext: goNext,
+					onPrev: goPrev,
+					canPrev,
+					pageIndex,
+					search,
+					onSearch: setSearch,
+				}}
+			/>
 		</div>
 	);
 }

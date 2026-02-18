@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from "./base";
+import { apiGet, apiPost, apiPut, apiDelete, apiGetPaginated } from "./base";
 import type {
 	User,
 	Student,
@@ -14,6 +14,8 @@ import type {
 	UpdateSchoolRequest,
 	AppointDeanRequest,
 	CreateDeanRequest,
+	PaginatedResponse,
+	PaginationParams,
 } from "./types";
 
 export const adminApi = {
@@ -21,8 +23,10 @@ export const adminApi = {
 		return apiGet<AdminStats>("/admin/stats");
 	},
 
-	async getAllUsers(): Promise<User[]> {
-		return apiGet<User[]>("/admin/users");
+	async getAllUsers(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<User>> {
+		return apiGetPaginated<User>("/admin/users", params);
 	},
 
 	async createUser(userData: CreateUserRequest): Promise<User> {
@@ -44,11 +48,11 @@ export const adminApi = {
 
 	async updateSchool(
 		schoolId: number,
-		data: UpdateSchoolRequest
+		data: UpdateSchoolRequest,
 	): Promise<School> {
 		return apiPut<UpdateSchoolRequest, School>(
 			`/admin/schools/${schoolId}`,
-			data
+			data,
 		);
 	},
 
@@ -59,11 +63,11 @@ export const adminApi = {
 	// Dean Management
 	async appointDean(
 		schoolId: number,
-		data: AppointDeanRequest | CreateDeanRequest
+		data: AppointDeanRequest | CreateDeanRequest,
 	): Promise<User> {
 		return apiPost<AppointDeanRequest | CreateDeanRequest, User>(
 			`/admin/schools/${schoolId}/dean`,
-			data
+			data,
 		);
 	},
 
@@ -71,24 +75,26 @@ export const adminApi = {
 		return apiDelete(`/admin/dean/${employeeId}`);
 	},
 
-	async getAllDepartments(): Promise<Department[]> {
-		return apiGet<Department[]>("/departments");
+	async getAllDepartments(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<Department>> {
+		return apiGetPaginated<Department>("/admin/departments", params);
 	},
 
 	async createDepartment(data: CreateDepartmentRequest): Promise<Department> {
 		return apiPost<CreateDepartmentRequest, Department>(
 			"/admin/departments",
-			data
+			data,
 		);
 	},
 
 	async updateDepartment(
 		departmentId: number,
-		data: UpdateDepartmentRequest
+		data: UpdateDepartmentRequest,
 	): Promise<Department> {
 		return apiPut<UpdateDepartmentRequest, Department>(
 			`/admin/departments/${departmentId}`,
-			data
+			data,
 		);
 	},
 
@@ -96,15 +102,21 @@ export const adminApi = {
 		return apiDelete(`/admin/departments/${departmentId}`);
 	},
 
-	async getAllCourses(): Promise<AdminCourse[]> {
-		return apiGet<AdminCourse[]>("/admin/courses");
+	async getAllCourses(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<AdminCourse>> {
+		return apiGetPaginated<AdminCourse>("/admin/courses", params);
 	},
 
-	async getAllStudents(): Promise<Student[]> {
-		return apiGet<Student[]>("/admin/students");
+	async getAllStudents(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<Student>> {
+		return apiGetPaginated<Student>("/admin/students", params);
 	},
 
-	async getAllTests(): Promise<AdminTest[]> {
-		return apiGet<AdminTest[]>("/admin/tests");
+	async getAllTests(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<AdminTest>> {
+		return apiGetPaginated<AdminTest>("/admin/tests", params);
 	},
 };

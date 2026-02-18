@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,7 @@ import {
 import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { staffApi, type StaffCourse } from "@/services/api";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
 interface Faculty {
 	employee_id: string;
@@ -58,28 +59,34 @@ interface CourseFormData {
 	semester: number;
 }
 
-interface CourseManagementProps {
-	courses: StaffCourse[];
-	isLoading: boolean;
-	onRefresh: () => void;
-}
+// Unused props removed
 
 const currentYear = new Date().getFullYear();
 const years = [currentYear - 1, currentYear, currentYear + 1];
 const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
 
-export function CourseManagement({
-	courses,
-	isLoading,
-	onRefresh,
-}: CourseManagementProps) {
-	const [faculty, setFaculty] = useState<Faculty[]>([]);
-	const [isLoadingFaculty, setIsLoadingFaculty] = useState(false);
+export function CourseManagement() {
+	const {
+		data: courses,
+		loading: isLoading,
+		refresh: onRefresh,
+	} = usePaginatedData<StaffCourse>({
+		fetchFn: (params) => staffApi.getDepartmentCourses(params),
+		limit: 50,
+		defaultSort: "c.course_code",
+	});
+
+	const { data: faculty, loading: isLoadingFaculty } =
+		usePaginatedData<Faculty>({
+			fetchFn: (params) => staffApi.getDepartmentFaculty(params),
+			limit: 100,
+			defaultSort: "u.username",
+		});
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [selectedCourse, setSelectedCourse] = useState<StaffCourse | null>(
-		null
+		null,
 	);
 	const [formData, setFormData] = useState<CourseFormData>({
 		course_code: "",
@@ -97,23 +104,6 @@ export function CourseManagement({
 		year: currentYear,
 		semester: 1,
 	});
-
-	// Fetch faculty when component mounts
-	useEffect(() => {
-		fetchFaculty();
-	}, []);
-
-	const fetchFaculty = async () => {
-		try {
-			setIsLoadingFaculty(true);
-			const data = await staffApi.getDepartmentFaculty();
-			setFaculty(data);
-		} catch (error) {
-			toast.error("Failed to load faculty list");
-		} finally {
-			setIsLoadingFaculty(false);
-		}
-	};
 
 	const resetForm = () => {
 		setFormData({
@@ -146,7 +136,7 @@ export function CourseManagement({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to create course"
+					: "Failed to create course",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -162,7 +152,7 @@ export function CourseManagement({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to delete course"
+					: "Failed to delete course",
 			);
 		}
 	};
@@ -206,7 +196,7 @@ export function CourseManagement({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to update course"
+					: "Failed to update course",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -334,7 +324,7 @@ export function CourseManagement({
 											.filter(
 												(f) =>
 													f.role === "faculty" ||
-													f.role === "hod"
+													f.role === "hod",
 											)
 											.map((f) => (
 												<SelectItem
@@ -524,7 +514,7 @@ export function CourseManagement({
 															onClick={() =>
 																handleDeleteCourse(
 																	course.id,
-																	course.name
+																	course.name,
 																)
 															}
 															className="bg-red-600 hover:bg-red-700"
@@ -640,7 +630,7 @@ export function CourseManagement({
 										.filter(
 											(f) =>
 												f.role === "faculty" ||
-												f.role === "hod"
+												f.role === "hod",
 										)
 										.map((f) => (
 											<SelectItem

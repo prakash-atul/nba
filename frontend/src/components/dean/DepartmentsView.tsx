@@ -11,16 +11,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DeanDepartment } from "@/services/api";
+import { deanApi } from "@/services/api/dean";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface DepartmentsViewProps {
-	departments: DeanDepartment[];
-	isLoading: boolean;
-}
-
-export function DepartmentsView({
-	departments,
-	isLoading,
-}: DepartmentsViewProps) {
+export function DepartmentsView() {
+	const {
+		data: departments,
+		loading,
+		pagination,
+		goNext,
+		goPrev,
+		canPrev,
+		pageIndex,
+		search,
+		setSearch,
+	} = usePaginatedData<DeanDepartment>({
+		fetchFn: (params) => deanApi.getAllDepartments(params),
+		limit: 20,
+		defaultSort: "d.department_code",
+	});
 	const columns: ColumnDef<DeanDepartment>[] = [
 		{
 			accessorKey: "department_code",
@@ -200,14 +209,6 @@ export function DepartmentsView({
 		},
 	];
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-			</div>
-		);
-	}
-
 	return (
 		<div className="space-y-6">
 			{/* Summary Cards */}
@@ -220,7 +221,7 @@ export function DepartmentsView({
 							</div>
 							<div>
 								<p className="text-2xl font-bold">
-									{departments.length}
+									{pagination?.total ?? "—"}
 								</p>
 								<p className="text-sm text-muted-foreground">
 									Total Departments
@@ -238,12 +239,13 @@ export function DepartmentsView({
 							<div>
 								<p className="text-2xl font-bold">
 									{departments.reduce(
-										(sum, d) => sum + d.faculty_count,
+										(sum, d) =>
+											sum + (d.faculty_count ?? 0),
 										0,
 									)}
 								</p>
 								<p className="text-sm text-muted-foreground">
-									Total Faculty
+									Faculty (this page)
 								</p>
 							</div>
 						</div>
@@ -258,12 +260,12 @@ export function DepartmentsView({
 							<div>
 								<p className="text-2xl font-bold">
 									{departments.reduce(
-										(sum, d) => sum + d.course_count,
+										(sum, d) => sum + (d.course_count ?? 0),
 										0,
 									)}
 								</p>
 								<p className="text-sm text-muted-foreground">
-									Total Courses
+									Courses (this page)
 								</p>
 							</div>
 						</div>
@@ -278,12 +280,13 @@ export function DepartmentsView({
 							<div>
 								<p className="text-2xl font-bold">
 									{departments.reduce(
-										(sum, d) => sum + d.student_count,
+										(sum, d) =>
+											sum + (d.student_count ?? 0),
 										0,
 									)}
 								</p>
 								<p className="text-sm text-muted-foreground">
-									Total Students
+									Students (this page)
 								</p>
 							</div>
 						</div>
@@ -303,8 +306,17 @@ export function DepartmentsView({
 					<DataTable
 						columns={columns}
 						data={departments}
-						searchKey="department_name"
 						searchPlaceholder="Filter departments..."
+						refreshing={loading}
+						serverPagination={{
+							pagination,
+							onNext: goNext,
+							onPrev: goPrev,
+							canPrev,
+							pageIndex,
+							search,
+							onSearch: setSearch,
+						}}
 					/>
 				</CardContent>
 			</Card>

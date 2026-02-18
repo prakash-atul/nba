@@ -98,17 +98,43 @@ class EnrollmentRepository
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$row) {
-            return null;
-        }
+        if (!$row) return null;
 
         return new Enrollment(
             $row['id'],
             $row['offering_id'],
             $row['roll_no'],
-            $row['created_at'],
-            $row['status'] ?? 'Enrolled'
+            $row['enrollment_date'],
+            $row['is_active']
         );
+    }
+
+    /**
+     * Find enrollments by course template ID
+     */
+    public function findByCourseId($courseId)
+    {
+        $sql = "
+            SELECT e.* 
+            FROM enrollments e
+            JOIN course_offerings co ON e.offering_id = co.offering_id
+            WHERE co.course_id = ?
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$courseId]);
+        $results = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $results[] = new Enrollment(
+                $row['id'],
+                $row['offering_id'],
+                $row['roll_no'],
+                $row['enrollment_date'],
+                $row['is_active']
+            );
+        }
+
+        return $results;
     }
 
     /**

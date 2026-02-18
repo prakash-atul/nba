@@ -13,6 +13,11 @@ class CourseOfferingRepository
         $this->db = $db;
     }
 
+    public function getDb()
+    {
+        return $this->db;
+    }
+
     /**
      * Find offering by ID
      */
@@ -38,6 +43,57 @@ class CourseOfferingRepository
                 );
             }
             return null;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Find offering by Course ID, Year and Semester
+     */
+    public function findByCourseYearSem($courseId, $year, $semester)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT * FROM course_offerings 
+                WHERE course_id = ? AND year = ? AND semester = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$courseId, $year, $semester]);
+            $data = $stmt->fetch();
+
+            if ($data) {
+                return new CourseOffering(
+                    $data['course_id'],
+                    $data['year'],
+                    $data['semester'],
+                    $data['co_threshold'] ?? 40.00,
+                    $data['passing_threshold'] ?? 60.00,
+                    $data['syllabus_pdf'],
+                    $data['is_active'] ?? 1,
+                    $data['created_at'] ?? null,
+                    $data['updated_at'] ?? null,
+                    $data['offering_id']
+                );
+            }
+            return null;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update performance thresholds for an offering
+     */
+    public function updateThresholds($offeringId, $coThreshold, $passingThreshold)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE course_offerings 
+                SET co_threshold = ?, passing_threshold = ? 
+                WHERE offering_id = ?
+            ");
+            return $stmt->execute([$coThreshold, $passingThreshold, $offeringId]);
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         }
@@ -481,23 +537,6 @@ class CourseOfferingRepository
             $stmt->execute([$departmentId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result['count'] ?? 0;
-        } catch (PDOException $e) {
-            throw new Exception("Database error: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Update offering thresholds
-     */
-    public function updateThresholds($offeringId, $coThreshold, $passingThreshold)
-    {
-        try {
-            $stmt = $this->db->prepare("
-                UPDATE course_offerings 
-                SET co_threshold = ?, passing_threshold = ? 
-                WHERE offering_id = ?
-            ");
-            return $stmt->execute([$coThreshold, $passingThreshold, $offeringId]);
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         }

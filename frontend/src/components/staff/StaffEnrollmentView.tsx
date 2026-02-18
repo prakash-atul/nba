@@ -46,25 +46,24 @@ import {
 import { toast } from "sonner";
 import { staffApi } from "@/services/api";
 import type { StaffCourse, Enrollment } from "@/services/api";
-
-interface StaffEnrollmentViewProps {
-	courses: StaffCourse[];
-	isLoading: boolean;
-	onRefresh: () => void;
-}
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
 interface StudentEntry {
 	rollno: string;
 	name: string;
 }
 
-export function StaffEnrollmentView({
-	courses,
-	isLoading,
-	onRefresh,
-}: StaffEnrollmentViewProps) {
+export function StaffEnrollmentView() {
+	const {
+		data: courses,
+		refresh: refreshCourses,
+		loading: isLoading,
+	} = usePaginatedData<StaffCourse>({
+		fetchFn: staffApi.getDepartmentCourses,
+		limit: 100,
+	});
 	const [selectedCourse, setSelectedCourse] = useState<StaffCourse | null>(
-		null
+		null,
 	);
 	const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
 	const [loadingEnrollments, setLoadingEnrollments] = useState(false);
@@ -99,7 +98,7 @@ export function StaffEnrollmentView({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to load enrollments"
+					: "Failed to load enrollments",
 			);
 		} finally {
 			setLoadingEnrollments(false);
@@ -159,7 +158,7 @@ export function StaffEnrollmentView({
 				} else {
 					setStudents(parsedStudents);
 					toast.success(
-						`Parsed ${parsedStudents.length} students from CSV`
+						`Parsed ${parsedStudents.length} students from CSV`,
 					);
 				}
 			} catch (error) {
@@ -193,16 +192,16 @@ export function StaffEnrollmentView({
 		try {
 			const result = await staffApi.bulkEnrollStudents(
 				selectedCourse.id,
-				students
+				students,
 			);
 
 			if (result.failure_count > 0) {
 				toast.warning(
-					`Enrollment completed with ${result.failure_count} failures. ${result.success_count} students enrolled successfully.`
+					`Enrollment completed with ${result.failure_count} failures. ${result.success_count} students enrolled successfully.`,
 				);
 			} else {
 				toast.success(
-					`All ${result.success_count} students enrolled successfully!`
+					`All ${result.success_count} students enrolled successfully!`,
 				);
 			}
 
@@ -213,12 +212,12 @@ export function StaffEnrollmentView({
 				fileInputRef.current.value = "";
 			}
 			await loadEnrollments(selectedCourse.id);
-			onRefresh();
+			refreshCourses();
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to enroll students"
+					: "Failed to enroll students",
 			);
 		} finally {
 			setEnrolling(false);
@@ -232,12 +231,12 @@ export function StaffEnrollmentView({
 			await staffApi.removeEnrollment(selectedCourse.id, rollno);
 			toast.success("Student removed from course successfully");
 			await loadEnrollments(selectedCourse.id);
-			onRefresh();
+			refreshCourses();
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to remove student"
+					: "Failed to remove student",
 			);
 		}
 	};
@@ -453,7 +452,7 @@ export function StaffEnrollmentView({
 												value={manualRollno}
 												onChange={(e) =>
 													setManualRollno(
-														e.target.value
+														e.target.value,
 													)
 												}
 												onKeyDown={(e) => {
@@ -461,7 +460,7 @@ export function StaffEnrollmentView({
 														e.preventDefault();
 														document
 															.getElementById(
-																"studentName"
+																"studentName",
 															)
 															?.focus();
 													}
@@ -478,7 +477,7 @@ export function StaffEnrollmentView({
 												value={manualName}
 												onChange={(e) =>
 													setManualName(
-														e.target.value
+														e.target.value,
 													)
 												}
 												onKeyDown={(e) => {
@@ -550,7 +549,7 @@ export function StaffEnrollmentView({
 																	className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
 																	onClick={() =>
 																		handleRemoveFromList(
-																			student.rollno
+																			student.rollno,
 																		)
 																	}
 																>
@@ -558,7 +557,7 @@ export function StaffEnrollmentView({
 																</Button>
 															</TableCell>
 														</TableRow>
-													)
+													),
 												)}
 											</TableBody>
 										</Table>
@@ -660,7 +659,7 @@ export function StaffEnrollmentView({
 													</TableCell>
 													<TableCell className="text-sm text-gray-500">
 														{new Date(
-															enrollment.enrolled_at
+															enrollment.enrolled_at,
 														).toLocaleDateString()}
 													</TableCell>
 													<TableCell>
@@ -713,7 +712,7 @@ export function StaffEnrollmentView({
 																	<AlertDialogAction
 																		onClick={() =>
 																			handleRemoveEnrollment(
-																				enrollment.student_rollno
+																				enrollment.student_rollno,
 																			)
 																		}
 																		className="bg-red-500 hover:bg-red-600"

@@ -40,6 +40,7 @@ require_once __DIR__ . '/../models/DeanAssignment.php';
 require_once __DIR__ . '/../models/DeanAssignmentRepository.php';
 require_once __DIR__ . '/../utils/JWTService.php';
 require_once __DIR__ . '/../utils/AuthService.php';
+require_once __DIR__ . '/../utils/PaginationHelper.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../middleware/ValidationMiddleware.php';
 require_once __DIR__ . '/../middleware/CorsMiddleware.php';
@@ -110,13 +111,13 @@ class Router
         $this->assessmentController = new AssessmentController($courseRepository, $courseOfferingRepository, $testRepository, $questionRepository, $validationMiddleware, $db, $courseFacultyAssignmentRepository);
         $this->marksController = new MarksController($studentRepository, $rawMarksRepository, $marksRepository, $questionRepository, $testRepository, $validationMiddleware, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository);
         $this->enrollmentController = new EnrollmentController($db);
-        $this->attainmentController = new AttainmentController($courseRepository, $attainmentScaleRepository, $coPoRepository);
+        $this->attainmentController = new AttainmentController($courseRepository, $courseOfferingRepository, $attainmentScaleRepository, $coPoRepository);
         $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository, $deanAssignmentRepository, $schoolRepository);
         $this->hodController = new HODController($userRepository, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $departmentRepository, $validationMiddleware);
 
         // Initialize enrollment repository for staff controller
         $enrollmentRepository = new EnrollmentRepository($db);
-        $this->staffController = new StaffController($userRepository, $courseRepository, $departmentRepository, $enrollmentRepository, $studentRepository, $validationMiddleware, $db);
+        $this->staffController = new StaffController($userRepository, $courseRepository, $departmentRepository, $enrollmentRepository, $studentRepository, $validationMiddleware, $db, $courseOfferingRepository, $courseFacultyAssignmentRepository);
 
         // Initialize faculty controller
         $this->facultyController = new FacultyController($courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $testRepository, $enrollmentRepository, $marksRepository, $db);
@@ -696,12 +697,12 @@ class Router
                     } else {
                         $this->sendMethodNotAllowed();
                     }
-                } elseif (preg_match('#^courses/(\d+)/enroll/([A-Za-z0-9]+)$#', $path, $matches)) {
-                    $courseId = $matches[1];
+                } elseif (preg_match('#^offerings/(\d+)/enroll/([A-Za-z0-9]+)$#', $path, $matches)) {
+                    $offeringId = $matches[1];
                     $rollno = $matches[2];
                     if ($method === 'DELETE') {
                         $user = $this->authMiddleware->requireAuth();
-                        $this->enrollmentController->removeEnrollment($courseId, $rollno, $user['employee_id']);
+                        $this->enrollmentController->removeEnrollment($offeringId, $rollno, $user['employee_id']);
                     } else {
                         $this->sendMethodNotAllowed();
                     }
@@ -799,34 +800,6 @@ class Router
                         $user = $this->authMiddleware->requireAuth();
                         $_REQUEST['authenticated_user'] = $user;
                         $this->staffController->deleteCourse($courseId);
-                    } else {
-                        $this->sendMethodNotAllowed();
-                    }
-                } elseif (preg_match('#^staff/courses/(\d+)/enrollments$#', $path, $matches)) {
-                    $courseId = $matches[1];
-                    if ($method === 'GET') {
-                        $user = $this->authMiddleware->requireAuth();
-                        $_REQUEST['authenticated_user'] = $user;
-                        $this->staffController->getCourseEnrollments($courseId);
-                    } else {
-                        $this->sendMethodNotAllowed();
-                    }
-                } elseif (preg_match('#^staff/courses/(\d+)/enroll$#', $path, $matches)) {
-                    $courseId = $matches[1];
-                    if ($method === 'POST') {
-                        $user = $this->authMiddleware->requireAuth();
-                        $_REQUEST['authenticated_user'] = $user;
-                        $this->staffController->bulkEnroll($courseId);
-                    } else {
-                        $this->sendMethodNotAllowed();
-                    }
-                } elseif (preg_match('#^staff/courses/(\d+)/enroll/([A-Za-z0-9]+)$#', $path, $matches)) {
-                    $courseId = $matches[1];
-                    $rollno = $matches[2];
-                    if ($method === 'DELETE') {
-                        $user = $this->authMiddleware->requireAuth();
-                        $_REQUEST['authenticated_user'] = $user;
-                        $this->staffController->removeEnrollment($courseId, $rollno);
                     } else {
                         $this->sendMethodNotAllowed();
                     }

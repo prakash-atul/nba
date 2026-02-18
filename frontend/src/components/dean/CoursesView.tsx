@@ -4,28 +4,26 @@ import { ArrowUpDown, BookOpen, ClipboardList, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import type { DeanCourse } from "@/services/api";
+import { deanApi } from "@/services/api/dean";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface CoursesViewProps {
-	courses: DeanCourse[];
-	isLoading: boolean;
-}
-
-export function CoursesView({ courses, isLoading }: CoursesViewProps) {
-	// Get unique departments and years for filters
-	const departments = Array.from(
-		new Set(courses.map((c) => c.department_code).filter(Boolean)),
-	) as string[];
-	const years = Array.from(new Set(courses.map((c) => c.year))).sort(
-		(a, b) => b - a,
-	);
+export function CoursesView() {
+	const {
+		data: courses,
+		loading,
+		pagination,
+		goNext,
+		goPrev,
+		canPrev,
+		pageIndex,
+		search,
+		setSearch,
+	} = usePaginatedData<DeanCourse>({
+		fetchFn: (params) => deanApi.getAllCourses(params),
+		limit: 20,
+		defaultSort: "c.course_code",
+	});
 
 	const columns: ColumnDef<DeanCourse>[] = [
 		{
@@ -264,14 +262,6 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 		},
 	];
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-			</div>
-		);
-	}
-
 	return (
 		<Card>
 			<CardHeader>
@@ -284,73 +274,18 @@ export function CoursesView({ courses, isLoading }: CoursesViewProps) {
 				<DataTable
 					columns={columns}
 					data={courses}
-					searchKey="course_name"
 					searchPlaceholder="Search courses..."
-				>
-					{(table) => (
-						<div className="flex gap-2">
-							<Select
-								value={
-									(table
-										.getColumn("department_code")
-										?.getFilterValue() as string) ?? "all"
-								}
-								onValueChange={(value) =>
-									table
-										.getColumn("department_code")
-										?.setFilterValue(
-											value === "all" ? "" : value,
-										)
-								}
-							>
-								<SelectTrigger className="w-[150px]">
-									<SelectValue placeholder="Department" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">
-										All Depts
-									</SelectItem>
-									{departments.map((dept) => (
-										<SelectItem key={dept} value={dept}>
-											{dept}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<Select
-								value={
-									(table
-										.getColumn("year")
-										?.getFilterValue() as string) ?? "all"
-								}
-								onValueChange={(value) =>
-									table
-										.getColumn("year")
-										?.setFilterValue(
-											value === "all" ? "" : value,
-										)
-								}
-							>
-								<SelectTrigger className="w-[120px]">
-									<SelectValue placeholder="Year" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">
-										All Years
-									</SelectItem>
-									{years.map((year) => (
-										<SelectItem
-											key={year}
-											value={year.toString()}
-										>
-											{year}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					)}
-				</DataTable>
+					refreshing={loading}
+					serverPagination={{
+						pagination,
+						onNext: goNext,
+						onPrev: goPrev,
+						canPrev,
+						pageIndex,
+						search,
+						onSearch: setSearch,
+					}}
+				/>
 			</CardContent>
 		</Card>
 	);

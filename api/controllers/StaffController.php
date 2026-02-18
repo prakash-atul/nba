@@ -11,23 +11,29 @@ class StaffController
     private $departmentRepository;
     private $enrollmentRepository;
     private $studentRepository;
+    private $courseOfferingRepository;
+    private $courseFacultyAssignmentRepository;
     private $validationMiddleware;
     private $pdo;
 
     public function __construct(
-        UserRepository $userRepository,
-        CourseRepository $courseRepository,
-        DepartmentRepository $departmentRepository,
-        EnrollmentRepository $enrollmentRepository,
-        StudentRepository $studentRepository,
-        ValidationMiddleware $validationMiddleware,
-        $pdo
+        ?UserRepository $userRepository = null,
+        ?CourseRepository $courseRepository = null,
+        ?DepartmentRepository $departmentRepository = null,
+        ?EnrollmentRepository $enrollmentRepository = null,
+        ?StudentRepository $studentRepository = null,
+        ?ValidationMiddleware $validationMiddleware = null,
+        $pdo = null,
+        ?CourseOfferingRepository $courseOfferingRepository = null,
+        ?CourseFacultyAssignmentRepository $courseFacultyAssignmentRepository = null
     ) {
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
         $this->departmentRepository = $departmentRepository;
         $this->enrollmentRepository = $enrollmentRepository;
         $this->studentRepository = $studentRepository;
+        $this->courseOfferingRepository = $courseOfferingRepository;
+        $this->courseFacultyAssignmentRepository = $courseFacultyAssignmentRepository;
         $this->validationMiddleware = $validationMiddleware;
         $this->pdo = $pdo;
     }
@@ -104,83 +110,77 @@ class StaffController
     /**
      * Get all courses for the staff's department
      */
+    /**
+     * Get courses in the staff's department — paginated
+     */
     public function getDepartmentCourses()
     {
         try {
             if (!$this->requireStaff()) return;
-            
-            $userData = $_REQUEST['authenticated_user'];
-            $departmentId = $userData['department_id'];
 
-            // Check if staff has department assigned
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
             if (!$departmentId) {
                 http_response_code(200);
                 header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'No department assigned',
-                    'data' => []
-                ]);
+                echo json_encode(['success' => true, 'message' => 'No department assigned', 'data' => [], 'pagination' => ['total' => 0, 'has_more' => false, 'next_cursor' => null, 'prev_cursor' => null, 'limit' => 20]]);
                 return;
             }
 
-            $courses = $this->courseRepository->findByDepartment($departmentId);
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'c.course_id',
+                'c.course_id',
+                ['c.course_id', 'c.course_code', 'c.course_name', 'c.credit'],
+                ['is_active', 'course_type']
+            );
+
+            $total  = $this->courseRepository->countByDepartmentPaginated($departmentId, $params);
+            $rows   = $this->courseRepository->findByDepartmentPaginated($departmentId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'course_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Department courses retrieved successfully',
-                'data' => $courses
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Department courses retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve courses',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve courses', 'error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get department faculty for course assignment
+     * Get faculty/staff in the staff's department — paginated
      */
     public function getDepartmentFaculty()
     {
         try {
             if (!$this->requireStaff()) return;
-            
-            $userData = $_REQUEST['authenticated_user'];
-            $departmentId = $userData['department_id'];
 
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
             if (!$departmentId) {
                 http_response_code(200);
                 header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'No department assigned',
-                    'data' => []
-                ]);
+                echo json_encode(['success' => true, 'message' => 'No department assigned', 'data' => [], 'pagination' => ['total' => 0, 'has_more' => false, 'next_cursor' => null, 'prev_cursor' => null, 'limit' => 20]]);
                 return;
             }
 
-            $faculty = $this->userRepository->findFacultyByDepartment($departmentId);
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'employee_id',
+                'employee_id',
+                ['employee_id', 'username', 'email', 'role', 'designation'],
+                ['role']
+            );
+
+            $total  = $this->userRepository->countByDepartmentPaginated($departmentId, $params);
+            $rows   = $this->userRepository->findByDepartmentPaginated($departmentId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'employee_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Department faculty retrieved successfully',
-                'data' => $faculty
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Department faculty retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve faculty',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve faculty', 'error' => $e->getMessage()]);
         }
     }
 
@@ -248,23 +248,39 @@ class StaffController
                 return;
             }
 
-            // Create course
+            // 1. Create course template
             $course = new Course(
                 null,
                 $input['course_code'],
                 $input['name'],
                 $input['credit'],
-                $input['faculty_id'],
-                $input['year'],
-                $input['semester'],
-                null,
-                $input['co_threshold'] ?? 40.00,
-                $input['passing_threshold'] ?? 60.00
+                $departmentId
             );
 
             $this->courseRepository->save($course);
 
-            // Get the created course with faculty info
+            // 2. Create course offering
+            $offering = new CourseOffering(
+                $course->getCourseId(),
+                $input['year'],
+                $input['semester'],
+                $input['co_threshold'] ?? 40.00,
+                $input['passing_threshold'] ?? 60.00
+            );
+            $this->courseOfferingRepository->save($offering);
+
+            // 3. Create faculty assignment
+            if (!empty($input['faculty_id'])) {
+                $assignment = new CourseFacultyAssignment(
+                    null,
+                    $offering->getOfferingId(),
+                    $input['faculty_id'],
+                    'Primary'
+                );
+                $this->courseFacultyAssignmentRepository->save($assignment);
+            }
+
+            // Get the created course with faculty info for response
             $createdCourse = $this->courseRepository->findByIdWithFaculty($course->getCourseId());
 
             http_response_code(201);
@@ -703,30 +719,39 @@ class StaffController
     /**
      * Get all students in the department
      */
+    /**
+     * Get students in the staff's department — paginated
+     */
     public function getDepartmentStudents()
     {
         try {
             if (!$this->requireStaff()) return;
-            
-            $userData = $_REQUEST['authenticated_user'];
-            $departmentId = $userData['department_id'];
 
-            $students = $this->studentRepository->findByDepartment($departmentId);
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                's.roll_no',
+                's.roll_no',
+                ['s.roll_no', 's.student_name', 's.batch_year', 's.student_status'],
+                ['batch_year', 'student_status']
+            );
+
+            $total  = $this->studentRepository->countByDepartmentPaginated($departmentId, $params);
+            $rows   = $this->studentRepository->findByDepartmentPaginated($departmentId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'roll_no', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Department students retrieved successfully',
-                'data' => $students
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Department students retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve students',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
         }
     }
 }

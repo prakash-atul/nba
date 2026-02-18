@@ -96,6 +96,46 @@ class TestRepository
     }
 
     /**
+     * Find tests by course template ID
+     */
+    public function findByCourseId($courseId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT t.*, co.year, co.semester, c.course_code 
+                FROM tests t
+                JOIN course_offerings co ON t.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                WHERE co.course_id = ?
+            ");
+            $stmt->execute([$courseId]);
+            $tests = [];
+
+            while ($data = $stmt->fetch()) {
+                $tests[] = new Test(
+                    $data['test_id'],
+                    $data['offering_id'],
+                    $data['test_name'],
+                    $data['full_marks'],
+                    $data['pass_marks'],
+                    $data['question_paper_pdf'],
+                    $data['test_type'] ?? null,
+                    $data['test_date'] ?? null,
+                    $data['max_marks'] ?? null,
+                    $data['weightage'] ?? null,
+                    $data['course_code'],
+                    $data['year'],
+                    $data['semester']
+                );
+            }
+
+            return $tests;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Count tests by school ID
      * @param int $schoolId
      * @return int
@@ -271,6 +311,175 @@ class TestRepository
         try {
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM tests");
             $stmt->execute();
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginated list of tests (admin view).
+     * Cursor is on test_id (BIGINT).
+     *
+     * @param array $params Result of PaginationHelper::parseParams()
+     * @return array raw rows
+     */
+    public function findPaginated(array $params): array
+    {
+        try {
+            $sql = "
+                SELECT t.test_id, t.offering_id, t.test_name, t.test_type,
+                       t.test_date, t.full_marks, t.pass_marks, t.max_marks, t.weightage,
+                       c.course_code, c.course_name, co.year, co.semester,
+                       d.department_name, d.department_id
+                FROM tests t
+                JOIN course_offerings co ON t.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                LEFT JOIN departments d ON c.department_id = d.department_id
+                WHERE 1=1
+            ";
+            $bindings = [];
+
+            if ($params['search']) {
+                $sql .= " AND (t.test_name LIKE ? OR c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (!empty($params['filters']['test_type'])) {
+                $sql .= " AND t.test_type = ?";
+                $bindings[] = $params['filters']['test_type'];
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 't.test_id', $params['cursor'], $params['sortDir']);
+
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count tests matching pagination filters.
+     */
+    public function countPaginated(array $params): int
+    {
+        try {
+            $sql = "
+                SELECT COUNT(*)
+                FROM tests t
+                JOIN course_offerings co ON t.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                WHERE 1=1
+            ";
+            $bindings = [];
+
+            if ($params['search']) {
+                $sql .= " AND (t.test_name LIKE ? OR c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (!empty($params['filters']['test_type'])) {
+                $sql .= " AND t.test_type = ?";
+                $bindings[] = $params['filters']['test_type'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginated tests scoped to a school (dean view — FIXED: was leaking all tests).
+     */
+    public function findBySchoolPaginated(int $schoolId, array $params): array
+    {
+        try {
+            $sql = "
+                SELECT t.test_id, t.offering_id, t.test_name, t.test_type,
+                       t.test_date, t.full_marks, t.pass_marks, t.max_marks, t.weightage,
+                       c.course_code, c.course_name, co.year, co.semester,
+                       d.department_name, d.department_id
+                FROM tests t
+                JOIN course_offerings co ON t.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+            ";
+            $bindings = [$schoolId];
+
+            if ($params['search']) {
+                $sql .= " AND (t.test_name LIKE ? OR c.course_code LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 't.test_id', $params['cursor'], $params['sortDir']);
+
+            $limit = (int)$params['limit'] + 1;
+            $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Count tests in a school matching filters.
+     */
+    public function countBySchoolPaginated(int $schoolId, array $params): int
+    {
+        try {
+            $sql = "
+                SELECT COUNT(*)
+                FROM tests t
+                JOIN course_offerings co ON t.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                JOIN departments d ON c.department_id = d.department_id
+                WHERE d.school_id = ?
+            ";
+            $bindings = [$schoolId];
+
+            if ($params['search']) {
+                $sql .= " AND (t.test_name LIKE ? OR c.course_code LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
             return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());

@@ -43,24 +43,25 @@ import { Plus, Pencil, Trash2, Users, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import type { DepartmentFaculty, HODCreateUserRequest } from "@/services/api";
+import { hodApi } from "@/services/api/hod";
+import { usePaginatedData } from "@/lib/usePaginatedData";
 
-interface FacultyManagementProps {
-	faculty: DepartmentFaculty[];
-	isLoading: boolean;
-	onRefresh: () => void;
-}
-
-export function FacultyManagement({
-	faculty,
-	isLoading,
-	onRefresh,
-}: FacultyManagementProps) {
+export function FacultyManagement() {
+	const {
+		data: faculty,
+		loading: isLoading,
+		refresh: onRefresh,
+	} = usePaginatedData<DepartmentFaculty>({
+		fetchFn: (params) => hodApi.getDepartmentFaculty(params),
+		limit: 100,
+		defaultSort: "u.username",
+	});
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [selectedUser, setSelectedUser] = useState<DepartmentFaculty | null>(
-		null
+		null,
 	);
 	const [formData, setFormData] = useState<HODCreateUserRequest>({
 		employee_id: 0,
@@ -68,6 +69,8 @@ export function FacultyManagement({
 		email: "",
 		password: "",
 		role: "faculty",
+		designation: "",
+		phone: "",
 	});
 	const [editFormData, setEditFormData] = useState({
 		username: "",
@@ -83,6 +86,8 @@ export function FacultyManagement({
 			email: "",
 			password: "",
 			role: "faculty",
+			designation: "",
+			phone: "",
 		});
 		setShowPassword(false);
 	};
@@ -109,14 +114,16 @@ export function FacultyManagement({
 			toast.success(
 				`${
 					formData.role === "faculty" ? "Faculty" : "Staff"
-				} member created successfully`
+				} member created successfully`,
 			);
 			setIsAddDialogOpen(false);
 			resetForm();
 			onRefresh();
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to create user"
+				error instanceof Error
+					? error.message
+					: "Failed to create user",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -155,7 +162,7 @@ export function FacultyManagement({
 
 			await apiService.updateDepartmentUser(
 				selectedUser.employee_id,
-				updateData
+				updateData,
 			);
 			toast.success("User updated successfully");
 			setIsEditDialogOpen(false);
@@ -163,7 +170,9 @@ export function FacultyManagement({
 			onRefresh();
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to update user"
+				error instanceof Error
+					? error.message
+					: "Failed to update user",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -173,19 +182,21 @@ export function FacultyManagement({
 	const handleDeleteUser = async (
 		employeeId: number,
 		username: string,
-		role: string
+		role: string,
 	) => {
 		try {
 			await apiService.deleteDepartmentUser(employeeId);
 			toast.success(
 				`${
 					role === "faculty" ? "Faculty" : "Staff"
-				} member "${username}" deleted`
+				} member "${username}" deleted`,
 			);
 			onRefresh();
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to delete user"
+				error instanceof Error
+					? error.message
+					: "Failed to delete user",
 			);
 		}
 	};
@@ -209,13 +220,7 @@ export function FacultyManagement({
 				</Badge>
 			);
 		}
-		if (member.is_dean) {
-			return (
-				<Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-					Dean
-				</Badge>
-			);
-		}
+
 		switch (member.role) {
 			case "admin":
 				return <Badge variant="default">Admin</Badge>;
@@ -237,9 +242,7 @@ export function FacultyManagement({
 	};
 
 	// Separate faculty list into HOD/faculty and staff
-	const facultyList = faculty.filter(
-		(f) => f.role === "faculty" || f.is_hod
-	);
+	const facultyList = faculty.filter((f) => f.role === "faculty" || f.is_hod);
 	const staffList = faculty.filter((f) => f.role === "staff");
 
 	return (
@@ -303,7 +306,7 @@ export function FacultyManagement({
 													...formData,
 													employee_id:
 														parseInt(
-															e.target.value
+															e.target.value,
 														) || 0,
 												})
 											}
@@ -314,7 +317,7 @@ export function FacultyManagement({
 										<Select
 											value={formData.role}
 											onValueChange={(
-												value: "faculty" | "staff"
+												value: "faculty" | "staff",
 											) =>
 												setFormData({
 													...formData,
@@ -463,7 +466,7 @@ export function FacultyManagement({
 														size="icon"
 														onClick={() =>
 															openEditDialog(
-																member
+																member,
 															)
 														}
 													>
@@ -510,7 +513,7 @@ export function FacultyManagement({
 																		handleDeleteUser(
 																			member.employee_id,
 																			member.username,
-																			member.role
+																			member.role,
 																		)
 																	}
 																	className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -626,7 +629,7 @@ export function FacultyManagement({
 																	handleDeleteUser(
 																		member.employee_id,
 																		member.username,
-																		member.role
+																		member.role,
 																	)
 																}
 																className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

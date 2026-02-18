@@ -20,8 +20,8 @@ class AdminController
         StudentRepository $studentRepository,
         TestRepository $testRepository,
         DepartmentRepository $departmentRepository,
-        $deanAssignmentRepository = null,
-        $schoolRepository = null
+        ?DeanAssignmentRepository $deanAssignmentRepository = null,
+        ?SchoolRepository $schoolRepository = null
     ) {
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
@@ -75,156 +75,118 @@ class AdminController
     }
 
     /**
-     * Get all courses (Admin only)
+     * Get all courses (Admin only) — paginated
      */
     public function getAllCourses()
     {
         try {
-            $userData = $_REQUEST['authenticated_user'];
+            if (!$this->requireAdmin()) return;
 
-            // Check if user is admin
-            if ($userData['role'] !== 'admin') {
-                http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Access denied. Admin privileges required.'
-                ]);
-                return;
-            }
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'c.course_id',
+                'c.course_id',
+                ['c.course_id', 'c.course_code', 'c.course_name', 'c.course_type', 'c.credit'],
+                ['department_id', 'is_active', 'course_type']
+            );
 
-            $courses = $this->courseRepository->findAll();
+            $total = $this->courseRepository->countPaginated($params);
+            $rows  = $this->courseRepository->findPaginated($params);
+            $result = PaginationHelper::buildResponse($rows, 'course_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Courses retrieved successfully',
-                'data' => $courses
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Courses retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve courses',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve courses', 'error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all departments (Admin only)
+     * Get all departments enriched (Admin only) — paginated
      */
     public function getAllDepartments()
     {
         try {
-            $userData = $_REQUEST['authenticated_user'];
+            if (!$this->requireAdmin()) return;
 
-            // Allow admin or dean (via is_dean flag)
-            // Dean functionality is now handled via assignment table, not role
-            if ($userData['role'] !== 'admin' && (!isset($userData['is_dean']) || $userData['is_dean'] !== true)) {
-                // Allow either admin role or dean assignment
-            }
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'd.department_id',
+                'd.department_id',
+                ['d.department_id', 'd.department_name', 'd.department_code'],
+                ['school_id']
+            );
 
-            // Since this is AdminController, let's enforce Admin.
-            if ($userData['role'] !== 'admin') {
-                http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Access denied. Admin privileges required.'
-                ]);
-                return;
-            }
-
-            $departments = $this->departmentRepository->findAll();
+            $total = $this->departmentRepository->countEnrichedPaginated($params);
+            $rows  = $this->departmentRepository->findEnrichedPaginated($params);
+            $result = PaginationHelper::buildResponse($rows, 'department_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Departments retrieved successfully',
-                'data' => $departments
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Departments retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve departments',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve departments', 'error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all students (Admin only)
+     * Get all students (Admin only) — paginated
      */
     public function getAllStudents()
     {
         try {
-            $userData = $_REQUEST['authenticated_user'];
+            if (!$this->requireAdmin()) return;
 
-            // Check if user is admin
-            if ($userData['role'] !== 'admin') {
-                http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Access denied. Admin privileges required.'
-                ]);
-                return;
-            }
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                's.roll_no',
+                's.roll_no',
+                ['s.roll_no', 's.student_name', 's.batch_year', 's.student_status'],
+                ['department_id', 'batch_year', 'student_status']
+            );
 
-            $students = $this->studentRepository->findAll();
+            $total = $this->studentRepository->countPaginated($params);
+            $rows  = $this->studentRepository->findPaginated($params);
+            $result = PaginationHelper::buildResponse($rows, 'roll_no', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Students retrieved successfully',
-                'data' => $students
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Students retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve students',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all tests (Admin only)
+     * Get all tests (Admin only) — paginated
      */
     public function getAllTests()
     {
         try {
-            $userData = $_REQUEST['authenticated_user'];
+            if (!$this->requireAdmin()) return;
 
-            // Check if user is admin
-            if ($userData['role'] !== 'admin') {
-                http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Access denied. Admin privileges required.'
-                ]);
-                return;
-            }
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                't.test_id',
+                't.test_id',
+                ['t.test_id', 't.test_name', 't.test_date', 't.test_type'],
+                ['department_id', 'test_type']
+            );
 
-            $tests = $this->testRepository->findAll();
+            $total = $this->testRepository->countPaginated($params);
+            $rows  = $this->testRepository->findPaginated($params);
+            $result = PaginationHelper::buildResponse($rows, 'test_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Tests retrieved successfully',
-                'data' => $tests
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Tests retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve tests',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve tests', 'error' => $e->getMessage()]);
         }
     }
 

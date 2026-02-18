@@ -21,7 +21,7 @@ class AssessmentController
         QuestionRepository $questionRepository,
         ValidationMiddleware $validationMiddleware,
         $db = null,
-        CourseFacultyAssignmentRepository $assignmentRepository = null
+        ?CourseFacultyAssignmentRepository $assignmentRepository = null
     ) {
         $this->courseRepository = $courseRepository;
         $this->courseOfferingRepository = $courseOfferingRepository;

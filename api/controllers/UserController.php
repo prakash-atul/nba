@@ -249,39 +249,37 @@ class UserController
     }
 
     /**
-     * Get all users (Admin only)
+     * Get all users (Admin only) — paginated
      */
     public function getAllUsers()
     {
         try {
             $userData = $_REQUEST['authenticated_user'];
             
-            // Check if user is admin
             if ($userData['role'] !== 'admin') {
                 http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Access denied. Admin privileges required.'
-                ]);
+                echo json_encode(['success' => false, 'message' => 'Access denied. Admin privileges required.']);
                 return;
             }
 
-            $users = $this->userRepository->findAll();
-            
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'u.employee_id',
+                'u.employee_id',
+                ['u.employee_id', 'u.username', 'u.email', 'u.role', 'u.designation'],
+                ['role', 'department_id']
+            );
+
+            $total  = $this->userRepository->countPaginated($params);
+            $rows   = $this->userRepository->findPaginated($params);
+            $result = PaginationHelper::buildResponse($rows, 'employee_id', $params['limit'], $total);
+
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Users retrieved successfully',
-                'data' => $users
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Users retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve users',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve users', 'error' => $e->getMessage()]);
         }
     }
 

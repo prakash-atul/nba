@@ -28,7 +28,7 @@ class DeanController
         EnrollmentRepository $enrollmentRepository,
         MarksRepository $marksRepository,
         $hodAssignmentRepository = null,
-        CourseFacultyAssignmentRepository $assignmentRepository = null
+        ?CourseFacultyAssignmentRepository $assignmentRepository = null
     ) {
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
@@ -124,77 +124,30 @@ class DeanController
     /**
      * Get all departments with summary (Dean only)
      */
+    /**
+     * Get all departments (Dean only) — paginated, school-scoped, uses department_stats
+     */
     public function getAllDepartments()
     {
         if (!$this->requireDean()) return;
 
         try {
             $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
-            if (!$schoolId) {
-                throw new Exception("School ID not found in user session.");
-            }
+            if (!$schoolId) throw new Exception("School ID not found in user session.");
 
-            $departments = $this->departmentRepository->findBySchool($schoolId);
-            
-            // Enrich with counts
-            $enrichedDepartments = [];
-            foreach ($departments as $dept) {
-                $deptId = $dept['department_id'];
-                
-                // Count users in department
-                // Assuming findFacultyByDepartment gets all users (name is slightly misleading based on usage elsewhere, 
-                $users = $this->userRepository->findFacultyByDepartment($deptId);
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'd.department_id',
+                'd.department_id',
+                ['d.department_id', 'd.department_name', 'd.department_code'],
+                []
+            );
 
-                $facultyCount = 0;
-                $staffCount = 0;
-                
-                // Use HOD Repository for accurate HOD info
-                $hodName = null;
-                $hodEmployeeId = null;
-                if ($this->hodAssignmentRepository) {
-                    $hodAssignment = $this->hodAssignmentRepository->getCurrentHOD($deptId);
-                    if ($hodAssignment) {
-                        $hodUser = $this->userRepository->findByEmployeeId($hodAssignment->getEmployeeId());
-                        if ($hodUser) {
-                            $hodName = $hodUser->getUsername();
-                            $hodEmployeeId = $hodUser->getEmployeeId();
-                        }
-                    }
-                }
+            $total  = $this->departmentRepository->countBySchoolPaginated($schoolId, $params);
+            $rows   = $this->departmentRepository->findBySchoolPaginated($schoolId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'department_id', $params['limit'], $total);
 
-                if (is_array($users)) {
-                    foreach ($users as $user) {
-                        // $user might be array or object depending on repository return type, previous code treated as array.
-                        // UserRepository usually returns objects or arrays. Previous code used array access $user['role'].
-                        // My finding suggests repository returns objects for findBy... but findAll returned arrays.
-                        // Let's be safe and check.
-                        $role = is_object($user) ? $user->getRole() : ($user['role'] ?? '');
-                        
-                        if ($role === 'faculty') $facultyCount++;
-                        elseif ($role === 'staff') $staffCount++;
-                    }
-                }
-                
-                // Count courses in department
-                $courses = $this->courseRepository->findByDepartment($deptId);
-                
-                // Count students in department
-                $students = $this->studentRepository->findByDepartment($deptId);
-                
-                $enrichedDepartments[] = [
-                    'department_id' => $deptId,
-                    'department_name' => $dept['department_name'],
-                    'department_code' => $dept['department_code'],
-                    'hod_name' => $hodName ?? 'Not Assigned', // Explicitly set Not Assigned if null
-                    'hod_employee_id' => $hodEmployeeId,
-                    'faculty_count' => $facultyCount,
-                    'staff_count' => $staffCount,
-                    'course_count' => is_array($courses) ? count($courses) : 0,
-                    'student_count' => is_array($students) ? count($students) : 0
-                ];
-            }
-            
-            echo json_encode(['status' => 'success', 'data' => $enrichedDepartments]);
+            echo json_encode(array_merge(['status' => 'success'], $result));
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
@@ -202,7 +155,7 @@ class DeanController
     }
 
     /**
-     * Get all users (Dean only) - filtered by school
+     * Get all users (Dean only) — paginated, school-scoped
      */
     public function getAllUsers()
     {
@@ -210,59 +163,29 @@ class DeanController
 
         try {
             $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
-            if (!$schoolId) {
-                throw new Exception("School ID not found in user session.");
-            }
+            if (!$schoolId) throw new Exception("School ID not found in user session.");
 
-            $users = $this->userRepository->findBySchool($schoolId);
-            
-            // Get department info for each user
-            $enrichedUsers = [];
-            foreach ($users as $user) {
-                // Determine if user is HOD
-                $isHod = false;
-                if ($this->hodAssignmentRepository && $user->getDepartmentId()) {
-                    $hodAssignment = $this->hodAssignmentRepository->getCurrentHOD($user->getDepartmentId());
-                    if ($hodAssignment && $hodAssignment->getEmployeeId() == $user->getEmployeeId()) {
-                        $isHod = true;
-                    }
-                }
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'u.employee_id',
+                'u.employee_id',
+                ['u.employee_id', 'u.username', 'u.email', 'u.role', 'u.designation'],
+                ['role']
+            );
 
-                $userArray = [
-                    'employee_id' => $user->getEmployeeId(),
-                    'username' => $user->getUsername(),
-                    'email' => $user->getEmail(),
-                    'role' => $user->getRole(), // Base role
-                    'is_hod' => $isHod, // Add explicit flag
-                    'designation' => $user->getDesignation() ?? null,
-                    'phone' => $user->getPhone() ?? null,
-                    'department_id' => $user->getDepartmentId(),
-                    'department_name' => null,
-                    'department_code' => null
-                ];
-                
-                // Get department info
-                if ($user->getDepartmentId()) {
-                    $dept = $this->departmentRepository->findById($user->getDepartmentId());
-                    if($dept) {
-                       $userArray['department_name'] = $dept->getDepartmentName();
-                       $userArray['department_code'] = $dept->getDepartmentCode();
-                    }
-                }
-                
-                $enrichedUsers[] = $userArray;
-            }
+            $total  = $this->userRepository->countBySchoolPaginated($schoolId, $params);
+            $rows   = $this->userRepository->findBySchoolPaginated($schoolId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'employee_id', $params['limit'], $total);
 
-            echo json_encode(['status' => 'success', 'data' => $enrichedUsers]);
+            echo json_encode(array_merge(['status' => 'success'], $result));
         } catch (Exception $e) {
-             http_response_code(500);
-             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all courses (Dean only) - filtered by school
-     * Now returns offerings with their session info
+     * Get all courses (Dean only) — paginated, school-scoped
      */
     public function getAllCourses()
     {
@@ -270,14 +193,21 @@ class DeanController
 
         try {
             $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
-            if (!$schoolId) {
-                throw new Exception("School ID not found in user session.");
-            }
+            if (!$schoolId) throw new Exception("School ID not found in user session.");
 
-            // Get all offerings for the school
-            $offerings = $this->courseOfferingRepository->findBySchool($schoolId);
-            
-            echo json_encode(['status' => 'success', 'data' => $offerings]);
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'c.course_id',
+                'c.course_id',
+                ['c.course_id', 'c.course_code', 'c.course_name', 'c.is_active'],
+                ['department_id', 'is_active', 'course_type']
+            );
+
+            $total  = $this->courseRepository->countBySchoolPaginated($schoolId, $params);
+            $rows   = $this->courseRepository->findBySchoolPaginated($schoolId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'course_id', $params['limit'], $total);
+
+            echo json_encode(array_merge(['status' => 'success'], $result));
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
@@ -287,7 +217,7 @@ class DeanController
 
 
     /**
-     * Get all students (Dean only)
+     * Get all students (Dean only) — paginated, school-scoped
      */
     public function getAllStudents()
     {
@@ -295,110 +225,58 @@ class DeanController
 
         try {
             $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
-            if (!$schoolId) {
-                throw new Exception("School ID not found in user session.");
-            }
+            if (!$schoolId) throw new Exception("School ID not found in user session.");
 
-            $students = $this->studentRepository->findBySchool($schoolId);
-            
-            // Enrich with department info
-            $enrichedStudents = [];
-            foreach ($students as $student) {
-                $studentArray = [
-                    'roll_no' => $student->getRollNo(),
-                    'student_name' => $student->getStudentName(),
-                    'department_id' => $student->getDepartmentId(),
-                    'batch_year' => $student->getBatchYear(),
-                    'student_status' => $student->getStudentStatus(),
-                    'email' => $student->getEmail(),
-                    'phone' => $student->getPhone(),
-                    'department_name' => null,
-                    'department_code' => null
-                ];
-                
-                $dept = $this->departmentRepository->findById($student->getDepartmentId());
-                if ($dept) {
-                    $studentArray['department_name'] = $dept->getDepartmentName();
-                    $studentArray['department_code'] = $dept->getDepartmentCode();
-                }
-                
-                $enrichedStudents[] = $studentArray;
-            }
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                's.roll_no',
+                's.roll_no',
+                ['s.roll_no', 's.student_name', 's.batch_year', 's.student_status'],
+                ['department_id', 'batch_year']
+            );
+
+            $total  = $this->studentRepository->countBySchoolPaginated($schoolId, $params);
+            $rows   = $this->studentRepository->findBySchoolPaginated($schoolId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'roll_no', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Students retrieved successfully',
-                'data' => $enrichedStudents
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Students retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve students',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get all assessments/tests (Dean only)
+     * Get all assessments/tests (Dean only) — paginated, school-scoped (BUG FIX: was leaking all tests)
      */
     public function getAllTests()
     {
         if (!$this->requireDean()) return;
 
         try {
-            $tests = $this->testRepository->findAll();
-            
-            // Enrich with faculty and department info
-            $enrichedTests = [];
-            foreach ($tests as $test) {
-                $testArray = $test;
-                
-                // Get offering to find course department
-                if ($this->courseOfferingRepository) {
-                    $offering = $this->courseOfferingRepository->findById($test['offering_id']);
-                    if ($offering) {
-                        $course = $this->courseRepository->findById($offering->getCourseId());
-                        if ($course && $course->getDepartmentId()) {
-                            // Get department info
-                            $dept = $this->departmentRepository->findById($course->getDepartmentId());
-                            if ($dept) {
-                                $testArray['department_name'] = $dept->getDepartmentName();
-                                $testArray['department_code'] = $dept->getDepartmentCode();
-                            }
-                        }
-                    }
-                }
-                
-                // Get faculty info from offering assignments
-                if ($this->assignmentRepository) {
-                    $primaryFaculty = $this->assignmentRepository->getPrimaryFaculty($test['offering_id']);
-                    if ($primaryFaculty) {
-                        $testArray['faculty_name'] = $primaryFaculty['username'];
-                        $testArray['faculty_email'] = $primaryFaculty['email'];
-                    }
-                }
-                
-                $enrichedTests[] = $testArray;
-            }
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) throw new Exception("School ID not found in user session.");
+
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                't.test_id',
+                't.test_id',
+                ['t.test_id', 't.test_name', 't.test_date', 't.test_type'],
+                ['department_id', 'test_type']
+            );
+
+            $total  = $this->testRepository->countBySchoolPaginated($schoolId, $params);
+            $rows   = $this->testRepository->findBySchoolPaginated($schoolId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'test_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Tests retrieved successfully',
-                'data' => $enrichedTests
-            ]);
+            echo json_encode(array_merge(['success' => true, 'message' => 'Tests retrieved successfully'], $result));
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve tests',
-                'error' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve tests', 'error' => $e->getMessage()]);
         }
     }
 

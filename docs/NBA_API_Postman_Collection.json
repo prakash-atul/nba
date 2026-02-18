@@ -657,11 +657,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/staff/courses/1/enrollments",
+							"raw": "{{base_url}}/offerings/1/enrollments",
 							"host": ["{{base_url}}"],
-							"path": ["staff", "courses", "1", "enrollments"]
-						},
-						"description": "DEPRECATED: Returns 501. Use /offerings/{id}/enrollments instead."
+							"path": ["offerings", "1", "enrollments"]
+						}
 					},
 					"response": []
 				},
@@ -680,11 +679,10 @@
 							"raw": "{\n  \"students\": [\n    {\"roll_no\": \"2024CSE001\"},\n    {\"roll_no\": \"2024CSE002\"},\n    {\"roll_no\": \"2024CSE003\"}\n  ]\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/staff/courses/1/enroll",
+							"raw": "{{base_url}}/offerings/1/enroll",
 							"host": ["{{base_url}}"],
-							"path": ["staff", "courses", "1", "enroll"]
-						},
-						"description": "DEPRECATED: Returns 501. Use /offerings/{id}/enroll instead."
+							"path": ["offerings", "1", "enroll"]
+						}
 					},
 					"response": []
 				},
@@ -694,17 +692,10 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/staff/courses/1/enroll/2024CSE001",
+							"raw": "{{base_url}}/offerings/1/enroll/2024CSE001",
 							"host": ["{{base_url}}"],
-							"path": [
-								"staff",
-								"courses",
-								"1",
-								"enroll",
-								"2024CSE001"
-							]
-						},
-						"description": "DEPRECATED: Returns 501. Use DELETE /offerings/{id}/enroll/{rollno} instead."
+							"path": ["offerings", "1", "enroll", "2024CSE001"]
+						}
 					},
 					"response": []
 				}
@@ -1257,7 +1248,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"low_threshold\": 40,\n  \"medium_threshold\": 60,\n  \"high_threshold\": 75\n}"
+							"raw": "{\n  \"co_threshold\": 40.0,\n  \"passing_threshold\": 60.0,\n  \"attainment_thresholds\": [\n    {\"id\": 1, \"percentage\": 40},\n    {\"id\": 2, \"percentage\": 60},\n    {\"id\": 3, \"percentage\": 75}\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/courses/1/attainment-config",

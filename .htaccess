@@ -2,6 +2,10 @@
 RewriteEngine On
 RewriteBase /nba/
 
+# Enable Authorization Header
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Set directory index to serve from dist folder
 DirectoryIndex dist/index.html
 
