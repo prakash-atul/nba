@@ -2,13 +2,13 @@
 
 **Base URL:** `http://localhost/nba/api/`  
 **Authentication:** All endpoints (except login) require: `Authorization: Bearer <jwt_token>`
-**Version:** 3.0 (Role-Assignment Based System)
+**Version:** 5.0 (Schema Update with Offerings & Stats)
 
 ---
 
-## 🔑 Role Architecture (v3.0)
+## 🔑 Role Architecture (v3.0+)
 
-In version 3.0, roles are handled via **assignments** rather than just a fixed database column.
+In version 3.0+, roles are handled via **assignments** rather than just a fixed database column.
 - **Fixed Roles:** `admin`, `faculty`, `staff`
 - **Dynamic Status:** `is_hod`, `is_dean` (Determined by active assignments in `hod_assignments` and `dean_assignments` tables).
 
@@ -275,7 +275,7 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 }
 ```
 
-### 10. Manage Courses
+### 10. Manage Courses (Create Course & Offering)
 
 **GET** `/hod/courses` | **POST** `/hod/courses` | **PUT** `/hod/courses/{id}` | **DELETE** `/hod/courses/{id}`
 
@@ -287,8 +287,12 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 	"credit": 4,
 	"faculty_id": 3001,
 	"year": 2025,
-	"semester": 1
+	"semester": 1,
+    "co_threshold": 40.0,
+    "passing_threshold": 60.0
 }
+
+// NOTE: This creates a Course Template (if needed) AND a Course Offering for the specific year/sem.
 ```
 
 ### 11. Manage Department Users
@@ -299,9 +303,9 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // POST Request (faculty/staff only)
 {
 	"employee_id": 3020,
-	"username": "Dr. New Faculty",
+	"username": "New Faculty",
 	"email": "faculty@tezu.edu",
-	"password": "pass123",
+	"password": "password",
 	"role": "faculty"
 }
 ```
@@ -319,8 +323,7 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 ```json
 {
 	"totalCourses": 3,
-	"totalAssessments": 9,
-	"totalStudents": 120,
+	"totalTests": 12,
 	"averageAttainment": 72.5
 }
 ```
@@ -365,10 +368,8 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 ```json
 {
 	"totalDepartments": 7,
-	"totalUsers": 50,
-	"totalCourses": 80,
-	"totalStudents": 1200,
-	"totalAssessments": 240,
+	"totalStudents": 1500,
+	"totalCourses": 45,
 	"usersByRole": { "faculty": 42, "staff": 8 } 
 }
 ```
@@ -384,12 +385,8 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 ```json
 [
 	{
-		"department_id": 1,
 		"department_name": "CSE",
-		"total_courses": 25,
-		"total_tests": 75,
-		"total_students": 400,
-		"total_enrollments": 600
+		"avg_attainment": 75.2
 	}
 ]
 ```
@@ -405,17 +402,9 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 {
 	"success": true,
 	"data": [
-		{
-			"employee_id": 3001,
-			"username": "Dr. Faculty One",
-			"email": "faculty01@tezu.edu",
-			"role": "faculty",
-			"department_id": 1
-		}
+		{ "employee_id": 3001, "username": "Faculty Name", ... }
 	]
 }
-
-// NOTE: Only returns faculty members (not HOD, staff, or admin)
 ```
 
 ---
@@ -434,30 +423,18 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // REQUEST (Scenario 2: Create new HOD)
 {
 	"employee_id": 2005,
-	"username": "Dr. New HOD",
-	"email": "hod_new@tezu.edu",
-	"password": "pass123",
+	"username": "New HOD",
+	"email": "hod_new@tezu.ac.in",
+	"password": "password123",
+	"role": "faculty",
 	"appointment_order": "ORD/HOD/2026/01"
 }
 
 // RESPONSE (200/201)
 {
 	"success": true,
-	"message": "User assigned as HOD successfully",
-	"data": {
-		"user": {
-			"employee_id": 3001,
-			"username": "Dr. Faculty One",
-			"email": "faculty01@tezu.edu",
-			"role": "faculty",
-			"department_id": 1
-		},
-		"assignment_id": 1
-	}
+	"message": "HOD appointed successfully"
 }
-
-// ERROR (409) - HOD already exists
-{"success": false, "message": "An HOD already exists for this department. Please demote the current HOD first."}
 ```
 
 ---
@@ -470,27 +447,15 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // RESPONSE (200)
 {
 	"success": true,
-	"message": "HOD demoted successfully. User role remains unchanged.",
-	"data": {
-		"user": {
-			"employee_id": 3001,
-			"username": "Dr. Faculty One",
-			"email": "faculty01@tezu.edu",
-			"role": "faculty",
-			"department_id": 1
-		}
-	}
+	"message": "HOD demoted successfully"
 }
-
-// ERROR (400) - Not an HOD
-{"success": false, "message": "User is not a current HOD"}
 ```
 
 ---
 
 ## Course Management
 
-### 21. Get Faculty Courses
+### 21. Get Faculty Courses (Offerings)
 
 **GET** `/courses`
 
@@ -500,34 +465,13 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 	"success": true,
 	"data": [
 		{
-			"id": 1,
+			"offering_id": 1,
+            "course_id": 1,
 			"course_code": "CS101",
-			"course_name": "Data Structures",
-			"year": 2024,
-			"semester": 3,
-			"faculty_name": "Dr. Kumar"
-		}
-	]
-}
-```
-
----
-
-### 22. Get Course Tests
-
-**GET** `/course-tests?course_id=1`
-
-```json
-// RESPONSE (200)
-{
-	"success": true,
-	"data": [
-		{
-			"id": 1,
-			"name": "Mid Semester",
-			"full_marks": 50,
-			"pass_marks": 20,
-			"question_count": 10
+			"course_name": "Intro to Programming",
+			"year": 2025,
+			"semester": 1,
+            "assignment_type": "Primary"
 		}
 	]
 }
@@ -544,35 +488,23 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 ```json
 // REQUEST
 {
-  "course_id": 1,
-  "name": "Mid Semester",
+  "course_id": 1, 
+  "name": "Mid Semester Exam",
+  "test_type": "Mid Sem",
   "full_marks": 50,
   "pass_marks": 20,
-  "question_paper_pdf": "base64_string...",  // optional
   "questions": [
-    {
-      "question_number": 1,
-      "sub_question": null,     // or "a", "b", etc.
-      "co": 1,                  // 1-6
-      "max_marks": 10.0,
-      "is_optional": false
-    }
+    { "question_number": 1, "co": 1, "max_marks": 10 },
+    { "question_number": 2, "co": 2, "max_marks": 10 }
   ]
 }
 
+// NOTE: check `course_id`: This refers to the Offering ID (retrieved from /courses), NOT the generic course template ID. 
 // RESPONSE (201)
 {
   "success": true,
-  "message": "Assessment created successfully",
-  "data": {
-    "test_id": 1,
-    "test_name": "Mid Semester",
-    "question_paper_filename": "CS101_2024_3_MidSemester.pdf",
-    "questions": [ /* array */ ]
-  }
+  "message": "Assessment created successfully"
 }
-
-// NOTE: Filename format: courseCode_year_semester_testName.pdf
 ```
 
 ---
@@ -586,29 +518,29 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 {
 	"success": true,
 	"data": {
-		"test": {
-			"id": 1,
-			"name": "Mid Semester",
-			"full_marks": 50,
-			"question_paper_filename": "CS101_2024_3_MidSemester.pdf"
-		},
-		"course": {
-			"id": 1,
-			"course_code": "CS101",
-			"course_name": "Data Structures"
-		},
-		"questions": [
-			{
-				"id": 1,
-				"question_number": 1,
-				"sub_question": null,
-				"question_identifier": "1",
-				"co": 1,
-				"max_marks": 10.0,
-				"is_optional": false
-			}
-		]
+		"test_id": 1,
+		"offering_id": 5, // References specific offering
+        "test_name": "Mid Sem",
+        "questions": [...]
 	}
+}
+```
+
+---
+
+### 22. Get Course Tests
+
+**GET** `/course-tests?course_id=1`
+
+**Note:** `course_id` param actually accepts `offering_id`.
+
+```json
+// RESPONSE (200)
+{
+	"success": true,
+	"data": [
+		{ "test_id": 1, "test_name": "Mid Sem", ... }
+	]
 }
 ```
 
@@ -624,21 +556,15 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // REQUEST
 {
   "test_id": 1,
-  "student_id": "CS101",
-  "marks": [
-    {"question_id": 1, "marks": 8.5},
-    {"question_id": 2, "marks": 4.0}
-  ]
+  "student_id": "CS101", // Roll No
+  "question_id": 5,
+  "marks_obtained": 8.5
 }
 
 // RESPONSE (200)
 {
   "success": true,
-  "message": "Marks saved successfully",
-  "co_totals": {
-    "CO1": 17.5,
-    "CO2": 12.0
-  }
+  "message": "Marks saved successfully"
 }
 
 // NOTE: CO totals auto-calculated
@@ -654,10 +580,10 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // REQUEST
 {
   "test_id": 1,
-  "student_id": "CS101",
-  "CO1": 17.5,
-  "CO2": 12.0,
-  "CO3": 8.5,
+  "student_roll_no": "CS101",
+  "CO1": 10,
+  "CO2": 8,
+  "CO3": 5,
   "CO4": 0,
   "CO5": 0,
   "CO6": 0
@@ -680,30 +606,18 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // REQUEST
 {
   "test_id": 1,
-  "marks_entries": [
-    {
-      "student_rollno": "CS101",
-      "question_number": 1,
-      "sub_question": null,
-      "marks_obtained": 8.5
-    }
+  "marks": [
+     { "student_id": "CS001", "question_id": 1, "marks_obtained": 5 },
+     { "student_id": "CS001", "question_id": 2, "marks_obtained": 4 }
   ]
 }
 
 // RESPONSE (200)
 {
   "success": true,
-  "message": "Marks entry completed: 1 successful, 0 failed",
-  "data": {
-    "successful": [ /* entries */ ],
-    "failed": [ /* entries with reasons */ ],
-    "total": 1,
-    "success_count": 1,
-    "failure_count": 0
-  }
+  "message": "Bulk marks saved",
+  "data": { "success_count": 2, "fail_count": 0 }
 }
-
-// NOTE: Handles partial failures
 ```
 
 ---
@@ -717,16 +631,9 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 {
 	"success": true,
 	"data": {
-		"marks": {
-			"CO1": 17.5,
-			"CO2": 12.0
-		},
-		"raw_marks": [
-			{
-				"question_number": 1,
-				"marks_obtained": 8.5
-			}
-		]
+		"CO1": 10,
+        "CO2": 15,
+        ...
 	}
 }
 ```
@@ -741,23 +648,10 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // RESPONSE (200)
 {
 	"success": true,
-	"data": {
-		"test": { "test_name": "Mid Semester" },
-		"course": { "course_code": "CS101" },
-		"students": [
-			{
-				"student_rollno": "CS101",
-				"student_name": "John Doe",
-				"marks": { "CO1": 17.5, "CO2": 12.0 },
-				"raw_marks": [
-					/* if include_raw=true */
-				]
-			}
-		]
-	}
+	"data": [
+		{ "student_roll_no": "CS001", "CO1": 10, ... }
+	]
 }
-
-// NOTE: Use ?include_raw=true for per-question marks
 ```
 
 ---
@@ -771,21 +665,6 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 {
   "marks_obtained": 8.5
 }
-
-// RESPONSE (200)
-{
-  "success": true,
-  "message": "Marks updated successfully",
-  "data": {
-    "raw_marks_id": 789,
-    "marks_obtained": 8.5
-  }
-}
-
-// ERROR (400)
-{"success": false, "message": "Marks cannot exceed maximum"}
-
-// NOTE: CO totals auto-recalculated
 ```
 
 ---
@@ -797,8 +676,6 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 ```json
 // RESPONSE (200)
 { "success": true, "message": "Marks entry deleted successfully" }
-
-// NOTE: CO totals auto-recalculated
 ```
 
 ---
@@ -811,14 +688,8 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // RESPONSE (200)
 {
 	"success": true,
-	"message": "All marks for student deleted successfully",
-	"data": {
-		"raw_marks_deleted": 10,
-		"co_marks_deleted": 6
-	}
+	"message": "All marks deleted for student in this test"
 }
-
-// NOTE: Deletes both raw and aggregated marks
 ```
 
 ---
@@ -833,19 +704,8 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // REQUEST (all optional)
 {
   "co_number": 3,
-  "max_marks": 10.0,
+  "max_marks": 15,
   "is_optional": false
-}
-
-// RESPONSE (200)
-{
-  "success": true,
-  "message": "Question updated successfully",
-  "data": {
-    "question_id": 123,
-    "co_number": 3,
-    "max_marks": 10.0
-  }
 }
 ```
 
@@ -858,8 +718,6 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 ```json
 // RESPONSE (200)
 { "success": true, "message": "Question deleted successfully" }
-
-// ⚠️ WARNING: Cascade deletes all raw marks
 ```
 
 ---
@@ -870,29 +728,22 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 **POST** `/courses/{courseId}/enroll`
 
+**Note:** `courseId` in URL is `offering_id` of the specific year/sem course invocation.
+
 ```json
 // REQUEST
 {
   "students": [
-    {"rollno": "CS101", "name": "John Doe"},
-    {"rollno": "CS102", "name": "Jane Smith"}
+    { "roll_no": "CS001", "name": "Alice" },
+    { "roll_no": "CS002", "name": "Bob" }
   ]
 }
 
 // RESPONSE (200)
 {
   "success": true,
-  "message": "Enrollment completed: 2 successful, 0 failed",
-  "data": {
-    "successful": [ /* entries */ ],
-    "failed": [ /* entries with reasons */ ],
-    "total": 2,
-    "success_count": 2,
-    "failure_count": 0
-  }
+  "message": "Students enrolled successfully"
 }
-
-// NOTE: Auto-creates students if they don't exist
 ```
 
 ---
@@ -901,33 +752,16 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 **GET** `/courses/{courseId}/enrollments?test_id={testId}`
 
+**Note:** `courseId` in URL is `offering_id`.
+
 ```json
 // RESPONSE (200)
 {
 	"success": true,
-	"data": {
-		"course_id": 1,
-		"course_code": "CS101",
-		"enrollment_count": 3,
-		"enrollments": [
-			{
-				"student_rollno": "CS101",
-				"student_name": "John Doe",
-				"enrolled_at": "2025-11-04 10:30:00"
-			}
-		],
-		"test_info": {
-			// only if test_id provided
-			"test_id": 5,
-			"test_name": "Mid Semester",
-			"questions": [
-				/* array */
-			]
-		}
-	}
+	"data": [
+		{ "enrollment_id": 101, "student_rollno": "CS001", "student_name": "Alice", ... }
+	]
 }
-
-// NOTE: Include test_id to get questions for marks entry
 ```
 
 ---
@@ -949,17 +783,16 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 **GET** `/courses/{courseId}/attainment-config`
 
+**Note:** `courseId` here is the **Course Template ID**, NOT the offering ID. Attainment Scales are configured globally per course template.
+
 ```json
 // RESPONSE (200)
 {
 	"course_id": 1,
-	"co_threshold": 40.0,
-	"passing_threshold": 60.0,
-	"attainment_thresholds": [
-		{ "id": 1, "level": 0, "percentage": 0.0 },
-		{ "id": 2, "level": 1, "percentage": 40.0 },
-		{ "id": 3, "level": 2, "percentage": 60.0 },
-		{ "id": 4, "level": 3, "percentage": 80.0 }
+	"scales": [
+		{ "level": 1, "min_percentage": 40 },
+        { "level": 2, "min_percentage": 60 },
+        { "level": 3, "min_percentage": 75 }
 	]
 }
 ```
@@ -974,10 +807,10 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // REQUEST
 {
   "co_threshold": 40.0,
-  "passing_threshold": 60.0,
-  "attainment_thresholds": [
-    {"id": 1, "percentage": 0.0},
-    {"id": 2, "percentage": 40.0}
+  "scales": [
+      { "level": 1, "min_percentage": 40 },
+      { "level": 2, "min_percentage": 60 },
+      { "level": 3, "min_percentage": 75 }
   ]
 }
 
@@ -991,13 +824,14 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 **GET** `/courses/{courseId}/copo-matrix`
 
+**Note:** `courseId` here is the **Course Template ID**.
+
 ```json
 // RESPONSE (200)
 {
 	"success": true,
 	"data": [
-		{ "co_name": "CO1", "po_name": "PO1", "value": 3 },
-		{ "co_name": "CO1", "po_name": "PO2", "value": 2 }
+		{ "co_name": "CO1", "po_name": "PO1", "value": 3 }
 	]
 }
 ```
@@ -1012,8 +846,8 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 // REQUEST
 {
   "matrix": [
-    {"co": "CO1", "po": "PO1", "value": 3},
-    {"co": "CO1", "po": "PO2", "value": 2}
+    { "co_name": "CO1", "po_name": "PO1", "value": 3 },
+    { "co_name": "CO1", "po_name": "PO2", "value": 1 }
   ]
 }
 
@@ -1032,56 +866,4 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 | 401  | Unauthorized | Add valid JWT token            |
 | 403  | Forbidden    | Use account that owns resource |
 | 404  | Not Found    | Check resource ID              |
-| 409  | Conflict     | Resource already exists        |
-| 500  | Server Error | Check database connection      |
-
----
-
-## Total Endpoints: 40+ | Version: 2.1 | Last Updated: February 11, 2026
-
-### Success
-
-```json
-{
-	"success": true,
-	"message": "Operation description",
-	"data": {
-		/* response data */
-	}
-}
-```
-
-### Error
-
-```json
-{
-	"success": false,
-	"message": "Error description"
-}
-```
-
-### Validation Error
-
-```json
-{
-	"success": false,
-	"message": "Validation failed",
-	"errors": ["Field X required", "Field Y invalid"]
-}
-```
-
----
-
-## Important Notes
-
-- **Authentication**: JWT token required (except login)
-- **Authorization**: Faculty can only modify their own courses
-- **CO Aggregation**: Automatic after marks changes
-- **Cascade Deletes**: Database handles related deletions
-- **Bulk Operations**: Partial failures don't stop operation
-- **PDF Filenames**: Format `courseCode_year_semester_testName.pdf`
-- **Question IDs**: Format `"1"` (main) or `"2a"` (sub-question)
-
----
-
-**Version**: 2.1 | **Last Updated**: February 11, 2026
+| 500  | Server Error | Check logs for details         |

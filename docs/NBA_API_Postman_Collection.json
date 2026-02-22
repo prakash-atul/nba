@@ -422,7 +422,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"course_code\": \"CS101\",\n  \"name\": \"Introduction to Programming\",\n  \"department_id\": 1,\n  \"course_type\": \"Theory\",\n  \"credit\": 4,\n  \"faculty_id\": 101,\n  \"year\": 2026,\n  \"semester\": 1\n}"
+							"raw": "{\n  \"course_code\": \"CS101\",\n  \"name\": \"Introduction to Programming\",\n  \"department_id\": 1,\n  \"course_type\": \"Theory\",\n  \"credit\": 4,\n  \"faculty_id\": 101,\n  \"year\": 2026,\n  \"semester\": 1,\n  \"co_threshold\": 40.0,\n  \"passing_threshold\": 60.0\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/hod/courses",
@@ -580,7 +580,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"course_code\": \"CS201\",\n  \"name\": \"Data Structures\",\n  \"department_id\": 1,\n  \"course_type\": \"Theory\",\n  \"credit\": 4,\n  \"faculty_id\": 101,\n  \"year\": 2026,\n  \"semester\": 2\n}"
+							"raw": "{\n  \"course_code\": \"CS201\",\n  \"name\": \"Data Structures\",\n  \"department_id\": 1,\n  \"course_type\": \"Theory\",\n  \"credit\": 4,\n  \"faculty_id\": 101,\n  \"year\": 2026,\n  \"semester\": 2,\n  \"co_threshold\": 40.0,\n  \"passing_threshold\": 60.0\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/staff/courses",
@@ -1232,7 +1232,8 @@
 							"raw": "{{base_url}}/courses/1/attainment-config",
 							"host": ["{{base_url}}"],
 							"path": ["courses", "1", "attainment-config"]
-						}
+						},
+						"description": "Refers to Course Template ID (e.g., CS101), not offering ID"
 					},
 					"response": []
 				},
@@ -1267,7 +1268,8 @@
 							"raw": "{{base_url}}/courses/1/copo-matrix",
 							"host": ["{{base_url}}"],
 							"path": ["courses", "1", "copo-matrix"]
-						}
+						},
+						"description": "Refers to Course Template ID (e.g., CS101), not offering ID"
 					},
 					"response": []
 				},
