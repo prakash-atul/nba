@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import type { DeanCourse, Department } from "@/services/api";
 import { deanApi } from "@/services/api/dean";
-import { adminApi } from "@/services/api/admin";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import { formatOrdinal } from "@/lib/utils";
 
@@ -37,7 +36,7 @@ export function CoursesView() {
 	});
 
 	const { data: departments } = usePaginatedData<Department>({
-		fetchFn: (params) => adminApi.getAllDepartments(params),
+		fetchFn: (params) => deanApi.getAllDepartments(params),
 		limit: 100,
 		defaultSort: "d.department_code",
 	});

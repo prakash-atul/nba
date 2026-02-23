@@ -60,6 +60,7 @@ export function DeanDashboard() {
 	});
 	const [departments, setDepartments] = useState<DeanDepartment[]>([]);
 	const [analytics, setAnalytics] = useState<DepartmentAnalytics[]>([]);
+	const [analyticsLoading, setAnalyticsLoading] = useState(false);
 	const [statsLoading, setStatsLoading] = useState(true);
 	const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -98,10 +99,12 @@ export function DeanDashboard() {
 	const handlePageChange = (page: DeanPage) => {
 		setCurrentPage(page);
 		if (page === "analytics") {
+			setAnalyticsLoading(true);
 			apiService
 				.getDepartmentAnalytics()
 				.then(setAnalytics)
-				.catch(() => toast.error("Failed to load analytics"));
+				.catch(() => toast.error("Failed to load analytics"))
+				.finally(() => setAnalyticsLoading(false));
 		}
 	};
 
@@ -203,7 +206,10 @@ export function DeanDashboard() {
 				return <TestsView />;
 			case "analytics":
 				return (
-					<AnalyticsView analytics={analytics} isLoading={false} />
+					<AnalyticsView
+						analytics={analytics}
+						isLoading={analyticsLoading}
+					/>
 				);
 			default:
 				return <DeanStatsCards stats={stats} isLoading={false} />;

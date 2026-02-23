@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
 import {
+	ArrowUpDown,
 	BarChart3,
 	Building2,
 	BookOpen,
@@ -9,6 +10,7 @@ import {
 	GraduationCap,
 	Users,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { DepartmentAnalytics } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -20,24 +22,50 @@ interface AnalyticsViewProps {
 const columns: ColumnDef<DepartmentAnalytics>[] = [
 	{
 		accessorKey: "department_code",
-		header: "Department",
+		header: ({ column }) => (
+			<Button
+				variant="ghost"
+				size="sm"
+				className="-ml-3 h-8"
+				onClick={() =>
+					column.toggleSorting(column.getIsSorted() === "asc")
+				}
+			>
+				Department
+				<ArrowUpDown className="ml-2 h-4 w-4" />
+			</Button>
+		),
 		cell: ({ row }) => (
-			<div className="flex items-center gap-2">
-				<Building2 className="w-4 h-4 text-purple-500" />
-				<div>
-					<Badge variant="outline" className="font-mono">
-						{row.original.department_code}
-					</Badge>
-					<p className="text-xs text-muted-foreground mt-1">
-						{row.original.department_name}
-					</p>
-				</div>
+			<div className="flex items-baseline gap-2">
+				<Badge
+					variant="secondary"
+					className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+				>
+					{row.original.department_code}
+				</Badge>
+				<p className="text-muted-foreground mt-1">
+					{row.original.department_name}
+				</p>
 			</div>
 		),
 	},
 	{
 		accessorKey: "total_courses",
-		header: () => <div className="text-center">Courses</div>,
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-8"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Courses
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -51,7 +79,21 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		accessorKey: "total_tests",
-		header: () => <div className="text-center">Tests</div>,
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-8"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Tests
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -65,7 +107,21 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		accessorKey: "total_students",
-		header: () => <div className="text-center">Students</div>,
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-8"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Students
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -79,7 +135,21 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		accessorKey: "total_enrollments",
-		header: () => <div className="text-center">Enrollments</div>,
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-8"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Enrollments
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -93,7 +163,25 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		id: "avg_enrollment",
-		header: () => <div className="text-center">Avg Enrollment/Course</div>,
+		accessorFn: (row) =>
+			row.total_courses > 0
+				? row.total_enrollments / row.total_courses
+				: 0,
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-8"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Avg Enrollment/Course
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
 		cell: ({ row }) => {
 			const courses = row.original.total_courses;
 			const enrollments = row.original.total_enrollments;
@@ -210,7 +298,7 @@ export function AnalyticsView({ analytics, isLoading }: AnalyticsViewProps) {
 				<CardContent>
 					<DataTable
 						columns={columns}
-						data={sortedAnalytics}
+						data={analytics}
 						searchKey="department_code"
 						searchPlaceholder="Search departments..."
 						refreshing={isLoading}

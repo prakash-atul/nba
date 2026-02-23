@@ -1,29 +1,62 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
-import { ClipboardList } from "lucide-react";
-import type { DeanTest } from "@/services/api";
+import { ArrowUpDown, ClipboardList, X } from "lucide-react";
+import type { DeanTest, DeanDepartment } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { deanApi } from "@/services/api/dean";
 import { usePaginatedData } from "@/lib/usePaginatedData";
+import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { formatOrdinal } from "@/lib/utils";
 
 const columns: ColumnDef<DeanTest>[] = [
 	{
 		accessorKey: "test_name",
-		header: "Test Name",
+		header: ({ column }) => (
+			<Button
+				variant="ghost"
+				className="mr-auto"
+				onClick={() =>
+					column.toggleSorting(column.getIsSorted() === "asc")
+				}
+			>
+				Test Name
+				<ArrowUpDown className="ml-2 h-4 w-4" />
+			</Button>
+		),
 		cell: ({ row }) => (
-			<span className="font-medium">{row.getValue("test_name")}</span>
+			<div className="font-medium flex">{row.getValue("test_name")}</div>
 		),
 	},
 	{
 		accessorKey: "course_code",
-		header: "Course",
+		header: ({ column }) => (
+			<Button
+				variant="ghost"
+				onClick={() =>
+					column.toggleSorting(column.getIsSorted() === "asc")
+				}
+			>
+				Course
+				<ArrowUpDown className="ml-2 h-4 w-4" />
+			</Button>
+		),
 		cell: ({ row }) => (
-			<div className="flex flex-col">
-				<Badge variant="outline" className="font-mono w-fit">
+			<div className="flex gap-2 items-center">
+				<Badge variant="outline" className="font-mono shrink-0">
 					{row.getValue("course_code")}
 				</Badge>
-				<span className="text-xs text-muted-foreground mt-1 max-w-[150px] truncate">
+				<span
+					className="text-xs text-muted-foreground max-w-32"
+					title={row.original.course_name}
+				>
 					{row.original.course_name}
 				</span>
 			</div>
@@ -31,16 +64,27 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "faculty_name",
-		header: "Faculty",
+		header: ({ column }) => (
+			<Button
+				variant="ghost"
+				className="mr-auto"
+				onClick={() =>
+					column.toggleSorting(column.getIsSorted() === "asc")
+				}
+			>
+				Faculty
+				<ArrowUpDown className="ml-2 h-4 w-4" />
+			</Button>
+		),
 		cell: ({ row }) => (
-			<span className="text-muted-foreground">
-				{row.getValue("faculty_name") || "N/A"}
-			</span>
+			<div className="text-muted-foreground flex">
+				{(row.getValue("faculty_name") as string) || "—"}
+			</div>
 		),
 	},
 	{
 		accessorKey: "department_code",
-		header: "Department",
+		header: "Dept",
 		cell: ({ row }) => {
 			const dept = row.getValue("department_code") as string;
 			return dept ? (
@@ -51,13 +95,60 @@ const columns: ColumnDef<DeanTest>[] = [
 					{dept}
 				</Badge>
 			) : (
-				"N/A"
+				<span className="text-muted-foreground">—</span>
 			);
 		},
 	},
 	{
+		accessorKey: "test_type",
+		header: "Type",
+		cell: ({ row }) => {
+			const val = row.getValue("test_type") as string;
+			return val ? (
+				<Badge variant="secondary">{val}</Badge>
+			) : (
+				<span className="text-muted-foreground">—</span>
+			);
+		},
+	},
+	{
+		accessorKey: "semester",
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Sem
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
+		cell: ({ row }) => (
+			<div className="text-center">
+				<Badge variant="secondary" className="font-medium">
+					{formatOrdinal(row.getValue("semester"))}
+				</Badge>
+			</div>
+		),
+	},
+	{
 		accessorKey: "full_marks",
-		header: () => <div className="text-center">Full Marks</div>,
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Full Marks
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -71,7 +162,19 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "pass_marks",
-		header: () => <div className="text-center">Pass Marks</div>,
+		header: ({ column }) => (
+			<div className="text-center">
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Pass Marks
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			</div>
+		),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -96,11 +199,24 @@ export function TestsView() {
 		pageIndex,
 		search,
 		setSearch,
-	} = usePaginatedData<DeanTest>({
+		filters,
+		setFilter,
+	} = usePaginatedData<
+		DeanTest,
+		{ department_id: string; test_type: string }
+	>({
 		fetchFn: (params) => deanApi.getAllTests(params),
 		limit: 20,
 		defaultSort: "t.test_id",
 	});
+
+	const { data: departments } = usePaginatedData<DeanDepartment>({
+		fetchFn: (params) => deanApi.getAllDepartments(params),
+		limit: 100,
+		defaultSort: "d.department_code",
+	});
+
+	const hasFilters = !!filters.department_id || !!filters.test_type;
 
 	return (
 		<Card>
@@ -125,7 +241,89 @@ export function TestsView() {
 						search,
 						onSearch: setSearch,
 					}}
-				/>
+				>
+					{() => (
+						<>
+							<Select
+								value={
+									(filters.department_id as
+										| string
+										| undefined) || "all"
+								}
+								onValueChange={(val) =>
+									setFilter(
+										"department_id",
+										val === "all" ? undefined : val,
+									)
+								}
+							>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue placeholder="All Departments" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Departments
+									</SelectItem>
+									{departments.map((dept) => (
+										<SelectItem
+											key={dept.department_id}
+											value={String(dept.department_id)}
+										>
+											{dept.department_code}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+
+							<Select
+								value={
+									(filters.test_type as string | undefined) ||
+									"all"
+								}
+								onValueChange={(val) =>
+									setFilter(
+										"test_type",
+										val === "all" ? undefined : val,
+									)
+								}
+							>
+								<SelectTrigger className="w-[140px]">
+									<SelectValue placeholder="All Types" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Types
+									</SelectItem>
+									<SelectItem value="Mid Sem">
+										Mid Sem
+									</SelectItem>
+									<SelectItem value="End Sem">
+										End Sem
+									</SelectItem>
+									<SelectItem value="Quiz">Quiz</SelectItem>
+									<SelectItem value="Assignment">
+										Assignment
+									</SelectItem>
+									<SelectItem value="Lab">Lab</SelectItem>
+								</SelectContent>
+							</Select>
+
+							{hasFilters && (
+								<Button
+									variant="ghost"
+									onClick={() => {
+										setFilter("department_id", undefined);
+										setFilter("test_type", undefined);
+									}}
+									className="h-9 px-2 lg:px-3"
+								>
+									Reset
+									<X className="ml-2 h-4 w-4" />
+								</Button>
+							)}
+						</>
+					)}
+				</DataTable>
 			</CardContent>
 		</Card>
 	);

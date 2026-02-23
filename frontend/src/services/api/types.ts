@@ -614,15 +614,18 @@ export interface DeanStudent {
 
 export interface DeanTest {
 	test_id: number;
-	course_id: number;
+	offering_id: number;
 	test_name: string;
+	test_type?: string | null;
 	full_marks: number;
 	pass_marks: number;
 	course_code: string;
 	course_name: string;
-	faculty_name: string;
-	department_name?: string;
-	department_code?: string;
+	year?: number | null;
+	semester?: number | null;
+	faculty_name?: string | null;
+	department_name?: string | null;
+	department_code?: string | null;
 }
 
 export interface DepartmentAnalytics {

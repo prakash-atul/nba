@@ -418,11 +418,17 @@ class TestRepository
                 SELECT t.test_id, t.offering_id, t.test_name, t.test_type,
                        t.test_date, t.full_marks, t.pass_marks, t.max_marks, t.weightage,
                        c.course_code, c.course_name, co.year, co.semester,
-                       d.department_name, d.department_id
+                       d.department_name, d.department_id, d.department_code,
+                       u.username AS faculty_name
                 FROM tests t
                 JOIN course_offerings co ON t.offering_id = co.offering_id
                 JOIN courses c ON co.course_id = c.course_id
                 JOIN departments d ON c.department_id = d.department_id
+                LEFT JOIN course_faculty_assignments cfa
+                       ON cfa.offering_id = co.offering_id
+                      AND cfa.assignment_type = 'Primary'
+                      AND cfa.is_active = 1
+                LEFT JOIN users u ON u.employee_id = cfa.employee_id
                 WHERE d.school_id = ?
             ";
             $bindings = [$schoolId];
@@ -436,6 +442,10 @@ class TestRepository
             if (!empty($params['filters']['department_id'])) {
                 $sql .= " AND c.department_id = ?";
                 $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (!empty($params['filters']['test_type'])) {
+                $sql .= " AND t.test_type = ?";
+                $bindings[] = $params['filters']['test_type'];
             }
 
             PaginationHelper::applyCursor($sql, $bindings, 't.test_id', $params['cursor'], $params['sortDir']);
@@ -476,6 +486,10 @@ class TestRepository
             if (!empty($params['filters']['department_id'])) {
                 $sql .= " AND c.department_id = ?";
                 $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (!empty($params['filters']['test_type'])) {
+                $sql .= " AND t.test_type = ?";
+                $bindings[] = $params['filters']['test_type'];
             }
 
             $stmt = $this->db->prepare($sql);

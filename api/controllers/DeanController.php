@@ -293,53 +293,48 @@ class DeanController
                 throw new Exception("School ID not found in user session.");
             }
 
-            $departments = $this->departmentRepository->findBySchool($schoolId);
-            
-            $analytics = [];
-            foreach ($departments as $dept) {
-                $deptId = $dept['department_id'];
-                
-                // Get courses for this department
-                // Assuming findByDepartment returns array of Course objects
-                $courses = $this->courseRepository->findByDepartment($deptId);
-                $courseIds = [];
-                if (is_array($courses)) {
-                    foreach ($courses as $c) {
-                        if (is_object($c) && method_exists($c, 'getCourseId')) {
-                            $courseIds[] = $c->getCourseId();
-                        } elseif (is_array($c)) {
-                            $courseIds[] = $c['course_id'];
-                        }
-                    }
-                }
-                
-                // Count tests for these courses
-                $testCount = 0;
-                foreach ($courseIds as $courseId) {
-                    $tests = $this->testRepository->findByCourseId($courseId);
-                    $testCount += is_array($tests) ? count($tests) : 0;
-                }
-                
-                // Count students
-                $students = $this->studentRepository->findByDepartment($deptId);
-                
-                // Count enrollments
-                $totalEnrollments = 0;
-                foreach ($courseIds as $courseId) {
-                    $enrollments = $this->enrollmentRepository->findByCourseId($courseId);
-                    $totalEnrollments += is_array($enrollments) ? count($enrollments) : 0;
-                }
-                
-                $analytics[] = [
-                    'department_id' => $deptId,
-                    'department_name' => $dept['department_name'],
-                    'department_code' => $dept['department_code'],
-                    'total_courses' => is_array($courses) ? count($courses) : 0,
-                    'total_tests' => $testCount,
-                    'total_students' => is_array($students) ? count($students) : 0,
-                    'total_enrollments' => $totalEnrollments
+            // Single query to aggregate all stats per department
+            $db = $this->departmentRepository->getConnection();
+            $sql = "
+                SELECT
+                    d.department_id,
+                    d.department_name,
+                    d.department_code,
+                    COUNT(DISTINCT c.course_id)      AS total_courses,
+                    COUNT(DISTINCT t.test_id)        AS total_tests,
+                    COUNT(DISTINCT s.roll_no)        AS total_students,
+                    COUNT(DISTINCT e.enrollment_id)  AS total_enrollments
+                FROM departments d
+                LEFT JOIN courses c
+                       ON c.department_id = d.department_id
+                LEFT JOIN course_offerings co
+                       ON co.course_id = c.course_id
+                LEFT JOIN tests t
+                       ON t.offering_id = co.offering_id
+                LEFT JOIN enrollments e
+                       ON e.offering_id = co.offering_id
+                LEFT JOIN students s
+                       ON s.department_id = d.department_id
+                WHERE d.school_id = ?
+                GROUP BY d.department_id, d.department_name, d.department_code
+                ORDER BY d.department_name
+            ";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$schoolId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $analytics = array_map(function ($row) {
+                return [
+                    'department_id'      => (int)$row['department_id'],
+                    'department_name'    => $row['department_name'],
+                    'department_code'    => $row['department_code'],
+                    'total_courses'      => (int)$row['total_courses'],
+                    'total_tests'        => (int)$row['total_tests'],
+                    'total_students'     => (int)$row['total_students'],
+                    'total_enrollments'  => (int)$row['total_enrollments'],
                 ];
-            }
+            }, $rows);
 
             http_response_code(200);
             header('Content-Type: application/json');

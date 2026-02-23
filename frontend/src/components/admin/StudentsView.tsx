@@ -53,8 +53,9 @@ export function StudentsView() {
 	// Debounce batch input
 	useEffect(() => {
 		const timer = setTimeout(() => {
-			if (batchInput !== filters.batch_year) {
-				setFilter("batch_year", batchInput || undefined);
+			const normalizedInput = batchInput || undefined;
+			if (normalizedInput !== filters.batch_year) {
+				setFilter("batch_year", normalizedInput);
 			}
 		}, 500);
 		return () => clearTimeout(timer);

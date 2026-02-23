@@ -52,8 +52,9 @@ export function StudentsView() {
 	// Debounce batch year input
 	useEffect(() => {
 		const timer = setTimeout(() => {
-			if (batchInput !== filters.batch_year) {
-				setFilter("batch_year", batchInput || undefined);
+			const normalizedInput = batchInput || undefined;
+			if (normalizedInput !== filters.batch_year) {
+				setFilter("batch_year", normalizedInput);
 			}
 		}, 500);
 		return () => clearTimeout(timer);
@@ -89,6 +90,7 @@ export function StudentsView() {
 			header: ({ column }) => (
 				<Button
 					variant="ghost"
+					className="mr-auto"
 					onClick={() =>
 						column.toggleSorting(column.getIsSorted() === "asc")
 					}
@@ -98,7 +100,7 @@ export function StudentsView() {
 				</Button>
 			),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium flex">
 					{row.getValue("student_name")}
 				</div>
 			),

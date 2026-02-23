@@ -14,6 +14,11 @@ class DepartmentRepository
         $this->db = $dbConnection;
     }
 
+    public function getConnection()
+    {
+        return $this->db;
+    }
+
     /**
      * Find department by ID
      * @param int $departmentId
