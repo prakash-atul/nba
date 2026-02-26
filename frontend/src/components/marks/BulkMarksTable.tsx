@@ -26,7 +26,7 @@ interface BulkMarksTableProps {
 	onMarkChange: (
 		studentRollno: string,
 		questionId: string,
-		value: string
+		value: string,
 	) => void;
 }
 
@@ -111,7 +111,7 @@ export function BulkMarksTable({
 												>
 													{q.max_marks}
 												</Badge>
-												{q.is_optional && (
+												{!!q.is_optional && (
 													<Badge
 														variant="outline"
 														className="text-xs text-orange-600"
@@ -128,7 +128,7 @@ export function BulkMarksTable({
 						<TableBody>
 							{currentEnrollments.map((enrollment) => {
 								const isDirty = dirtyRows.has(
-									enrollment.student_rollno
+									enrollment.student_rollno,
 								);
 								return (
 									<TableRow
@@ -168,7 +168,7 @@ export function BulkMarksTable({
 														onMarkChange(
 															enrollment.student_rollno,
 															q.question_identifier,
-															e.target.value
+															e.target.value,
 														)
 													}
 													onFocus={(e) =>
@@ -195,7 +195,7 @@ export function BulkMarksTable({
 								<PaginationPrevious
 									onClick={() =>
 										handlePageChange(
-											Math.max(1, currentPage - 1)
+											Math.max(1, currentPage - 1),
 										)
 									}
 									className={
@@ -234,7 +234,7 @@ export function BulkMarksTable({
 													<PaginationLink
 														onClick={() =>
 															handlePageChange(
-																page
+																page,
 															)
 														}
 														isActive={
@@ -268,8 +268,8 @@ export function BulkMarksTable({
 										handlePageChange(
 											Math.min(
 												totalPages,
-												currentPage + 1
-											)
+												currentPage + 1,
+											),
 										)
 									}
 									className={
