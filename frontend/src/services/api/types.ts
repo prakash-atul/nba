@@ -226,6 +226,18 @@ export interface Student {
 	dept?: number;
 }
 
+export interface EnrolledStudent extends Student {
+	enrolled_courses: string; // comma-separated "code: name (year/sem)" entries
+}
+
+export interface UpdateStudentRequest {
+	student_name?: string;
+	email?: string | null;
+	phone?: string | null;
+	student_status?: string;
+	batch_year?: number;
+}
+
 export interface Enrollment {
 	student_rollno: string;
 	student_name: string;

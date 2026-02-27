@@ -12,6 +12,7 @@ class HODController
     private $courseFacultyAssignmentRepository;
     private $departmentRepository;
     private $validationMiddleware;
+    private $studentRepository;
 
     public function __construct(
         ?UserRepository $userRepository = null,
@@ -19,7 +20,8 @@ class HODController
         ?CourseOfferingRepository $courseOfferingRepository = null,
         ?CourseFacultyAssignmentRepository $courseFacultyAssignmentRepository = null,
         ?DepartmentRepository $departmentRepository = null,
-        ?ValidationMiddleware $validationMiddleware = null
+        ?ValidationMiddleware $validationMiddleware = null,
+        ?StudentRepository $studentRepository = null
     ) {
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
@@ -27,6 +29,7 @@ class HODController
         $this->courseFacultyAssignmentRepository = $courseFacultyAssignmentRepository;
         $this->departmentRepository = $departmentRepository;
         $this->validationMiddleware = $validationMiddleware;
+        $this->studentRepository = $studentRepository;
     }
 
     /**
@@ -660,6 +663,97 @@ class HODController
     /**
      * Delete a faculty or staff member
      */
+    /**
+     * Get all students in the HOD's department (paginated)
+     */
+    public function getDepartmentStudents()
+    {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                's.roll_no',
+                's.roll_no',
+                ['s.roll_no', 's.student_name', 's.batch_year', 's.student_status'],
+                ['batch_year', 'student_status']
+            );
+
+            $total  = $this->studentRepository->countByDepartmentPaginated($departmentId, $params);
+            $rows   = $this->studentRepository->findByDepartmentPaginated($departmentId, $params);
+            $result = PaginationHelper::buildResponse($rows, 'roll_no', $params['limit'], $total);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode(array_merge(['success' => true, 'message' => 'Department students retrieved successfully'], $result));
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Update a student's information (HOD can update any student in their department)
+     */
+    public function updateStudent($rollNo)
+    {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+
+            $student = $this->studentRepository->findByRollno($rollNo);
+            if (!$student) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Student not found']);
+                return;
+            }
+
+            // Ensure student belongs to the HOD's department
+            if ((int)$student['department_id'] !== $departmentId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Access denied: student not in your department']);
+                return;
+            }
+
+            $body = json_decode(file_get_contents('php://input'), true) ?? [];
+            $allowed = ['student_name', 'email', 'phone', 'student_status', 'batch_year'];
+            $updates = array_intersect_key($body, array_flip($allowed));
+
+            if (empty($updates)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'No valid fields to update']);
+                return;
+            }
+
+            $merged = array_merge($student, $updates);
+            $s = new Student();
+            $s->roll_no        = $merged['roll_no'];
+            $s->student_name   = $merged['student_name'];
+            $s->department_id  = $merged['department_id'];
+            $s->batch_year     = isset($merged['batch_year']) ? (int)$merged['batch_year'] : null;
+            $s->student_status = $merged['student_status'] ?? 'Active';
+            $s->email          = $merged['email'] ?? null;
+            $s->phone          = $merged['phone'] ?? null;
+
+            $this->studentRepository->save($s);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Student updated successfully']);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to update student', 'error' => $e->getMessage()]);
+        }
+    }
+
     public function deleteUser($employeeId)
     {
         try {

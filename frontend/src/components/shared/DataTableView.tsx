@@ -17,7 +17,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Search, RefreshCw, Loader2 } from "lucide-react";
+import { Search } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -102,7 +102,7 @@ export function DataTableView<T>({
 				{title && (
 					<CardHeader>
 						<div className="flex items-center gap-2">
-							{titleIcon && (
+							{TitleIcon && (
 								<Skeleton className="h-6 w-6 rounded-full" />
 							)}
 							<Skeleton className="h-6 w-32" />
@@ -113,7 +113,7 @@ export function DataTableView<T>({
 					<Table>
 						<TableHeader>
 							<TableRow>
-								{columns.map((column, i) => (
+								{columns.map((_, i) => (
 									<TableHead key={i}>
 										<Skeleton className="h-4 w-20" />
 									</TableHead>

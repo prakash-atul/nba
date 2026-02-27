@@ -1,9 +1,11 @@
-import { apiGet } from "./base";
+import { apiGet, apiPut, apiDelete } from "./base";
 import type {
 	FacultyStats,
 	Course,
 	PaginatedResponse,
 	PaginationParams,
+	EnrolledStudent,
+	UpdateStudentRequest,
 } from "./types";
 
 async function getStats(): Promise<FacultyStats> {
@@ -28,7 +30,28 @@ async function getCourses(
 	};
 }
 
+async function getEnrolledStudents(): Promise<EnrolledStudent[]> {
+	return apiGet<EnrolledStudent[]>("/faculty/students");
+}
+
+async function updateStudent(
+	rollNo: string,
+	data: UpdateStudentRequest,
+): Promise<void> {
+	return apiPut<UpdateStudentRequest, void>(
+		`/faculty/students/${encodeURIComponent(rollNo)}`,
+		data,
+	);
+}
+
+async function removeStudentEnrollment(rollNo: string): Promise<void> {
+	return apiDelete(`/faculty/students/${encodeURIComponent(rollNo)}`);
+}
+
 export const facultyApi = {
 	getStats,
 	getCourses,
+	getEnrolledStudents,
+	updateStudent,
+	removeStudentEnrollment,
 };

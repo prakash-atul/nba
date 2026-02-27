@@ -61,11 +61,17 @@ class FacultyController
                 $totalStudents += $stmt->fetchColumn();
 
                 // Simple attainment check (average percentage of marks for this offering)
+                // marks table has CO1-CO6 columns; tests table has max_marks
                 $stmt = $this->db->prepare("
-                    SELECT AVG(percentage) as avg_percentage
+                    SELECT AVG(
+                        (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
+                         COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
+                        NULLIF(t.max_marks, 0) * 100
+                    ) as avg_percentage
                     FROM marks m
                     JOIN tests t ON m.test_id = t.test_id
                     WHERE t.offering_id = ?
+                    AND t.max_marks IS NOT NULL AND t.max_marks > 0
                 ");
                 $stmt->execute([$offeringId]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -101,6 +107,175 @@ class FacultyController
                 'message' => 'Failed to retrieve faculty statistics',
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Get all students enrolled in any of the faculty's courses
+     */
+    public function getEnrolledStudents($facultyId)
+    {
+        try {
+            $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
+
+            if (empty($assignments)) {
+                http_response_code(200);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'data' => []]);
+                return;
+            }
+
+            $offeringIds = array_column($assignments, 'offering_id');
+            $placeholders = implode(',', array_fill(0, count($offeringIds), '?'));
+
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT
+                    s.roll_no,
+                    s.student_name,
+                    s.department_id,
+                    s.batch_year,
+                    s.student_status,
+                    s.email,
+                    s.phone,
+                    d.department_name,
+                    d.department_code,
+                    GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ') AS enrolled_courses
+                FROM enrollments e
+                JOIN students s ON e.student_rollno = s.roll_no
+                JOIN course_offerings co ON e.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                LEFT JOIN departments d ON s.department_id = d.department_id
+                WHERE e.offering_id IN ($placeholders)
+                GROUP BY s.roll_no
+                ORDER BY s.roll_no
+            ");
+            $stmt->execute($offeringIds);
+            $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'data' => $students]);
+        } catch (Exception $e) {
+            error_log("Error getting enrolled students: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Update a student's information (name, email, phone, status)
+     * Faculty can only update students enrolled in their courses
+     */
+    public function updateStudent($rollNo, $facultyId)
+    {
+        try {
+            // Verify the student is enrolled in at least one of this faculty's courses
+            $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
+            $offeringIds = array_column($assignments, 'offering_id');
+
+            if (!empty($offeringIds)) {
+                $placeholders = implode(',', array_fill(0, count($offeringIds), '?'));
+                $stmt = $this->db->prepare("
+                    SELECT COUNT(*) FROM enrollments
+                    WHERE student_rollno = ? AND offering_id IN ($placeholders)
+                ");
+                $params = array_merge([$rollNo], $offeringIds);
+                $stmt->execute($params);
+                if ($stmt->fetchColumn() == 0) {
+                    http_response_code(403);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Student not found in your courses']);
+                    return;
+                }
+            }
+
+            $body = json_decode(file_get_contents('php://input'), true);
+            if (!$body) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Invalid request body']);
+                return;
+            }
+
+            // Fetch existing
+            $stmt = $this->db->prepare("SELECT * FROM students WHERE roll_no = ?");
+            $stmt->execute([$rollNo]);
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$existing) {
+                http_response_code(404);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Student not found']);
+                return;
+            }
+
+            $studentName    = $body['student_name'] ?? $existing['student_name'];
+            $email          = array_key_exists('email', $body) ? $body['email'] : $existing['email'];
+            $phone          = array_key_exists('phone', $body) ? $body['phone'] : $existing['phone'];
+            $studentStatus  = $body['student_status'] ?? $existing['student_status'];
+            $batchYear      = $body['batch_year'] ?? $existing['batch_year'];
+
+            $stmt = $this->db->prepare("
+                UPDATE students
+                SET student_name = ?, email = ?, phone = ?, student_status = ?, batch_year = ?
+                WHERE roll_no = ?
+            ");
+            $stmt->execute([$studentName, $email, $phone, $studentStatus, $batchYear, $rollNo]);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Student updated successfully']);
+        } catch (Exception $e) {
+            error_log("Error updating student: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to update student', 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Remove a student from all of this faculty's course enrollments
+     */
+    public function removeStudentFromCourses($rollNo, $facultyId)
+    {
+        try {
+            $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
+            $offeringIds = array_column($assignments, 'offering_id');
+
+            if (empty($offeringIds)) {
+                http_response_code(404);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'No courses found for this faculty']);
+                return;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($offeringIds), '?'));
+            $stmt = $this->db->prepare("
+                DELETE FROM enrollments
+                WHERE student_rollno = ? AND offering_id IN ($placeholders)
+            ");
+            $params = array_merge([$rollNo], $offeringIds);
+            $stmt->execute($params);
+            $deleted = $stmt->rowCount();
+
+            if ($deleted === 0) {
+                http_response_code(404);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Student not found in your courses']);
+                return;
+            }
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => "Student removed from $deleted course enrollment(s)"
+            ]);
+        } catch (Exception $e) {
+            error_log("Error removing student from courses: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to remove student', 'error' => $e->getMessage()]);
         }
     }
 

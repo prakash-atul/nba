@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { MarksEntrySelector } from "@/components/marks/MarksEntrySelector";
 import { MarksEntryByQuestion } from "@/components/marks/MarksEntryByQuestion";
 import { MarksEntryByCO } from "@/components/marks/MarksEntryByCO";
@@ -21,10 +23,6 @@ export function FacultyMarks({ selectedCourse }: FacultyMarksProps) {
 		setEntryMode(null);
 	};
 
-	const handleBackToSelection = () => {
-		setEntryMode(null);
-	};
-
 	const handleBackToTestList = () => {
 		setSelectedTest(null);
 		setEntryMode(null);
@@ -41,21 +39,24 @@ export function FacultyMarks({ selectedCourse }: FacultyMarksProps) {
 						/>
 					) : !entryMode ? (
 						<div className="space-y-6">
-							<div className="flex items-center justify-between">
-								<div>
+							<div className="relative flex items-center justify-center min-h-16">
+								<Button
+									variant="ghost"
+									onClick={handleBackToTestList}
+									className="absolute left-0 gap-2 text-muted-foreground hover:text-foreground"
+								>
+									<ArrowLeft className="w-4 h-4" />
+									Back to Tests
+								</Button>
+
+								<div className="text-center">
 									<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
 										{selectedTest.name}
 									</h2>
-									<p className="text-gray-500 dark:text-gray-400">
+									<p className="text-sm text-gray-500 dark:text-gray-400">
 										Select how you want to enter marks
 									</p>
 								</div>
-								<button
-									onClick={handleBackToTestList}
-									className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-								>
-									← Back to Tests
-								</button>
 							</div>
 
 							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -104,19 +105,19 @@ export function FacultyMarks({ selectedCourse }: FacultyMarksProps) {
 						<MarksEntryByQuestion
 							test={selectedTest}
 							course={selectedCourse}
-							onBack={handleBackToSelection}
+							onBack={handleBackToTestList}
 						/>
 					) : entryMode === "by-co" ? (
 						<MarksEntryByCO
 							test={selectedTest}
 							course={selectedCourse}
-							onBack={handleBackToSelection}
+							onBack={handleBackToTestList}
 						/>
 					) : (
 						<ViewTestMarks
 							test={selectedTest}
 							course={selectedCourse}
-							onBack={handleBackToSelection}
+							onBack={handleBackToTestList}
 						/>
 					)}
 				</div>

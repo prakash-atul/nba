@@ -14,12 +14,17 @@ export function MarksEntryHeader({
 	onBack,
 }: MarksEntryHeaderProps) {
 	return (
-		<div className="flex items-center gap-4">
-			<Button variant="ghost" onClick={onBack} className="gap-2">
+		<div className="relative flex items-center justify-center min-h-16 mb-2">
+			<Button
+				variant="ghost"
+				onClick={onBack}
+				className="absolute left-0 gap-2 text-muted-foreground hover:text-foreground"
+			>
 				<ArrowLeft className="w-4 h-4" />
 				Back
 			</Button>
-			<div className="flex-1">
+
+			<div className="text-center">
 				<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
 					{title}
 				</h2>

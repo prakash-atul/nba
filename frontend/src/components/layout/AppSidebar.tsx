@@ -35,7 +35,7 @@ export function AppSidebar({
 		<aside
 			className={`${
 				sidebarOpen ? "w-64" : "w-0"
-			} transition-all duration-300 ease-in-out bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden flex-shrink-0`}
+			} transition-all duration-300 ease-in-out bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden shrink-0`}
 		>
 			<div className="flex flex-col h-full">
 				{/* Header / Logo */}

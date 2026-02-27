@@ -9,6 +9,8 @@ import type {
 	HODUpdateUserRequest,
 	PaginatedResponse,
 	PaginationParams,
+	Student,
+	UpdateStudentRequest,
 } from "./types";
 
 export const hodApi = {
@@ -73,5 +75,22 @@ export const hodApi = {
 
 	async deleteUser(employeeId: number): Promise<void> {
 		return apiDelete(`/hod/users/${employeeId}`);
+	},
+
+	// Student management
+	async getDepartmentStudents(
+		params?: PaginationParams,
+	): Promise<PaginatedResponse<Student>> {
+		return apiGetPaginated<Student>("/hod/students", params);
+	},
+
+	async updateStudent(
+		rollNo: string,
+		data: UpdateStudentRequest,
+	): Promise<void> {
+		return apiPut<UpdateStudentRequest, void>(
+			`/hod/students/${encodeURIComponent(rollNo)}`,
+			data,
+		);
 	},
 };

@@ -8,6 +8,7 @@ import {
 	FacultyStatsCards,
 	FacultyQuickAccess,
 	FacultyOverview,
+	FacultyStudents,
 	type FacultyPage,
 } from "@/components/faculty";
 import { AppSidebar, AppHeader, type NavItem } from "@/components/layout";
@@ -20,6 +21,7 @@ import {
 	ClipboardList,
 	FileCheck,
 	Network,
+	GraduationCap,
 	ChevronDown,
 	RefreshCw,
 } from "lucide-react";
@@ -34,6 +36,7 @@ import {
 const facultyNavItems: NavItem[] = [
 	{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
 	{ id: "assessments", label: "Assessments", icon: ClipboardList },
+	{ id: "students", label: "Students", icon: GraduationCap },
 	{ id: "marks", label: "Marks Entry", icon: FileCheck },
 	{ id: "copo", label: "CO-PO Mapping", icon: Network },
 ];
@@ -230,6 +233,8 @@ export function FacultyDashboard() {
 							/>
 						) : activeView === "marks" ? (
 							<FacultyMarks selectedCourse={selectedCourse} />
+						) : activeView === "students" ? (
+							<FacultyStudents />
 						) : (
 							<FacultyCOPO
 								selectedCourse={selectedCourse}

@@ -10,6 +10,7 @@ import {
 	HODQuickAccess,
 	CoursesManagement,
 	FacultyManagement,
+	HODStudents,
 	type HODPage,
 } from "@/components/hod";
 import { FacultyAssessments } from "@/components/faculty/FacultyAssessments";
@@ -24,6 +25,7 @@ import {
 	FileCheck,
 	Network,
 	Users,
+	GraduationCap,
 	RefreshCw,
 	ChevronDown,
 } from "lucide-react";
@@ -38,6 +40,7 @@ const hodNavItems: NavItem[] = [
 	{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
 	{ id: "courses", label: "Manage Courses", icon: BookOpen },
 	{ id: "faculty", label: "Faculty & Staff", icon: Users },
+	{ id: "students", label: "Students", icon: GraduationCap },
 	{ id: "assessments", label: "Assessments", icon: ClipboardList },
 	{ id: "marks", label: "Marks Entry", icon: FileCheck },
 	{ id: "copo", label: "CO-PO Mapping", icon: Network },
@@ -142,6 +145,9 @@ export function HODDashboard() {
 
 			case "faculty":
 				return <FacultyManagement />;
+
+			case "students":
+				return <HODStudents />;
 
 			case "assessments":
 				return <FacultyAssessments selectedCourse={selectedCourse} />;
@@ -264,10 +270,10 @@ export function HODDashboard() {
 
 					{/* Content */}
 					<main className="flex-1 overflow-y-auto">
-						{["assessments", "marks", "copo"].includes(
+						{["assessments", "marks", "copo", "students"].includes(
 							currentPage,
 						) ? (
-							// Faculty components handle their own padding/layout
+							// Faculty/HODStudents components handle their own padding/layout
 							<div className="h-full">{renderContent()}</div>
 						) : (
 							// Standard HOD pages need padding

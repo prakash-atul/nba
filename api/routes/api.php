@@ -113,7 +113,7 @@ class Router
         $this->enrollmentController = new EnrollmentController($db);
         $this->attainmentController = new AttainmentController($courseRepository, $courseOfferingRepository, $attainmentScaleRepository, $coPoRepository);
         $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository, $deanAssignmentRepository, $schoolRepository);
-        $this->hodController = new HODController($userRepository, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $departmentRepository, $validationMiddleware);
+        $this->hodController = new HODController($userRepository, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $departmentRepository, $validationMiddleware, $studentRepository);
 
         // Initialize enrollment repository for staff controller
         $enrollmentRepository = new EnrollmentRepository($db);
@@ -155,6 +155,40 @@ class Router
         }
 
         // Check for dynamic routes before switch
+
+        // GET/PUT/DELETE /faculty/students/{rollno}
+        if (preg_match('#^faculty/students/([^/]+)$#', $path, $matches)) {
+            $rollNo = urldecode($matches[1]);
+            if ($method === 'PUT') {
+                $user = $this->authMiddleware->requireAuth();
+                $_REQUEST['authenticated_user'] = $user;
+                $this->facultyController->updateStudent($rollNo, $user['employee_id']);
+                return;
+            } elseif ($method === 'DELETE') {
+                $user = $this->authMiddleware->requireAuth();
+                $_REQUEST['authenticated_user'] = $user;
+                $this->facultyController->removeStudentFromCourses($rollNo, $user['employee_id']);
+                return;
+            } else {
+                $this->sendMethodNotAllowed();
+                return;
+            }
+        }
+
+        // PUT /hod/students/{rollno}
+        if (preg_match('#^hod/students/([^/]+)$#', $path, $matches)) {
+            $rollNo = urldecode($matches[1]);
+            if ($method === 'PUT') {
+                $user = $this->authMiddleware->requireAuth();
+                $_REQUEST['authenticated_user'] = $user;
+                $this->hodController->updateStudent($rollNo);
+                return;
+            } else {
+                $this->sendMethodNotAllowed();
+                return;
+            }
+        }
+
         // DELETE /tests/{id}
         if (preg_match('/^tests\/(\d+)$/', $path, $matches)) {
             $testId = $matches[1];
@@ -345,6 +379,16 @@ class Router
                 }
                 break;
 
+            case 'hod/students':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getDepartmentStudents();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
             // Staff routes
             case 'staff/stats':
                 if ($method === 'GET') {
@@ -372,6 +416,16 @@ class Router
                     $user = $this->authMiddleware->requireAuth();
                     $_REQUEST['authenticated_user'] = $user;
                     $this->assessmentController->getFacultyCourses();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'faculty/students':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->facultyController->getEnrolledStudents($user['employee_id']);
                 } else {
                     $this->sendMethodNotAllowed();
                 }
