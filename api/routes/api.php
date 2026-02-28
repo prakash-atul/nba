@@ -156,6 +156,14 @@ class Router
 
         // Check for dynamic routes before switch
 
+        // GET /faculty/courses/{offeringId}/stats
+        if (preg_match('#^faculty/courses/(\d+)/stats$#', $path, $matches) && $method === 'GET') {
+            $user = $this->authMiddleware->requireAuth();
+            $_REQUEST['authenticated_user'] = $user;
+            $this->facultyController->getCourseStats($user['employee_id'], intval($matches[1]));
+            return;
+        }
+
         // GET/PUT/DELETE /faculty/students/{rollno}
         if (preg_match('#^faculty/students/([^/]+)$#', $path, $matches)) {
             $rollNo = urldecode($matches[1]);

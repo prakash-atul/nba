@@ -523,6 +523,13 @@ export interface FacultyStats {
 	averageAttainment: number;
 }
 
+export interface CourseStats {
+	totalAssessments: number;
+	activeStudents: number;
+	avgPerformance: number | null;
+	marksCount: number;
+}
+
 // Staff Types
 export interface StaffStats {
 	totalCourses: number;

@@ -1,6 +1,7 @@
 import { apiGet, apiPut, apiDelete } from "./base";
 import type {
 	FacultyStats,
+	CourseStats,
 	Course,
 	PaginatedResponse,
 	PaginationParams,
@@ -48,10 +49,15 @@ async function removeStudentEnrollment(rollNo: string): Promise<void> {
 	return apiDelete(`/faculty/students/${encodeURIComponent(rollNo)}`);
 }
 
+async function getCourseStats(offeringId: number): Promise<CourseStats> {
+	return apiGet<CourseStats>(`/faculty/courses/${offeringId}/stats`);
+}
+
 export const facultyApi = {
 	getStats,
 	getCourses,
 	getEnrolledStudents,
 	updateStudent,
 	removeStudentEnrollment,
+	getCourseStats,
 };

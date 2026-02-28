@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -232,10 +232,10 @@ export function BulkMarksTable({
 
 									if (showEllipsis) {
 										return (
-											<>
-												<PaginationItem
-													key={`ellipsis-${page}`}
-												>
+											<Fragment
+												key={`ellipsis-group-${page}`}
+											>
+												<PaginationItem>
 													<span className="px-4">
 														...
 													</span>
@@ -255,7 +255,7 @@ export function BulkMarksTable({
 														{page}
 													</PaginationLink>
 												</PaginationItem>
-											</>
+											</Fragment>
 										);
 									}
 									return (

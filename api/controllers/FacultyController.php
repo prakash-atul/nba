@@ -347,4 +347,77 @@ class FacultyController
             ]);
         }
     }
+
+    /**
+     * Get stats for a single course offering (scoped to requesting faculty)
+     */
+    public function getCourseStats($facultyId, $offeringId)
+    {
+        try {
+            // Verify this offering belongs to the faculty
+            $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
+            $offeringIds = array_column($assignments, 'offering_id');
+
+            if (!in_array($offeringId, $offeringIds)) {
+                http_response_code(403);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Access denied to this course offering']);
+                return;
+            }
+
+            // Count assessments
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM tests WHERE offering_id = ?");
+            $stmt->execute([$offeringId]);
+            $totalAssessments = (int) $stmt->fetchColumn();
+
+            // Count enrolled students
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM enrollments WHERE offering_id = ?");
+            $stmt->execute([$offeringId]);
+            $activeStudents = (int) $stmt->fetchColumn();
+
+            // Count marks entries (to distinguish "no marks entered" from 0% performance)
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) FROM marks m
+                JOIN tests t ON m.test_id = t.test_id
+                WHERE t.offering_id = ?
+            ");
+            $stmt->execute([$offeringId]);
+            $marksCount = (int) $stmt->fetchColumn();
+
+            // Average performance (%)
+            $stmt = $this->db->prepare("
+                SELECT AVG(
+                    (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
+                     COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
+                    NULLIF(t.max_marks, 0) * 100
+                ) as avg_percentage
+                FROM marks m
+                JOIN tests t ON m.test_id = t.test_id
+                WHERE t.offering_id = ?
+                AND t.max_marks IS NOT NULL AND t.max_marks > 0
+            ");
+            $stmt->execute([$offeringId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $avgPerformance = ($result && $result['avg_percentage'] !== null)
+                ? round(floatval($result['avg_percentage']), 1)
+                : null;
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'totalAssessments' => $totalAssessments,
+                    'activeStudents'   => $activeStudents,
+                    'avgPerformance'   => $avgPerformance,
+                    'marksCount'       => $marksCount
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log("Error getting course stats: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve course statistics', 'error' => $e->getMessage()]);
+        }
+    }
 }

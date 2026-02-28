@@ -79,6 +79,7 @@ class ApiService {
 
 	// Faculty methods
 	getFacultyStats = facultyApi.getStats;
+	getFacultyCourseStats = facultyApi.getCourseStats;
 
 	// Staff methods
 	getStaffStats = staffApi.getStats;

@@ -2,7 +2,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, FileText, Trash2 } from "lucide-react";
+import { Eye, FileText, Trash2, ClipboardList } from "lucide-react";
 import { ViewAssessmentDialog } from "./ViewAssessmentDialog";
 import { apiService } from "@/services/api";
 import { assessmentsApi } from "@/services/api/assessments";
@@ -25,9 +25,16 @@ import type { Course, Test } from "@/services/api";
 interface TestsListProps {
 	course: Course | null;
 	refreshTrigger: number;
+	onGoToMarks?: (test: Test) => void;
+	onCountChange?: (count: number) => void;
 }
 
-export function TestsList({ course, refreshTrigger }: TestsListProps) {
+export function TestsList({
+	course,
+	refreshTrigger,
+	onGoToMarks,
+	onCountChange,
+}: TestsListProps) {
 	const [tests, setTests] = useState<Test[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [selectedTestId, setSelectedTestId] = useState<number | null>(null);
@@ -80,30 +87,30 @@ export function TestsList({ course, refreshTrigger }: TestsListProps) {
 		},
 		{
 			id: "actions",
-			header: () => <div className="text-center">Actions</div>,
+			header: () => <div className="text-right">Actions</div>,
 			cell: ({ row }) => {
 				const test = row.original;
 				return (
-					<div className="flex justify-center gap-2">
+					<div className="flex justify-end gap-1">
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
 							onClick={() => {
 								setSelectedTestId(test.id);
 								setShowDetailsDialog(true);
 							}}
-							className="gap-2"
+							className="gap-1.5 h-8"
 						>
-							<Eye className="w-4 h-4" />
-							View Details
+							<Eye className="w-3.5 h-3.5" />
+							View
 						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={() => handleDeleteClick(test)}
-							className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+							className="gap-1.5 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
 						>
-							<Trash2 className="w-4 h-4" />
+							<Trash2 className="w-3.5 h-3.5" />
 							Delete
 						</Button>
 					</div>
@@ -132,7 +139,9 @@ export function TestsList({ course, refreshTrigger }: TestsListProps) {
 			console.log("Tests received in component:", testsData);
 
 			// Ensure testsData is an array
-			setTests(Array.isArray(testsData) ? testsData : []);
+			const arr = Array.isArray(testsData) ? testsData : [];
+			setTests(arr);
+			onCountChange?.(arr.length);
 		} catch (error) {
 			console.error("Failed to load tests:", error);
 			// Reset to empty array on error
@@ -183,50 +192,53 @@ export function TestsList({ course, refreshTrigger }: TestsListProps) {
 
 	if (!course) {
 		return (
-			<Card>
-				<CardContent className="p-12 text-center">
-					<div className="flex flex-col items-center gap-4">
-						<FileText className="w-16 h-16 text-gray-400" />
-						<div>
-							<h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-								No Course Selected
-							</h3>
-							<p className="text-gray-500 dark:text-gray-400 mt-1">
-								Select a course from the dropdown above to view
-								its assessments
-							</p>
-						</div>
-					</div>
-				</CardContent>
-			</Card>
+			<div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+				<div className="p-4 rounded-2xl bg-muted">
+					<ClipboardList className="w-10 h-10 text-muted-foreground" />
+				</div>
+				<div>
+					<h3 className="text-base font-semibold">
+						No Course Selected
+					</h3>
+					<p className="text-sm text-muted-foreground mt-1">
+						Select a course from the dropdown above to view its
+						assessments
+					</p>
+				</div>
+			</div>
 		);
 	}
 
 	return (
-		<Card className="border-none shadow-none bg-transparent">
-			<CardHeader className="px-0">
-				<CardTitle>
-					Assessments for {course.course_code} - {course.course_name}
-				</CardTitle>
-				<p className="text-sm text-gray-500 dark:text-gray-400">
-					{course.semester} Semester, Year {course.year}
+		<>
+			{/* Course header */}
+			<div className="mb-6">
+				<h3 className="text-base font-semibold">
+					{course.course_code} — {course.course_name}
+				</h3>
+				<p className="text-sm text-muted-foreground mt-0.5">
+					{course.semester} Semester • Year {course.year}
 				</p>
-			</CardHeader>
-			<CardContent className="px-0">
-				<DataTable
-					columns={columns}
-					data={tests}
-					searchKey="name"
-					searchPlaceholder="Search by test name..."
-					refreshing={loading}
-				/>
-			</CardContent>
+			</div>
 
-			{/* View Assessment Details Dialog */}
+			<Card className="shadow-sm">
+				<CardContent className="px-5">
+					<DataTable
+						columns={columns}
+						data={tests}
+						searchKey="name"
+						searchPlaceholder="Search by test name..."
+						refreshing={loading}
+					/>
+				</CardContent>
+			</Card>
+
+			{/* View Assessment Details Panel */}
 			<ViewAssessmentDialog
 				open={showDetailsDialog}
 				onOpenChange={setShowDetailsDialog}
 				testId={selectedTestId}
+				onGoToMarks={onGoToMarks}
 			/>
 
 			{/* Delete Confirmation Dialog */}
@@ -309,6 +321,6 @@ export function TestsList({ course, refreshTrigger }: TestsListProps) {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-		</Card>
+		</>
 	);
 }
