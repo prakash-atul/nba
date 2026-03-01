@@ -61,17 +61,17 @@ class FacultyController
                 $totalStudents += $stmt->fetchColumn();
 
                 // Simple attainment check (average percentage of marks for this offering)
-                // marks table has CO1-CO6 columns; tests table has max_marks
+                // marks table has CO1-CO6 columns; tests table has full_marks
                 $stmt = $this->db->prepare("
                     SELECT AVG(
                         (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
                          COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
-                        NULLIF(t.max_marks, 0) * 100
+                        NULLIF(t.full_marks, 0) * 100
                     ) as avg_percentage
                     FROM marks m
                     JOIN tests t ON m.test_id = t.test_id
                     WHERE t.offering_id = ?
-                    AND t.max_marks IS NOT NULL AND t.max_marks > 0
+                    AND t.full_marks IS NOT NULL AND t.full_marks > 0
                 ");
                 $stmt->execute([$offeringId]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -313,7 +313,7 @@ class FacultyController
             $stmt = $this->db->prepare("
                 SELECT 
                     (SELECT COUNT(*) FROM questions WHERE test_id = ?) as question_count,
-                    (SELECT COUNT(DISTINCT student_rollno) FROM marks WHERE test_id = ?) as student_count,
+                    (SELECT COUNT(DISTINCT student_roll_no) FROM marks WHERE test_id = ?) as student_count,
                     (SELECT COUNT(*) FROM raw_marks WHERE test_id = ?) as raw_marks_count
             ");
             $stmt->execute([$testId, $testId, $testId]);
@@ -354,15 +354,21 @@ class FacultyController
     public function getCourseStats($facultyId, $offeringId)
     {
         try {
-            // Verify this offering belongs to the faculty
-            $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
-            $offeringIds = array_column($assignments, 'offering_id');
+            // Check if user is HOD or Admin to bypass assignment check
+            $user = $_REQUEST['authenticated_user'] ?? null;
+            $hasOverride = $user && ($user['role'] === 'admin' || $user['is_hod'] || $user['is_dean']);
 
-            if (!in_array($offeringId, $offeringIds)) {
-                http_response_code(403);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Access denied to this course offering']);
-                return;
+            if (!$hasOverride) {
+                // Verify this offering belongs to the faculty
+                $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
+                $offeringIds = array_column($assignments, 'offering_id');
+
+                if (!in_array($offeringId, $offeringIds)) {
+                    http_response_code(403);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Access denied to this course offering']);
+                    return;
+                }
             }
 
             // Count assessments
@@ -389,12 +395,12 @@ class FacultyController
                 SELECT AVG(
                     (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
                      COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
-                    NULLIF(t.max_marks, 0) * 100
+                    NULLIF(t.full_marks, 0) * 100
                 ) as avg_percentage
                 FROM marks m
                 JOIN tests t ON m.test_id = t.test_id
                 WHERE t.offering_id = ?
-                AND t.max_marks IS NOT NULL AND t.max_marks > 0
+                AND t.full_marks IS NOT NULL AND t.full_marks > 0
             ");
             $stmt->execute([$offeringId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);

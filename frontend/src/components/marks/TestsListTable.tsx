@@ -55,19 +55,19 @@ export function TestsListTable({ tests, onTestSelect }: TestsListTableProps) {
 					{currentTests.map((test) => (
 						<TableRow
 							key={test.id}
-							className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+							className="cursor-pointer hover:bg-muted/50"
 							onClick={() => onTestSelect(test)}
 						>
 							<TableCell className="font-medium">
 								{test.name}
 							</TableCell>
 							<TableCell className="text-center">
-								<Badge variant="outline">
+								<Badge variant="outline" className="font-mono">
 									{test.full_marks}
 								</Badge>
 							</TableCell>
 							<TableCell className="text-center">
-								<Badge variant="outline">
+								<Badge variant="outline" className="font-mono">
 									{test.pass_marks}
 								</Badge>
 							</TableCell>
@@ -84,7 +84,7 @@ export function TestsListTable({ tests, onTestSelect }: TestsListTableProps) {
 								<PaginationPrevious
 									onClick={() =>
 										handlePageChange(
-											Math.max(1, currentPage - 1)
+											Math.max(1, currentPage - 1),
 										)
 									}
 									className={
@@ -142,8 +142,8 @@ export function TestsListTable({ tests, onTestSelect }: TestsListTableProps) {
 										handlePageChange(
 											Math.min(
 												totalPages,
-												currentPage + 1
-											)
+												currentPage + 1,
+											),
 										)
 									}
 									className={

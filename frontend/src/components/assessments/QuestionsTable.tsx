@@ -1,4 +1,11 @@
 import { ClipboardList } from "lucide-react";
+import {
+	Table,
+	TableBody,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { QuestionTableRow } from "./QuestionTableRow";
 import type { Question } from "@/services/api";
 
@@ -32,47 +39,43 @@ export function QuestionsTable({
 	}
 
 	return (
-		<div className="overflow-x-auto">
-			<table className="w-full text-left border-collapse">
-				<thead>
-					<tr className="bg-slate-50 dark:bg-gray-800/50">
-						<th className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3 px-4 w-24 border-b">
-							Q. No.
-						</th>
-						<th className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3 px-4 w-20 border-b">
-							Sub-Q
-						</th>
-						<th className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3 px-4 w-28 border-b">
-							CO
-						</th>
-						<th className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3 px-4 w-32 border-b">
-							Max Marks
-						</th>
-						<th className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3 px-4 w-24 border-b">
-							Optional
-						</th>
-						<th className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3 px-4 border-b w-full">
-							Actions
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					{questions.map((question, index) => (
-						<QuestionTableRow
-							key={`${question.question_number}-${question.sub_question}-${index}`}
-							question={question}
-							index={index}
-							onUpdate={(updates) =>
-								onUpdateQuestion(index, updates)
-							}
-							onRemove={() => onRemoveQuestion(index)}
-							onAddSubQuestion={() =>
-								onAddSubQuestion(question.question_number)
-							}
-						/>
-					))}
-				</tbody>
-			</table>
-		</div>
+		<Table className="w-full">
+			<TableHeader className="bg-slate-50/50 dark:bg-gray-800/50 border-b">
+				<TableRow className="hover:bg-transparent">
+					<TableHead className="text-[10px] font-bold uppercase tracking-wider py-4 pl-8 w-24 text-left">
+						Q. No.
+					</TableHead>
+					<TableHead className="text-[10px] font-bold uppercase tracking-wider py-4 w-28 text-center">
+						Sub-Q
+					</TableHead>
+					<TableHead className="text-[10px] font-bold uppercase tracking-wider py-4 w-32 text-center">
+						CO
+					</TableHead>
+					<TableHead className="text-[10px] font-bold uppercase tracking-wider py-4 w-36 text-center">
+						Max Marks
+					</TableHead>
+					<TableHead className="text-[10px] font-bold uppercase tracking-wider py-4 w-28 text-center">
+						Optional
+					</TableHead>
+					<TableHead className="text-[10px] font-bold uppercase tracking-wider py-4 pr-8 w-28 text-center">
+						Actions
+					</TableHead>
+				</TableRow>
+			</TableHeader>
+			<TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
+				{questions.map((question, index) => (
+					<QuestionTableRow
+						key={`${question.question_number}-${question.sub_question}-${index}`}
+						question={question}
+						index={index}
+						onUpdate={(updates) => onUpdateQuestion(index, updates)}
+						onRemove={() => onRemoveQuestion(index)}
+						onAddSubQuestion={() =>
+							onAddSubQuestion(question.question_number)
+						}
+					/>
+				))}
+			</TableBody>
+		</Table>
 	);
 }

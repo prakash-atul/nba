@@ -10,9 +10,16 @@ interface ViewTestMarksProps {
 	test: Test;
 	course: Course | null;
 	onBack: () => void;
+	/** When true, suppresses the back-header */
+	embedded?: boolean;
 }
 
-export function ViewTestMarks({ test, course, onBack }: ViewTestMarksProps) {
+export function ViewTestMarks({
+	test,
+	course,
+	onBack,
+	embedded = false,
+}: ViewTestMarksProps) {
 	const [marks, setMarks] = useState<
 		Array<{
 			student_id: string;
@@ -45,30 +52,45 @@ export function ViewTestMarks({ test, course, onBack }: ViewTestMarksProps) {
 
 	return (
 		<div className="space-y-4">
-			<TestHeader test={test} course={course} onBack={onBack} />
+			{!embedded && (
+				<TestHeader test={test} course={course} onBack={onBack} />
+			)}
 
-			<Card>
-				<CardHeader>
-					<div className="flex flex-row items-center gap-3">
-						<div className="w-10 h-10 rounded-lg bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
-							<BarChart2 className="w-5 h-5 text-white" />
-						</div>
-						<div>
-							<CardTitle>Student Marks Summary</CardTitle>
-							<p className="text-sm text-muted-foreground mt-0.5">
-								CO-aggregated marks for all students
-							</p>
-						</div>
+			{embedded ? (
+				// ── Flat embedded layout matching FacultyMarks style ──
+				<div className="flex flex-col h-full">
+					<div className="flex-1 overflow-auto bg-background [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full">
+						<StudentMarksTable
+							marks={marks}
+							passMarks={test.pass_marks}
+							loading={loading}
+						/>
 					</div>
-				</CardHeader>
-				<CardContent>
-					<StudentMarksTable
-						marks={marks}
-						passMarks={test.pass_marks}
-						loading={loading}
-					/>
-				</CardContent>
-			</Card>
+				</div>
+			) : (
+				<Card>
+					<CardHeader>
+						<div className="flex flex-row items-center gap-3">
+							<div className="w-10 h-10 rounded-lg bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
+								<BarChart2 className="w-5 h-5 text-white" />
+							</div>
+							<div>
+								<CardTitle>Student Marks Summary</CardTitle>
+								<p className="text-sm text-muted-foreground mt-0.5">
+									CO-aggregated marks for all students
+								</p>
+							</div>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<StudentMarksTable
+							marks={marks}
+							passMarks={test.pass_marks}
+							loading={loading}
+						/>
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	);
 }

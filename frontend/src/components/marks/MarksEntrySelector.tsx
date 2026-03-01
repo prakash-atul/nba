@@ -60,23 +60,23 @@ export function MarksEntrySelector({
 					Select Assessment for {course.course_code} -{" "}
 					{course.course_name}
 				</CardTitle>
-				<p className="text-sm text-gray-500 dark:text-gray-400">
+				<p className="text-sm text-muted-foreground">
 					{formatOrdinal(course.semester)} Semester, Year{" "}
 					{course.year}
 				</p>
 			</CardHeader>
 			<CardContent>
 				{loading ? (
-					<div className="text-center py-8 text-gray-500">
+					<div className="text-center py-8 text-muted-foreground">
 						Loading...
 					</div>
 				) : tests.length === 0 ? (
 					<div className="text-center py-12">
-						<FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-						<p className="text-gray-500 dark:text-gray-400">
+						<FileText className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
+						<p className="text-muted-foreground">
 							No assessments found for this course
 						</p>
-						<p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+						<p className="text-sm text-muted-foreground/60 mt-1">
 							Create an assessment first
 						</p>
 					</div>

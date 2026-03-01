@@ -24,14 +24,14 @@ export function EmptyState({
 }: EmptyStateProps) {
 	const content = (
 		<div className="flex flex-col items-center gap-4">
-			<div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-				<Icon className="w-8 h-8 text-gray-400" />
+			<div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+				<Icon className="w-8 h-8 text-muted-foreground/50" />
 			</div>
 			<div className="text-center">
-				<h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+				<h3 className="text-lg font-semibold text-foreground">
 					{title}
 				</h3>
-				<p className="text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
+				<p className="text-muted-foreground mt-1 max-w-sm">
 					{description}
 				</p>
 			</div>
@@ -68,7 +68,7 @@ export function TableEmptyState({
 		<tr>
 			<td
 				colSpan={colSpan}
-				className="text-center py-8 text-gray-500 dark:text-gray-400"
+				className="text-center py-8 text-muted-foreground"
 			>
 				{message}
 			</td>

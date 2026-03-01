@@ -171,12 +171,12 @@ export function StudentMarksTable({
 					<div className="relative border rounded-md overflow-hidden">
 						<div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-360px)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full">
 							<table className="w-full caption-bottom text-sm min-w-max">
-								<TableHeader className="bg-background">
-									<TableRow className="hover:bg-transparent">
-										<TableHead className="text-left w-[120px] min-w-[120px] sticky left-0 top-0 bg-background z-50 border-r shadow-sm">
+								<TableHeader className="bg-muted/50">
+									<TableRow className="hover:bg-transparent border-b border-border">
+										<TableHead className="text-left w-[120px] min-w-[120px] sticky left-0 top-0 bg-background z-50 border-r border-border shadow-[1px_0_0_0_hsl(var(--border))]">
 											Student ID
 										</TableHead>
-										<TableHead className="text-left w-[200px] min-w-[200px] sticky left-[120px] top-0 bg-background z-50 border-r shadow-sm">
+										<TableHead className="text-left w-[200px] min-w-[200px] sticky left-[120px] top-0 bg-background z-50 border-r border-border shadow-[1px_0_0_0_hsl(var(--border))]">
 											Student Name
 										</TableHead>
 										{CO_KEYS.map((co) => (
@@ -204,22 +204,22 @@ export function StudentMarksTable({
 								</TableHeader>
 								<TableBody>
 									{currentMarks.map((mark) => {
-										const total = calculateTotal(mark);
+										let total = 0;
+										CO_KEYS.forEach((k) => {
+											total += Number(mark[k] || 0);
+										});
 										const passed = total >= passMarks;
 										return (
 											<TableRow
 												key={mark.student_id}
-												className="bg-background hover:bg-muted/50"
+												className="bg-background hover:bg-muted/50 group"
 											>
-												<TableCell className="text-left font-medium sticky left-0 bg-inherit z-30 border-r">
-													<Badge
-														variant="outline"
-														className="font-mono"
-													>
+												<TableCell className="text-left font-medium sticky left-0 bg-background group-hover:bg-muted/50 z-30 border-r border-border shadow-[1px_0_0_0_hsl(var(--border))]">
+													<span className="font-mono text-xs">
 														{mark.student_id}
-													</Badge>
+													</span>
 												</TableCell>
-												<TableCell className="text-left sticky left-[120px] bg-inherit z-30 border-r">
+												<TableCell className="text-left sticky left-[120px] bg-background group-hover:bg-muted/50 z-30 border-r border-border shadow-[1px_0_0_0_hsl(var(--border))]">
 													{mark.student_name}
 												</TableCell>
 												{CO_KEYS.map((co) => (
@@ -227,25 +227,32 @@ export function StudentMarksTable({
 														key={co}
 														className="text-center tabular-nums"
 													>
-														{Number(mark[co]) !==
+														{Number(mark[co]) >
 														0 ? (
-															mark[co]
+															<span className="font-medium">
+																{mark[co]}
+															</span>
 														) : (
-															<span className="text-muted-foreground/40">
-																—
+															<span className="text-muted-foreground/30">
+																-
 															</span>
 														)}
 													</TableCell>
 												))}
-												<TableCell className="text-center font-semibold tabular-nums">
+												<TableCell className="text-center font-bold tabular-nums">
 													{total}
 												</TableCell>
 												<TableCell className="text-center">
 													<Badge
 														variant={
 															passed
-																? "default"
+																? "outline"
 																: "destructive"
+														}
+														className={
+															passed
+																? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
+																: ""
 														}
 													>
 														{passed

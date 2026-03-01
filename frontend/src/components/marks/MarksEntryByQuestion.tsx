@@ -401,7 +401,7 @@ export function MarksEntryByQuestion({
 				}
 			>
 				{loading ? (
-					<div className="text-center py-8 text-gray-500">
+					<div className="text-center py-8 text-muted-foreground">
 						Loading students and questions...
 					</div>
 				) : (
@@ -411,11 +411,6 @@ export function MarksEntryByQuestion({
 						marks={marks}
 						dirtyRows={dirtyRows}
 						onMarkChange={handleMarkChange}
-						emptyMessage={
-							searchTerm
-								? `No students match "${searchTerm}"`
-								: "No students enrolled in this course"
-						}
 					/>
 				)}
 			</TestInfoCard>

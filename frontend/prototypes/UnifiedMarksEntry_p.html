@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<title>Unified Marks Management Console</title>
+		<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<script>
+			tailwind.config = {
+				theme: {
+					extend: {
+						colors: {
+							primary: "#3b82f6",
+							"background-light": "#f3f4f6",
+							"surface-light": "#ffffff",
+							"border-light": "#e5e7eb",
+							"text-light": "#1f2937",
+							"muted-light": "#6b7280",
+						},
+						fontFamily: {
+							display: ["Inter", "sans-serif"],
+						},
+						borderRadius: {
+							DEFAULT: "0.5rem",
+						},
+					},
+				},
+			};
+		</script>
+		<style type="text/tailwindcss">
+			body {
+				font-family: "Inter", sans-serif;
+			}
+			.scrollbar-hide::-webkit-scrollbar {
+				display: none;
+			}
+			.scrollbar-hide {
+				-ms-overflow-style: none;
+				scrollbar-width: none;
+			}
+			.custom-scrollbar::-webkit-scrollbar {
+				width: 6px;
+				height: 6px;
+			}
+			.custom-scrollbar::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			.custom-scrollbar::-webkit-scrollbar-thumb {
+				background-color: #cbd5e1;
+				border-radius: 3px;
+			}
+			.assessment-tab {
+				@apply flex-shrink-0 px-6 py-4 border-b-2 border-transparent hover:bg-gray-50 transition-all cursor-pointer;
+			}
+			.assessment-tab.active {
+				@apply border-primary bg-blue-50/50;
+			}
+		</style>
+	</head>
+	<body
+		class="bg-background-light text-text-light antialiased h-screen overflow-hidden flex flex-row transition-colors duration-200"
+	>
+		<aside
+			class="w-64 bg-surface-light border-r border-border-light flex-shrink-0 flex flex-col h-full z-20"
+		>
+			<div
+				class="p-4 flex items-center space-x-3 border-b border-border-light"
+			>
+				<div
+					class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-primary font-bold overflow-hidden"
+				>
+					<span class="material-symbols-outlined text-2xl"
+						>school</span
+					>
+				</div>
+				<div>
+					<h1 class="text-sm font-bold text-gray-900 leading-tight">
+						Tezpur University
+					</h1>
+					<p class="text-xs text-muted-light truncate max-w-[140px]">
+						Computer Science &amp; Engi...
+					</p>
+				</div>
+			</div>
+			<nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium text-muted-light rounded-md hover:bg-gray-100 transition-colors"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>dashboard</span
+					>
+					Dashboard
+				</a>
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium text-muted-light rounded-md hover:bg-gray-100 transition-colors"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>book</span
+					>
+					Manage Courses
+				</a>
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium text-muted-light rounded-md hover:bg-gray-100 transition-colors"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>people</span
+					>
+					Faculty &amp; Staff
+				</a>
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium text-muted-light rounded-md hover:bg-gray-100 transition-colors"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>school</span
+					>
+					Students
+				</a>
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium text-muted-light rounded-md hover:bg-gray-100 transition-colors"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>assignment</span
+					>
+					Assessments
+				</a>
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium bg-blue-50 text-primary rounded-md"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>edit_note</span
+					>
+					Marks Entry
+				</a>
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium text-muted-light rounded-md hover:bg-gray-100 transition-colors"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>account_tree</span
+					>
+					CO-PO Mapping
+				</a>
+			</nav>
+			<div class="p-4 border-t border-border-light space-y-2">
+				<a
+					class="flex items-center px-3 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 transition-colors"
+					href="#"
+				>
+					<span class="material-symbols-outlined mr-3 text-xl"
+						>logout</span
+					>
+					Logout
+				</a>
+				<div class="flex items-center pt-2 mt-2">
+					<div
+						class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-medium text-xs"
+					>
+						HO
+					</div>
+					<div class="ml-3">
+						<p class="text-xs font-medium text-gray-900">HOD CSE</p>
+						<p class="text-[10px] text-muted-light">
+							hod_cse@tezu.ac.in
+						</p>
+					</div>
+				</div>
+			</div>
+		</aside>
+		<main
+			class="flex-1 flex flex-col h-screen overflow-hidden bg-background-light"
+		>
+			<header
+				class="h-16 bg-surface-light border-b border-border-light flex items-center justify-between px-6 flex-shrink-0 z-10 shadow-sm"
+			>
+				<div class="flex items-center">
+					<button
+						class="mr-4 md:hidden text-gray-500 hover:text-gray-700"
+					>
+						<span class="material-symbols-outlined">menu</span>
+					</button>
+					<div class="flex flex-col">
+						<h2 class="text-lg font-bold text-gray-900">
+							Marks Entry
+						</h2>
+						<span class="text-xs text-muted-light"
+							>CS420 - Pattern Recognition • 2nd Semester,
+							2026</span
+						>
+					</div>
+				</div>
+				<div class="flex items-center space-x-4">
+					<div class="hidden sm:block">
+						<select
+							class="form-select block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-primary focus:border-primary rounded-md bg-white text-gray-900 sm:text-sm"
+						>
+							<option>CS420 - Pattern Recognition</option>
+							<option>CS510 - Machine Learning</option>
+						</select>
+					</div>
+					<button
+						class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+					>
+						<span class="material-symbols-outlined"
+							>light_mode</span
+						>
+					</button>
+				</div>
+			</header>
+			<div
+				class="bg-surface-light border-b border-border-light flex-shrink-0"
+			>
+				<div
+					class="flex items-center justify-between px-6 border-b border-border-light/50"
+				>
+					<div
+						class="flex-1 flex items-center overflow-x-auto scrollbar-hide"
+					>
+						<div class="assessment-tab active">
+							<div class="flex items-center space-x-2">
+								<h4 class="text-sm font-bold text-primary">
+									Test-1
+								</h4>
+								<div
+									class="h-2 w-2 rounded-full bg-yellow-500"
+								></div>
+							</div>
+							<p class="text-[10px] text-muted-light mt-0.5">
+								45% Entered • Full: 10
+							</p>
+						</div>
+						<div class="assessment-tab">
+							<div class="flex items-center space-x-2">
+								<h4 class="text-sm font-semibold text-gray-700">
+									Mid-Term
+								</h4>
+								<div
+									class="h-2 w-2 rounded-full bg-gray-300"
+								></div>
+							</div>
+							<p class="text-[10px] text-muted-light mt-0.5">
+								Pending • Full: 30
+							</p>
+						</div>
+						<div class="assessment-tab">
+							<div class="flex items-center space-x-2">
+								<h4 class="text-sm font-semibold text-gray-700">
+									Test-2
+								</h4>
+								<div
+									class="h-2 w-2 rounded-full bg-green-500"
+								></div>
+							</div>
+							<p class="text-[10px] text-muted-light mt-0.5">
+								Completed • Full: 10
+							</p>
+						</div>
+					</div>
+					<button
+						class="ml-4 text-primary text-xs font-medium hover:bg-blue-50 px-3 py-1.5 rounded-md flex items-center shrink-0"
+					>
+						<span class="material-symbols-outlined text-sm mr-1"
+							>add</span
+						>
+						New Assessment
+					</button>
+				</div>
+				<div
+					class="px-6 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4"
+				>
+					<div class="flex items-center space-x-4">
+						<div class="flex p-1 bg-gray-100 rounded-lg">
+							<button
+								class="px-4 py-1.5 text-xs font-semibold rounded-md shadow bg-white text-primary"
+							>
+								By Question
+							</button>
+							<button
+								class="px-4 py-1.5 text-xs font-semibold rounded-md text-gray-600 hover:text-gray-900 transition-all"
+							>
+								By CO
+							</button>
+							<button
+								class="px-4 py-1.5 text-xs font-semibold rounded-md text-gray-600 hover:text-gray-900 transition-all"
+							>
+								Bulk View
+							</button>
+						</div>
+						<div
+							class="flex items-center space-x-4 text-xs text-muted-light bg-gray-50 px-3 py-2 rounded-lg border border-border-light"
+						>
+							<span class="flex items-center"
+								><span
+									class="material-symbols-outlined text-base mr-1 text-blue-500"
+									>analytics</span
+								>
+								Avg: 7.2</span
+							>
+							<span class="flex items-center"
+								><span
+									class="material-symbols-outlined text-base mr-1 text-green-500"
+									>check_circle</span
+								>
+								28/62 Entered</span
+							>
+						</div>
+					</div>
+					<div class="flex items-center space-x-3">
+						<div class="relative">
+							<input
+								class="pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-1 focus:ring-primary focus:border-primary w-64"
+								placeholder="Search Student..."
+								type="text"
+							/>
+							<span
+								class="material-symbols-outlined absolute left-2.5 top-2 text-gray-400 text-sm"
+								>search</span
+							>
+						</div>
+						<button
+							class="flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+						>
+							<span
+								class="material-symbols-outlined text-sm mr-1.5"
+								>upload_file</span
+							>
+							Import
+						</button>
+						<button
+							class="flex items-center px-4 py-1.5 bg-primary hover:bg-blue-600 text-white font-semibold rounded-md shadow-sm text-sm"
+						>
+							<span
+								class="material-symbols-outlined text-sm mr-1.5"
+								>save</span
+							>
+							Save
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="flex-1 overflow-auto custom-scrollbar bg-white">
+				<table
+					class="min-w-full divide-y divide-gray-200 border-collapse"
+				>
+					<thead class="bg-gray-50 sticky top-0 z-30">
+						<tr>
+							<th
+								class="sticky left-0 z-40 bg-gray-50 px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-r border-gray-200"
+								scope="col"
+							>
+								Roll No
+							</th>
+							<th
+								class="sticky left-[120px] z-40 bg-gray-50 px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-r border-gray-200"
+								scope="col"
+							>
+								Student Name
+							</th>
+							<th
+								class="px-4 py-3 text-center border-b border-r border-gray-200"
+								scope="col"
+							>
+								<div class="flex flex-col items-center">
+									<span
+										class="text-xs font-bold text-gray-700"
+										>Q1</span
+									>
+									<span
+										class="mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800"
+										>CO1</span
+									>
+									<span
+										class="text-[10px] text-gray-400 mt-0.5"
+										>(2.0)</span
+									>
+								</div>
+							</th>
+							<th
+								class="px-4 py-3 text-center border-b border-r border-gray-200"
+								scope="col"
+							>
+								<div class="flex flex-col items-center">
+									<span
+										class="text-xs font-bold text-gray-700"
+										>Q2a</span
+									>
+									<span
+										class="mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800"
+										>CO2</span
+									>
+									<span
+										class="text-[10px] text-gray-400 mt-0.5"
+										>(2.0)</span
+									>
+								</div>
+							</th>
+							<th
+								class="px-4 py-3 text-center border-b border-r border-gray-200"
+								scope="col"
+							>
+								<div class="flex flex-col items-center">
+									<span
+										class="text-xs font-bold text-gray-700"
+										>Q2b</span
+									>
+									<span
+										class="mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800"
+										>CO2</span
+									>
+									<span
+										class="text-[10px] text-gray-400 mt-0.5"
+										>(1.0)</span
+									>
+								</div>
+							</th>
+							<th
+								class="px-4 py-3 text-center border-b border-r border-gray-200"
+								scope="col"
+							>
+								<div class="flex flex-col items-center">
+									<span
+										class="text-xs font-bold text-gray-700"
+										>Q3a</span
+									>
+									<span
+										class="mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-800"
+										>CO3</span
+									>
+									<span
+										class="text-[10px] text-gray-400 mt-0.5"
+										>(2.0)</span
+									>
+								</div>
+							</th>
+							<th
+								class="px-4 py-3 text-center border-b border-r border-gray-200"
+								scope="col"
+							>
+								<div class="flex flex-col items-center">
+									<span
+										class="text-xs font-bold text-gray-700"
+										>Q3b</span
+									>
+									<span
+										class="mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-800"
+										>CO3</span
+									>
+									<span
+										class="text-[10px] text-gray-400 mt-0.5"
+										>(2.0)</span
+									>
+								</div>
+							</th>
+							<th
+								class="px-4 py-3 text-center border-b bg-blue-50/50"
+								scope="col"
+							>
+								<div class="flex flex-col items-center">
+									<span class="text-xs font-bold text-primary"
+										>Total</span
+									>
+									<span
+										class="text-[10px] text-gray-400 mt-0.5"
+										>(10.0)</span
+									>
+								</div>
+							</th>
+						</tr>
+					</thead>
+					<tbody class="bg-white divide-y divide-gray-200">
+						<tr class="hover:bg-gray-50 transition-colors group">
+							<td
+								class="sticky left-0 z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100"
+							>
+								CSM24015
+							</td>
+							<td
+								class="sticky left-[120px] z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm text-gray-600 border-r border-gray-100"
+							>
+								Ayanshu Dev Sikdar
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary focus:border-primary"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary focus:border-primary"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary focus:border-primary"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary focus:border-primary"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary focus:border-primary"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center text-sm font-bold text-gray-900 bg-blue-50/20"
+							>
+								8.00
+							</td>
+						</tr>
+						<tr class="hover:bg-gray-50 transition-colors group">
+							<td
+								class="sticky left-0 z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100"
+							>
+								MEB20050
+							</td>
+							<td
+								class="sticky left-[120px] z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm text-gray-600 border-r border-gray-100"
+							>
+								LALIT PATIDAR
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded focus:ring-primary"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center text-sm font-bold text-gray-900 bg-blue-50/20"
+							>
+								8.00
+							</td>
+						</tr>
+						<tr
+							class="bg-red-50/30 hover:bg-red-50/50 transition-colors group"
+						>
+							<td
+								class="sticky left-0 z-20 bg-white group-hover:bg-red-50/50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100"
+							>
+								MEB21004
+							</td>
+							<td
+								class="sticky left-[120px] z-20 bg-white group-hover:bg-red-50/50 px-6 py-4 whitespace-nowrap text-sm text-gray-600 border-r border-gray-100"
+							>
+								SHAHIL ALI MOSSADDIQUE
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-red-300 border-2 rounded text-red-600"
+									type="number"
+									value="3.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center text-sm font-bold text-red-600 bg-blue-50/20"
+							>
+								<span
+									class="material-symbols-outlined text-sm align-middle"
+									>error</span
+								>
+							</td>
+						</tr>
+						<tr class="hover:bg-gray-50 transition-colors group">
+							<td
+								class="sticky left-0 z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100"
+							>
+								MEB21005
+							</td>
+							<td
+								class="sticky left-[120px] z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm text-gray-600 border-r border-gray-100"
+							>
+								CHANDRAK BHATTACHARJEE
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="2.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									type="number"
+									value="1.00"
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center text-sm font-bold text-gray-900 bg-blue-50/20"
+							>
+								7.00
+							</td>
+						</tr>
+						<tr class="hover:bg-gray-50 transition-colors group">
+							<td
+								class="sticky left-0 z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100"
+							>
+								MEB21006
+							</td>
+							<td
+								class="sticky left-[120px] z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm text-gray-600 border-r border-gray-100"
+							>
+								SIVAM KARMAKAR
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center text-sm font-bold text-gray-400 bg-blue-50/20"
+							>
+								-
+							</td>
+						</tr>
+						<tr class="hover:bg-gray-50 transition-colors group">
+							<td
+								class="sticky left-0 z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100"
+							>
+								MEB21007
+							</td>
+							<td
+								class="sticky left-[120px] z-20 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm text-gray-600 border-r border-gray-100"
+							>
+								ROHIT SINGH
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center border-r border-gray-100"
+							>
+								<input
+									class="w-16 p-1.5 text-center text-sm border-gray-200 rounded"
+									placeholder="-"
+									type="number"
+									value=""
+								/>
+							</td>
+							<td
+								class="px-4 py-3 text-center text-sm font-bold text-gray-400 bg-blue-50/20"
+							>
+								-
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<footer
+				class="bg-surface-light px-6 py-3 border-t border-border-light flex items-center justify-between flex-shrink-0"
+			>
+				<p class="text-sm text-muted-light">
+					Showing 1 to 6 of 62 entries
+				</p>
+				<nav
+					aria-label="Pagination"
+					class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+				>
+					<a
+						class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+						href="#"
+					>
+						<span class="sr-only">Previous</span>
+						<span class="material-symbols-outlined text-lg"
+							>chevron_left</span
+						>
+					</a>
+					<a
+						aria-current="page"
+						class="z-10 bg-blue-50 border-primary text-primary relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+						href="#"
+						>1</a
+					>
+					<a
+						class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+						href="#"
+						>2</a
+					>
+					<a
+						class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+						href="#"
+						>3</a
+					>
+					<span
+						class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+						>...</span
+					>
+					<a
+						class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+						href="#"
+						>6</a
+					>
+					<a
+						class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+						href="#"
+					>
+						<span class="sr-only">Next</span>
+						<span class="material-symbols-outlined text-lg"
+							>chevron_right</span
+						>
+					</a>
+				</nav>
+			</footer>
+		</main>
+	</body>
+</html>

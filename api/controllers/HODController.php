@@ -717,7 +717,7 @@ class HODController
             }
 
             // Ensure student belongs to the HOD's department
-            if ((int)$student['department_id'] !== $departmentId) {
+            if ((int)$student->getDepartmentId() !== $departmentId) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Access denied: student not in your department']);
                 return;
@@ -733,17 +733,14 @@ class HODController
                 return;
             }
 
-            $merged = array_merge($student, $updates);
-            $s = new Student();
-            $s->roll_no        = $merged['roll_no'];
-            $s->student_name   = $merged['student_name'];
-            $s->department_id  = $merged['department_id'];
-            $s->batch_year     = isset($merged['batch_year']) ? (int)$merged['batch_year'] : null;
-            $s->student_status = $merged['student_status'] ?? 'Active';
-            $s->email          = $merged['email'] ?? null;
-            $s->phone          = $merged['phone'] ?? null;
+            // Apply updates via setters
+            if (isset($updates['student_name'])) $student->setStudentName($updates['student_name']);
+            if (isset($updates['email']))         $student->setEmail($updates['email']);
+            if (isset($updates['phone']))         $student->setPhone($updates['phone']);
+            if (isset($updates['student_status'])) $student->setStudentStatus($updates['student_status']);
+            if (isset($updates['batch_year']))    $student->setBatchYear((int)$updates['batch_year']);
 
-            $this->studentRepository->save($s);
+            $this->studentRepository->save($student);
 
             http_response_code(200);
             header('Content-Type: application/json');

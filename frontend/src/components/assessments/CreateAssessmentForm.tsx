@@ -245,13 +245,15 @@ export function CreateAssessmentForm({
 			{/* Top header bar */}
 			<header className="h-14 shrink-0 bg-white dark:bg-gray-900 border-b flex items-center justify-between px-6 gap-4">
 				<div className="flex items-center gap-3 min-w-0">
-					<button
+					<Button
 						type="button"
+						variant="ghost"
+						size="icon"
 						onClick={onCancel}
-						className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors shrink-0"
+						className="rounded-full shrink-0 h-8 w-8"
 					>
-						<ArrowLeft className="w-4 h-4 text-muted-foreground" />
-					</button>
+						<ArrowLeft className="w-4 h-4" />
+					</Button>
 					<h1 className="text-base font-bold truncate">
 						Create New Assessment
 					</h1>
@@ -417,14 +419,15 @@ export function CreateAssessmentForm({
 
 						{/* Cancel */}
 						<div className="pt-2 border-t">
-							<button
+							<Button
 								type="button"
+								variant="ghost"
 								onClick={onCancel}
-								className="w-full py-2.5 text-sm font-medium text-muted-foreground hover:text-destructive transition-colors flex items-center justify-center gap-2"
+								className="w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2"
 							>
 								<X className="w-4 h-4" />
 								Cancel Creation
-							</button>
+							</Button>
 						</div>
 					</div>
 				</aside>
@@ -485,7 +488,7 @@ export function CreateAssessmentForm({
 
 					{/* Scrollable questions area */}
 					<div className="flex-1 overflow-y-auto p-6 lg:p-8">
-						<div className="max-w-5xl mx-auto">
+						<div className="max-w-7xl mx-auto w-full">
 							<div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border overflow-hidden">
 								<QuestionsTable
 									questions={questions}
@@ -493,7 +496,7 @@ export function CreateAssessmentForm({
 									onRemoveQuestion={removeQuestion}
 									onAddSubQuestion={addSubQuestion}
 								/>
-								<div className="p-5 border-t bg-slate-50/50 dark:bg-gray-800/30 text-center">
+								<div className="p-5 border-t bg-slate-50/50 dark:bg-gray-800/30 text-center flex justify-center">
 									<Button
 										type="button"
 										variant="outline"
@@ -503,7 +506,7 @@ export function CreateAssessmentForm({
 											fullMarksNum > 0 &&
 											totalMarks >= fullMarksNum
 										}
-										className="gap-2"
+										className="gap-2 rounded-full h-10 px-8 shadow-sm hover:-translate-y-px transition-all"
 									>
 										<Plus className="w-4 h-4" />
 										Add Main Question
