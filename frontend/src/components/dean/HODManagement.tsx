@@ -534,12 +534,12 @@ export function HODManagement({
 					<DialogHeader>
 						<DialogTitle>
 							{selectedDepartment?.hod_name
-								? "Replace Serving HOD"
+								? "Assign New HOD"
 								: "Record Serving HOD"}
 						</DialogTitle>
 						<DialogDescription>
 							{selectedDepartment?.hod_name
-								? `Replace current serving HOD (${selectedDepartment.hod_name}) for ${selectedDepartment.department_name}`
+								? `Assign new HOD (${selectedDepartment.hod_name}) for ${selectedDepartment.department_name}`
 								: `Record the serving Head of Department for ${selectedDepartment?.department_name}`}
 						</DialogDescription>
 					</DialogHeader>
@@ -631,7 +631,7 @@ export function HODManagement({
 								demoteMutation.isPending
 									? "Processing..."
 									: selectedDepartment?.hod_name
-										? "Replace Serving HOD"
+										? "Assign New HOD"
 										: "Record Serving HOD"}
 							</Button>
 						</div>
