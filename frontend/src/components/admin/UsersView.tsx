@@ -195,7 +195,7 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 			),
 			cell: ({ row }) => {
 				const user = row.original;
-				const isHOD = Number(user.is_hod) === 1;
+				const isHOD = user.role === "hod";
 				const isDean = Number(user.is_dean) === 1;
 
 				return (
@@ -482,6 +482,9 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 										<SelectItem value="admin">
 											Admin
 										</SelectItem>
+										<SelectItem value="hod">
+											HOD (Dedicated Account)
+										</SelectItem>
 										<SelectItem value="faculty">
 											Faculty
 										</SelectItem>
@@ -490,6 +493,14 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 										</SelectItem>
 									</SelectContent>
 								</Select>
+								{newUser.role === "hod" && (
+									<p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+										Creates a permanent HOD login account
+										(e.g. hod_cse@tezu.ac.in). Faculty
+										serving as HOD are tracked separately
+										via Dean's HOD Management.
+									</p>
+								)}
 							</div>
 						</div>
 						<div className="space-y-2">

@@ -102,6 +102,7 @@ class ApiService {
 	getDeanDepartmentFaculty = deanApi.getDepartmentFaculty;
 	appointHOD = deanApi.appointHOD;
 	demoteHOD = deanApi.demoteHOD;
+	getHODHistory = deanApi.getHODHistory;
 }
 
 // Export a singleton instance for backward compatibility

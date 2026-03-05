@@ -72,16 +72,16 @@ export function FacultyDashboard() {
 		if (storedUser.role !== "faculty") {
 			if (storedUser.role === "admin") {
 				navigate("/dashboard");
-				return;
-			}
-			if (storedUser.is_dean) {
+			} else if (storedUser.role === "hod") {
+				navigate("/hod");
+			} else if (storedUser.is_dean) {
 				navigate("/dean");
-				return;
-			}
-			if (storedUser.role === "staff") {
+			} else if (storedUser.role === "staff") {
 				navigate("/staff");
-				return;
+			} else {
+				navigate("/login");
 			}
+			return;
 		}
 		setUser(storedUser);
 		loadStats();
@@ -134,7 +134,7 @@ export function FacultyDashboard() {
 	return (
 		<>
 			<Toaster />
-			<div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+			<div className="flex h-screen bg-background">
 				<AppSidebar
 					items={facultyNavItems}
 					user={user}

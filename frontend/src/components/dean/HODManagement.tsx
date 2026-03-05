@@ -26,10 +26,16 @@ import {
 	UserPlus,
 	UserMinus,
 	Users,
+	History,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { deanApi, type DeanDepartment } from "@/services/api";
+import {
+	deanApi,
+	type DeanDepartment,
+	type HODHistoryRecord,
+} from "@/services/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateAppointmentOrder } from "@/utils/appointmentUtils";
 
 interface HODManagementProps {
@@ -48,9 +54,6 @@ export function HODManagement({
 	const [selectedDepartment, setSelectedDepartment] =
 		useState<DeanDepartment | null>(null);
 	const [appointDialogOpen, setAppointDialogOpen] = useState(false);
-	const [appointMode, setAppointMode] = useState<"promote" | "create">(
-		"promote",
-	);
 	const [selectedFaculty, setSelectedFaculty] = useState<string>("");
 	const [appointmentOrder, setAppointmentOrder] = useState("");
 
@@ -66,14 +69,6 @@ export function HODManagement({
 		}
 	}, [appointDialogOpen, selectedDepartment]);
 
-	// Form state for creating new HOD
-	const [newHODForm, setNewHODForm] = useState({
-		employee_id: "",
-		username: "",
-		email: "",
-		password: "",
-	});
-
 	// Fetch faculty members for a department
 	const { data: facultyMembers = [], isLoading: loadingFaculty } = useQuery({
 		queryKey: ["departmentFaculty", selectedDepartment?.department_id],
@@ -81,10 +76,17 @@ export function HODManagement({
 			selectedDepartment
 				? deanApi.getDepartmentFaculty(selectedDepartment.department_id)
 				: Promise.resolve([]),
-		enabled:
-			appointDialogOpen &&
-			appointMode === "promote" &&
-			!!selectedDepartment,
+		enabled: appointDialogOpen && !!selectedDepartment,
+	});
+
+	// Fetch HOD assignment history
+	const {
+		data: hodHistory = [],
+		isLoading: loadingHistory,
+		refetch: refetchHistory,
+	} = useQuery({
+		queryKey: ["hodHistory"],
+		queryFn: () => deanApi.getHODHistory(),
 	});
 
 	// Appoint HOD mutation
@@ -112,13 +114,6 @@ export function HODManagement({
 	const resetForm = () => {
 		setSelectedFaculty("");
 		setAppointmentOrder("");
-		setNewHODForm({
-			employee_id: "",
-			username: "",
-			email: "",
-			password: "",
-		});
-		setAppointMode("promote");
 	};
 
 	const handleAppointClick = (department: DeanDepartment) => {
@@ -147,61 +142,36 @@ export function HODManagement({
 					);
 					return;
 				}
-				toast.info("Demoting current HOD...");
+				toast.info("Ending current HOD assignment...");
 				await demoteMutation.mutateAsync(
 					selectedDepartment.hod_employee_id,
 				);
-				toast.success("Current HOD demoted successfully");
+				toast.success("Previous serving HOD record ended");
 			}
 
-			if (appointMode === "promote") {
-				if (!selectedFaculty || !appointmentOrder.trim()) {
-					toast.error(
-						"Please select a faculty member and enter appointment order",
-					);
-					return;
-				}
-				await appointMutation.mutateAsync({
-					departmentId: selectedDepartment.department_id,
-					data: {
-						employee_id: parseInt(selectedFaculty),
-						appointment_order: appointmentOrder,
-					},
-				});
-			} else {
-				// Create new HOD
-				if (
-					!newHODForm.employee_id ||
-					!newHODForm.username ||
-					!newHODForm.email ||
-					!newHODForm.password ||
-					!appointmentOrder.trim()
-				) {
-					toast.error(
-						"Please fill all fields including appointment order",
-					);
-					return;
-				}
-				await appointMutation.mutateAsync({
-					departmentId: selectedDepartment.department_id,
-					data: {
-						employee_id: parseInt(newHODForm.employee_id),
-						username: newHODForm.username,
-						email: newHODForm.email,
-						password: newHODForm.password,
-						appointment_order: appointmentOrder,
-					},
-				});
+			if (!selectedFaculty || !appointmentOrder.trim()) {
+				toast.error(
+					"Please select a faculty member and enter appointment order",
+				);
+				return;
 			}
+			await appointMutation.mutateAsync({
+				departmentId: selectedDepartment.department_id,
+				data: {
+					employee_id: parseInt(selectedFaculty),
+					appointment_order: appointmentOrder,
+				},
+			});
 
 			// Both steps succeeded — show toast, refresh, close dialog
 			toast.success(
 				isReplacing
-					? "HOD replaced successfully"
-					: "HOD appointed successfully",
+					? "Serving HOD replaced successfully"
+					: "Serving HOD recorded successfully",
 			);
 			queryClient.invalidateQueries({ queryKey: ["deanDepartments"] });
 			queryClient.invalidateQueries({ queryKey: ["deanUsers"] });
+			queryClient.invalidateQueries({ queryKey: ["hodHistory"] });
 			if (onSuccess) onSuccess();
 			setAppointDialogOpen(false);
 			resetForm();
@@ -211,7 +181,7 @@ export function HODManagement({
 		}
 	};
 
-	const columns: ColumnDef<DeanDepartment>[] = [
+	const statusColumns: ColumnDef<DeanDepartment>[] = [
 		{
 			accessorKey: "department_code",
 			header: ({ column }) => {
@@ -260,7 +230,7 @@ export function HODManagement({
 		},
 		{
 			accessorKey: "hod_name",
-			header: "HOD",
+			header: "Serving HOD",
 			cell: ({ row }) => {
 				const hod = row.getValue("hod_name") as string;
 				return hod ? (
@@ -315,7 +285,7 @@ export function HODManagement({
 								variant="outline"
 								onClick={() => handleDemoteClick(dept)}
 							>
-								Replace HOD
+								Replace Serving HOD
 							</Button>
 						) : (
 							<Button
@@ -323,10 +293,108 @@ export function HODManagement({
 								onClick={() => handleAppointClick(dept)}
 							>
 								<UserPlus className="w-4 h-4 mr-2" />
-								Appoint HOD
+								Record Serving HOD
 							</Button>
 						)}
 					</div>
+				);
+			},
+		},
+	];
+
+	const historyColumns: ColumnDef<HODHistoryRecord>[] = [
+		{
+			accessorKey: "department_code",
+			header: "Dept",
+			cell: ({ row }) => (
+				<Badge
+					variant="secondary"
+					className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+				>
+					{row.getValue("department_code")}
+				</Badge>
+			),
+		},
+		{
+			accessorKey: "username",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					className="mr-auto"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Faculty Name
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<div className="font-medium">
+					{row.getValue("username")}
+					<div className="text-xs text-muted-foreground font-normal">
+						{(row.original as HODHistoryRecord).email}
+					</div>
+				</div>
+			),
+		},
+		{
+			accessorKey: "appointment_order",
+			header: "Appointment Order",
+			cell: ({ row }) => (
+				<span className="text-sm font-mono text-muted-foreground">
+					{(row.getValue("appointment_order") as string | null) ??
+						"—"}
+				</span>
+			),
+		},
+		{
+			accessorKey: "start_date",
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						column.toggleSorting(column.getIsSorted() === "asc")
+					}
+				>
+					Start Date
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			cell: ({ row }) => (
+				<span className="text-sm">
+					{new Date(row.getValue("start_date")).toLocaleDateString()}
+				</span>
+			),
+		},
+		{
+			accessorKey: "end_date",
+			header: "End Date",
+			cell: ({ row }) => {
+				const end = row.getValue("end_date") as string | null;
+				return (
+					<span className="text-sm">
+						{end ? new Date(end).toLocaleDateString() : "—"}
+					</span>
+				);
+			},
+		},
+		{
+			accessorKey: "is_current",
+			header: "Status",
+			cell: ({ row }) => {
+				const current = row.getValue("is_current") as number;
+				return current ? (
+					<Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+						Current
+					</Badge>
+				) : (
+					<Badge
+						variant="secondary"
+						className="bg-gray-50 text-gray-600 dark:bg-gray-950 dark:text-gray-400"
+					>
+						Past
+					</Badge>
 				);
 			},
 		},
@@ -400,21 +468,62 @@ export function HODManagement({
 				</Card>
 			</div>
 
-			{/* Departments Table */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Department HOD Status</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<DataTable
-						columns={columns}
-						data={departments}
-						refreshing={isLoading}
-						searchPlaceholder="Search departments..."
-						searchKey="department_name"
-					/>
-				</CardContent>
-			</Card>
+			{/* Tabs: HOD Status + Assignment History */}
+			<Tabs defaultValue="status">
+				<TabsList>
+					<TabsTrigger value="status">
+						<Building2 className="w-4 h-4 mr-2" />
+						HOD Status
+					</TabsTrigger>
+					<TabsTrigger
+						value="history"
+						onClick={() => refetchHistory()}
+					>
+						<History className="w-4 h-4 mr-2" />
+						Assignment History
+					</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="status">
+					<Card>
+						<CardHeader>
+							<CardTitle>Department HOD Status</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<DataTable
+								columns={statusColumns}
+								data={departments}
+								refreshing={isLoading}
+								searchPlaceholder="Search departments..."
+								searchKey="department_name"
+							/>
+						</CardContent>
+					</Card>
+				</TabsContent>
+
+				<TabsContent value="history">
+					<Card>
+						<CardHeader>
+							<CardTitle>HOD Assignment History</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{loadingHistory ? (
+								<div className="flex items-center justify-center h-32">
+									<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500" />
+								</div>
+							) : (
+								<DataTable
+									columns={historyColumns}
+									data={hodHistory}
+									refreshing={loadingHistory}
+									searchPlaceholder="Search by name or department..."
+									searchKey="username"
+								/>
+							)}
+						</CardContent>
+					</Card>
+				</TabsContent>
+			</Tabs>
 
 			{/* Appoint HOD Dialog */}
 			<Dialog
@@ -425,41 +534,16 @@ export function HODManagement({
 					<DialogHeader>
 						<DialogTitle>
 							{selectedDepartment?.hod_name
-								? "Replace HOD"
-								: "Appoint HOD"}
+								? "Replace Serving HOD"
+								: "Record Serving HOD"}
 						</DialogTitle>
 						<DialogDescription>
 							{selectedDepartment?.hod_name
-								? `Replace current HOD (${selectedDepartment.hod_name}) for ${selectedDepartment.department_name}`
-								: `Appoint a Head of Department for ${selectedDepartment?.department_name}`}
+								? `Replace current serving HOD (${selectedDepartment.hod_name}) for ${selectedDepartment.department_name}`
+								: `Record the serving Head of Department for ${selectedDepartment?.department_name}`}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">
-						<div className="flex gap-2">
-							<Button
-								variant={
-									appointMode === "promote"
-										? "default"
-										: "outline"
-								}
-								onClick={() => setAppointMode("promote")}
-								className="flex-1"
-							>
-								Promote Faculty
-							</Button>
-							<Button
-								variant={
-									appointMode === "create"
-										? "default"
-										: "outline"
-								}
-								onClick={() => setAppointMode("create")}
-								className="flex-1"
-							>
-								Create New HOD
-							</Button>
-						</div>
-
 						<div className="space-y-2">
 							<Label htmlFor="appointment-order">
 								Appointment Order No.
@@ -474,109 +558,55 @@ export function HODManagement({
 							/>
 						</div>
 
-						{appointMode === "promote" ? (
-							<div className="space-y-2">
-								<Label>Select Faculty Member</Label>
-								{loadingFaculty ? (
-									<div className="text-sm text-muted-foreground">
-										Loading...
-									</div>
-								) : facultyMembers.length === 0 ? (
-									<div className="text-sm text-muted-foreground">
-										No faculty members available in this
-										department
-									</div>
-								) : (
-									<Select
-										value={selectedFaculty}
-										onValueChange={(value) =>
-											setSelectedFaculty(value)
-										}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Choose a faculty member" />
-										</SelectTrigger>
-										<SelectContent>
-											{facultyMembers.map(
-												(faculty: {
-													employee_id: number;
-													username: string;
-													email: string;
-												}) => (
-													<SelectItem
-														key={
-															faculty.employee_id
-														}
-														value={faculty.employee_id.toString()}
-													>
-														{faculty.username} (
-														{faculty.email})
-													</SelectItem>
-												),
-											)}
-										</SelectContent>
-									</Select>
-								)}
-							</div>
-						) : (
-							<div className="space-y-3">
-								<div className="space-y-2">
-									<Label>Employee ID</Label>
-									<Input
-										type="number"
-										value={newHODForm.employee_id}
-										onChange={(e) =>
-											setNewHODForm({
-												...newHODForm,
-												employee_id: e.target.value,
-											})
-										}
-										placeholder="Enter employee ID"
-									/>
+						<div className="space-y-2">
+							<Label>Select Faculty / Staff Member</Label>
+							{loadingFaculty ? (
+								<div className="text-sm text-muted-foreground">
+									Loading...
 								</div>
-								<div className="space-y-2">
-									<Label>Name</Label>
-									<Input
-										value={newHODForm.username}
-										onChange={(e) =>
-											setNewHODForm({
-												...newHODForm,
-												username: e.target.value,
-											})
-										}
-										placeholder="Enter full name"
-									/>
+							) : facultyMembers.length === 0 ? (
+								<div className="text-sm text-muted-foreground">
+									No faculty members available in this
+									department
 								</div>
-								<div className="space-y-2">
-									<Label>Email</Label>
-									<Input
-										type="email"
-										value={newHODForm.email}
-										onChange={(e) =>
-											setNewHODForm({
-												...newHODForm,
-												email: e.target.value,
-											})
-										}
-										placeholder="Enter email address"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label>Password</Label>
-									<Input
-										type="password"
-										value={newHODForm.password}
-										onChange={(e) =>
-											setNewHODForm({
-												...newHODForm,
-												password: e.target.value,
-											})
-										}
-										placeholder="Enter password"
-									/>
-								</div>
-							</div>
-						)}
+							) : (
+								<Select
+									value={selectedFaculty}
+									onValueChange={(value) =>
+										setSelectedFaculty(value)
+									}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="Choose a faculty member" />
+									</SelectTrigger>
+									<SelectContent>
+										{facultyMembers.map(
+											(faculty: {
+												employee_id: number;
+												username: string;
+												email: string;
+											}) => (
+												<SelectItem
+													key={faculty.employee_id}
+													value={faculty.employee_id.toString()}
+												>
+													{faculty.username} (
+													{faculty.email})
+												</SelectItem>
+											),
+										)}
+									</SelectContent>
+								</Select>
+							)}
+						</div>
+
+						<div className="rounded-md bg-muted/50 border p-3 text-sm text-muted-foreground">
+							This is a record-only assignment. The selected
+							member will be recorded as the serving HOD. Their
+							login role will NOT change — the HOD interface is
+							always accessed via the dedicated HOD account
+							(e.g.&nbsp;hod_cse@tezu.ac.in).
+						</div>
 
 						<div className="flex gap-2 pt-4">
 							<Button
@@ -601,8 +631,8 @@ export function HODManagement({
 								demoteMutation.isPending
 									? "Processing..."
 									: selectedDepartment?.hod_name
-										? "Replace HOD"
-										: "Appoint HOD"}
+										? "Replace Serving HOD"
+										: "Record Serving HOD"}
 							</Button>
 						</div>
 					</div>

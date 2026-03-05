@@ -55,12 +55,10 @@ class AuthService
             'school_id' => null
         ];
 
-        if ($this->hodAssignmentRepository && $user->getDepartmentId()) {
-            $hodAssignment = $this->hodAssignmentRepository->getCurrentHOD($user->getDepartmentId());
-            if ($hodAssignment && $hodAssignment->getEmployeeId() == $user->getEmployeeId()) {
-                $flags['is_hod'] = true;
-                $flags['hod_department_id'] = $user->getDepartmentId();
-            }
+        // If user role is 'hod', they are a dedicated HOD account
+        if ($user->getRole() === 'hod') {
+            $flags['is_hod'] = true;
+            $flags['hod_department_id'] = $user->getDepartmentId();
         }
 
         // Check Dean assignment - check if user is a current Dean for any school

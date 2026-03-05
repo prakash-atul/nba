@@ -165,7 +165,7 @@ export function UsersView() {
 			cell: ({ row }) => {
 				const role = row.getValue("role") as string;
 				const user = row.original;
-				const isHOD = Number(user.is_hod) === 1;
+				const isHOD = user.role === "hod";
 				const isDean = Number(user.is_dean) === 1;
 
 				return (

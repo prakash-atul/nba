@@ -5,9 +5,13 @@
  * Main entry point for the NBA API following RESTful principles
  */
 
-// Enable error reporting for development (disable in production)
-ini_set('display_errors', 1);
+// Error reporting: log to file, never output to response (prevents JSON corruption)
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 error_reporting(E_ALL);
+
+// Output buffer ensures no stray output pollutes JSON responses
+ob_start();
 
 // Basic Routing for Landing Page
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -39,3 +43,6 @@ header('Content-Type: application/json');
 
 // Include the main router
 require_once __DIR__ . '/routes/api.php';
+
+// Flush output buffer cleanly
+ob_end_flush();

@@ -72,7 +72,7 @@ export function DeanDashboard() {
 		}
 		if (!storedUser.is_dean) {
 			if (storedUser.role === "admin") navigate("/dashboard");
-			else if (storedUser.is_hod) navigate("/hod");
+			else if (storedUser.role === "hod") navigate("/hod");
 			else if (storedUser.role === "faculty") navigate("/faculty");
 			else if (storedUser.role === "staff") navigate("/staff");
 			else navigate("/login");

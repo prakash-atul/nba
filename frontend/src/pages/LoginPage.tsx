@@ -26,12 +26,12 @@ export function LoginPage() {
 			if (response.success) {
 				const { user } = response.data;
 
-				// Route based on role and flags
+				// Route based on role
 				if (user.role === "admin") {
 					navigate("/dashboard");
 				} else if (user.is_dean) {
 					navigate("/dean");
-				} else if (user.is_hod) {
+				} else if (user.role === "hod") {
 					navigate("/hod");
 				} else if (user.role === "faculty") {
 					navigate("/faculty");
@@ -45,7 +45,7 @@ export function LoginPage() {
 			setError(
 				err instanceof Error
 					? err.message
-					: "Login failed. Please try again."
+					: "Login failed. Please try again.",
 			);
 		} finally {
 			setLoading(false);
@@ -62,7 +62,7 @@ export function LoginPage() {
 			{/* Animated Dot Pattern Background */}
 			<DotPattern
 				className={cn(
-					"mask-[radial-gradient(600px_circle_at_center,white,transparent)] text-slate-400/50 dark:text-neutral-400/80"
+					"mask-[radial-gradient(600px_circle_at_center,white,transparent)] text-slate-400/50 dark:text-neutral-400/80",
 				)}
 				width={20}
 				height={20}

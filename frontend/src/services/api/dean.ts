@@ -8,7 +8,7 @@ import type {
 	DeanTest,
 	DepartmentAnalytics,
 	AppointHODRequest,
-	CreateHODRequest,
+	HODHistoryRecord,
 	PaginatedResponse,
 	PaginationParams,
 } from "./types";
@@ -59,9 +59,9 @@ export const deanApi = {
 
 	async appointHOD(
 		departmentId: number,
-		data: AppointHODRequest | CreateHODRequest,
+		data: AppointHODRequest,
 	): Promise<DeanUser> {
-		return apiPost<AppointHODRequest | CreateHODRequest, DeanUser>(
+		return apiPost<AppointHODRequest, DeanUser>(
 			`/dean/departments/${departmentId}/hod`,
 			data,
 		);
@@ -69,5 +69,9 @@ export const deanApi = {
 
 	async demoteHOD(employeeId: number): Promise<DeanUser> {
 		return apiDelete<DeanUser>(`/dean/hod/${employeeId}`);
+	},
+
+	async getHODHistory(): Promise<HODHistoryRecord[]> {
+		return apiGet<HODHistoryRecord[]>("/dean/hod/history");
 	},
 };

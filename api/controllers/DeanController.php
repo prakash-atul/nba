@@ -355,11 +355,10 @@ class DeanController
 
     /**
      * Appoint HOD for a department (Dean only)
-     * Can either promote existing faculty or create new HOD
-     */
-    /**
-     * Appoint HOD for a department (Dean only)
-     * Creates assignment in hod_assignments table without changing user role
+     * Creates an hod_assignments record to track which faculty/staff member
+     * is the serving HOD. This is record-keeping only — the selected user's
+     * role is NOT changed. The HOD interface is always accessed via the
+     * permanent dedicated HOD account (e.g. hod_cse@tezu.ac.in).
      */
     public function appointHOD($departmentId)
     {
@@ -418,176 +417,85 @@ class DeanController
                 return;
             }
 
-            // Two scenarios: assign existing faculty OR create new user and assign
-            if (isset($data['employee_id']) && !isset($data['username'])) {
-                // Scenario 1: Assign existing faculty as HOD
-                $employeeId = (int)$data['employee_id'];
-                $user = $this->userRepository->findByEmployeeId($employeeId);
-                
-                if (!$user) {
-                    http_response_code(404);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'User not found'
-                    ]);
-                    return;
-                }
+            // Assign existing faculty as HOD
+            if (empty($data['employee_id'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'employee_id is required'
+                ]);
+                return;
+            }
 
-                // Validate user is faculty in this department
-                if ($user->getDepartmentId() != $departmentId) {
-                    http_response_code(400);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'User does not belong to this department'
-                    ]);
-                    return;
-                }
+            $employeeId = (int)$data['employee_id'];
+            $user = $this->userRepository->findByEmployeeId($employeeId);
+            
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User not found'
+                ]);
+                return;
+            }
 
-                // Note: user must be faculty. We don't check strict role equality because user might be admin/staff 
-                // but usually HOD must be faculty. Let's keep strict check if desired, or relax it.
-                // The previous code had strict check.
-                if ($user->getRole() !== 'faculty') {
-                    http_response_code(400);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Only faculty members can be appointed as HOD'
-                    ]);
-                    return;
-                }
+            // Validate user is faculty in this department
+            if ($user->getDepartmentId() != $departmentId) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User does not belong to this department'
+                ]);
+                return;
+            }
 
-                // Create HOD assignment (do NOT change user role)
-                // Use HODAssignment model constructor if available, or array?
-                // Looking at repository usage, likely expects object or array. 
-                // The HODAssignmentRepository->create method signature isn't fully visible but presumably takes object or array.
-                // Assuming object based on previous read showing `new HODAssignment(...)`
-                
-                // We need to implement create method in repo if it doesn't exist?
-                // Or just use SQL directly if repo doesn't support it?
-                // I'll assume repo has create/save method.
-                
-                // Wait, previous code:
-                /*
-                $assignmentObj = new HODAssignment(
-                    null,
-                    $departmentId,
-                    $employeeId,
-                    date('Y-m-d'),
-                    null,
-                    1,
-                    isset($data['appointment_order']) ? $data['appointment_order'] : null
-                );
-                $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
-                */
-                // Ref previous code snippet.
-                
-                $assignmentObj = new HODAssignment(
-                    null,
-                    $departmentId,
-                    $employeeId,
-                    date('Y-m-d'),
-                    null,
-                    1,
-                    isset($data['appointment_order']) ? $data['appointment_order'] : null,
-                    null // created_at
-                );
-                
-                $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
+            if ($user->getRole() === 'hod') {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Dedicated HOD accounts cannot be appointed — select a faculty or staff member'
+                ]);
+                return;
+            }
 
-                if ($assignmentId) {
-                    http_response_code(200);
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Faculty assigned as HOD successfully',
-                        'data' => [
-                            'user' => $user->toArray(),
-                            'assignment_id' => $assignmentId
-                        ]
-                    ]);
-                    return;
-                } else {
-                    throw new Exception("Failed to create HOD assignment");
-                }
+            if (!in_array($user->getRole(), ['faculty', 'staff'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Only faculty or staff members can be recorded as serving HOD'
+                ]);
+                return;
+            }
+
+            // Create HOD assignment record
+            $assignmentObj = new HODAssignment(
+                null,
+                $departmentId,
+                $employeeId,
+                date('Y-m-d'),
+                null,
+                1,
+                isset($data['appointment_order']) ? $data['appointment_order'] : null,
+                null // created_at
+            );
+            
+            $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
+
+            if ($assignmentId) {
+                // Record-only — do NOT change the user's role.
+                // The HOD interface is accessed via the permanent HOD account.
+
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Faculty recorded as serving HOD successfully',
+                    'data' => [
+                        'user' => $user->toArray(),
+                        'assignment_id' => $assignmentId
+                    ]
+                ]);
             } else {
-                // Scenario 2: Create new user as faculty and assign as HOD
-                $requiredFields = ['employee_id', 'username', 'email', 'password'];
-                $errors = [];
-                foreach ($requiredFields as $field) {
-                    if (empty($data[$field])) {
-                        $errors[] = "$field is required";
-                    }
-                }
-
-                if (!empty($errors)) {
-                    http_response_code(400);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Validation failed',
-                        'errors' => $errors
-                    ]);
-                    return;
-                }
-
-                // Check if employee_id already exists
-                if ($this->userRepository->findByEmployeeId($data['employee_id'])) {
-                    http_response_code(409);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Employee ID already exists'
-                    ]);
-                    return;
-                }
-
-                // Check if email already exists
-                if ($this->userRepository->emailExists($data['email'])) {
-                    http_response_code(409);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Email already exists'
-                    ]);
-                    return;
-                }
-
-                // Create new user as faculty (not HOD role)
-                $newUser = new User(
-                    (int)$data['employee_id'],
-                    $data['username'],
-                    $data['email'],
-                    password_hash($data['password'], PASSWORD_DEFAULT),
-                    'faculty',  // Base role is faculty
-                    $departmentId,
-                    isset($data['designation']) ? $data['designation'] : 'Professor',
-                    isset($data['phone']) ? $data['phone'] : null
-                );
-                
-                $this->userRepository->save($newUser);
-                
-                // Now assign as HOD
-                $assignmentObj = new HODAssignment(
-                    null,
-                    $departmentId,
-                    (int)$data['employee_id'],
-                    date('Y-m-d'),
-                    null,
-                    1,
-                    isset($data['appointment_order']) ? $data['appointment_order'] : null,
-                    null
-                );
-                
-                $assignmentId = $this->hodAssignmentRepository->create($assignmentObj);
-
-                if ($assignmentId) {
-                    http_response_code(201);
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'New faculty created and appointed as HOD successfully',
-                        'data' => [
-                            'user' => $newUser->toArray(),
-                            'assignment_id' => $assignmentId
-                        ]
-                    ]);
-                } else {
-                    throw new Exception("User created but failed to create HOD assignment");
-                }
+                throw new Exception("Failed to create HOD assignment");
             }
 
         } catch (Exception $e) {
@@ -597,11 +505,9 @@ class DeanController
     }
 
     /**
-     * Demote HOD to faculty (Dean only)
-     */
-    /**
-     * Demote HOD (Dean only)
-     * Ends HOD assignment without changing user role (they remain faculty)
+     * End HOD assignment (Dean only)
+     * Ends the hod_assignments record. The user's role is NOT changed
+     * because it was never changed — appointments are record-only.
      */
     public function demoteHOD($employeeId)
     {
@@ -641,14 +547,16 @@ class DeanController
                 return;
             }
 
-            // End the HOD assignment (do NOT change user role)
+            // End the HOD assignment and revert user role to faculty
             $result = $this->hodAssignmentRepository->endCurrentAssignment($departmentId);
 
             if ($result) {
+                // Record-only — do NOT change user role.
+
                 http_response_code(200);
                 echo json_encode([
                     'success' => true,
-                    'message' => 'HOD assignment ended successfully. User remains as faculty.',
+                    'message' => 'HOD assignment ended successfully.',
                     'data' => $user->toArray()
                 ]);
             } else {
@@ -667,6 +575,46 @@ class DeanController
     /**
      * Get faculty members in a department (for HOD appointment)
      */
+    /**
+     * Get full HOD assignment history for all departments in the Dean's school
+     */
+    public function getHODHistory()
+    {
+        if (!$this->requireDean()) return;
+
+        try {
+            $schoolId = $_REQUEST['authenticated_user']['school_id'] ?? null;
+            if (!$schoolId) throw new Exception('School ID not found in user session.');
+
+            // Get all departments in this school
+            $departments = $this->departmentRepository->findBySchool($schoolId);
+
+            $history = [];
+            foreach ($departments as $dept) {
+                $records = $this->hodAssignmentRepository->getHistoryByDepartment($dept['department_id']);
+                foreach ($records as $record) {
+                    $record['department_name'] = $dept['department_name'];
+                    $record['department_code'] = $dept['department_code'];
+                    $history[] = $record;
+                }
+            }
+
+            // Sort by start_date descending
+            usort($history, function($a, $b) {
+                return strcmp($b['start_date'], $a['start_date']);
+            });
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'data' => $history
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     public function getDepartmentFaculty($departmentId)
     {
         if (!$this->requireDean()) return;
@@ -685,9 +633,9 @@ class DeanController
             // Get all users in department
             $users = $this->userRepository->findFacultyByDepartment($departmentId);
             
-            // Filter to only faculty (not staff, not current HOD)
+            // Filter to faculty and staff (exclude dedicated HOD accounts)
             $facultyMembers = array_filter($users, function($user) {
-                return $user['role'] === 'faculty';
+                return in_array($user['role'], ['faculty', 'staff']);
             });
 
             http_response_code(200);

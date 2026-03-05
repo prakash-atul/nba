@@ -18,8 +18,8 @@ class User
     private $createdAt;
     private $updatedAt;
 
-    // Valid roles (HOD and Dean are assignments, not base roles)
-    const ROLES = ['admin', 'faculty', 'staff'];
+    // Valid roles (HOD has its own dedicated role; Dean is still assignment-based)
+    const ROLES = ['admin', 'faculty', 'hod', 'staff'];
 
     public function __construct($employeeId, $username = null, $email = null, $password = null, $role = null, $departmentId = null, $designation = null, $phone = null, $createdAt = null, $updatedAt = null)
     {

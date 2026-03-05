@@ -33,13 +33,13 @@ class HODController
     }
 
     /**
-     * Check if user is HOD
+     * Check if user is HOD (dedicated HOD role)
      */
     private function requireHOD()
     {
         $userData = $_REQUEST['authenticated_user'];
         
-        if (!isset($userData['is_hod']) || $userData['is_hod'] !== true) {
+        if (!isset($userData['role']) || $userData['role'] !== 'hod') {
             http_response_code(403);
             echo json_encode([
                 'success' => false,

@@ -69,14 +69,15 @@ CREATE TABLE `departments` (
     FOREIGN KEY (`school_id`) REFERENCES `schools`(`school_id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Users (Admin, Faculty, Staff)
--- Note: HOD and Dean roles are managed via assignment tables
+-- Users (Admin, Faculty, HOD, Staff)
+-- Note: HOD has its own role with a dedicated login credential per department.
+-- Dean roles are still managed via assignment tables.
 CREATE TABLE `users` (
     `employee_id` INT(11) NOT NULL,
     `username` VARCHAR(64) NOT NULL,
     `email` VARCHAR(64) NOT NULL,
     `password_hash` VARCHAR(255) NOT NULL,
-    `role` ENUM('admin', 'faculty', 'staff') NOT NULL,
+    `role` ENUM('admin', 'faculty', 'hod', 'staff') NOT NULL,
     `department_id` INT(11) NULL,
     `designation` VARCHAR(50) NULL,
     `phone` VARCHAR(15) NULL,
@@ -387,8 +388,8 @@ VALUES
 INSERT INTO `users` (`employee_id`, `username`, `email`, `password_hash`, `role`, `department_id`, `designation`)
 VALUES 
     (1001, 'Admin One', 'admin_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'admin', NULL, 'System Administrator'),
-    (2001, 'HOD CSE', 'hod_cse@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Professor'),
-    (2002, 'HOD ECE', 'hod_ece@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, 'Professor'),
+    (2001, 'HOD CSE', 'hod_cse@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 1, 'Professor'),
+    (2002, 'HOD ECE', 'hod_ece@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 2, 'Professor'),
     (3001, 'Faculty One', 'faculty_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Associate Professor'),
     (3002, 'Faculty Two', 'faculty_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Associate Professor'),
     (3003, 'Faculty Three', 'faculty_03@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Assistant Professor'),
@@ -398,11 +399,13 @@ VALUES
     (4001, 'Staff One', 'staff_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 1, 'Lab Assistant'),
     (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, 'Lab Assistant');
 
--- HOD Assignments (employees 2001 and 2002 are current HODs)
+-- HOD Assignments (record of which faculty serves as HOD — does NOT affect login role)
+-- The dedicated HOD accounts (hod_cse, hod_ece) are permanent; these records track
+-- which real faculty/staff member is the "serving HOD" for historical purposes.
 INSERT INTO `hod_assignments` (`department_id`, `employee_id`, `start_date`, `is_current`, `appointment_order`)
 VALUES 
-    (1, 2001, '2024-01-01', 1, 'APT/2024/HOD/CSE/001'),
-    (2, 2002, '2024-01-01', 1, 'APT/2024/HOD/ECE/001');
+    (1, 3001, '2024-01-01', 1, 'APT/2024/HOD/CSE/001'),
+    (2, 3005, '2024-01-01', 1, 'APT/2024/HOD/ECE/001');
 
 -- Courses (TEMPLATES — no year/semester/faculty; those live in offerings now)
 INSERT INTO `courses` (`course_id`, `course_code`, `department_id`, `course_name`, `course_type`, `course_level`, `credit`)

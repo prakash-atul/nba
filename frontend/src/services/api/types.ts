@@ -333,7 +333,7 @@ export interface CreateUserRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "admin" | "faculty" | "staff";
+	role: "admin" | "faculty" | "hod" | "staff";
 	designation?: string | null;
 	phone?: string | null;
 	department_id?: number | null;
@@ -436,12 +436,20 @@ export interface AppointHODRequest {
 	appointment_order: string;
 }
 
-export interface CreateHODRequest extends AppointHODRequest {
+export interface HODHistoryRecord {
+	id: number;
+	department_id: number;
+	department_name: string;
+	department_code: string;
+	employee_id: number;
 	username: string;
 	email: string;
-	password: string;
 	designation: string | null;
-	phone: string | null;
+	start_date: string;
+	end_date: string | null;
+	is_current: number;
+	appointment_order: string | null;
+	created_at: string;
 }
 
 // HOD User Management Types

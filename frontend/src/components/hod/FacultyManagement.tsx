@@ -225,7 +225,7 @@ export function FacultyManagement() {
 	};
 
 	const getRoleBadge = (member: DepartmentFaculty) => {
-		const isHOD = Number(member.is_hod) === 1;
+		const isHOD = member.role === "hod";
 
 		if (isHOD) {
 			return (
@@ -366,7 +366,7 @@ export function FacultyManagement() {
 			header: () => <div className="text-right">Actions</div>,
 			cell: ({ row }) => {
 				const member = row.original;
-				const isHOD = Number(member.is_hod) === 1;
+				const isHOD = member.role === "hod";
 				return (
 					<div className="flex items-center justify-end gap-2">
 						<Button

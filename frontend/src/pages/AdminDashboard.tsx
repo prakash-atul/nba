@@ -59,7 +59,7 @@ export function AdminDashboard() {
 		}
 		if (storedUser.role !== "admin") {
 			if (storedUser.is_dean) navigate("/dean");
-			else if (storedUser.is_hod) navigate("/hod");
+			else if (storedUser.role === "hod") navigate("/hod");
 			else if (storedUser.role === "faculty") navigate("/faculty");
 			else if (storedUser.role === "staff") navigate("/staff");
 			else navigate("/login");

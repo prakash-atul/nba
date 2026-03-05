@@ -46,7 +46,7 @@ export function StaffDashboard() {
 			// Redirect based on role
 			if (storedUser.role === "admin") {
 				navigate("/dashboard");
-			} else if (storedUser.is_hod) {
+			} else if (storedUser.role === "hod") {
 				navigate("/hod");
 			} else if (storedUser.role === "faculty") {
 				navigate("/faculty");

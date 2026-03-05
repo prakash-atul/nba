@@ -346,8 +346,10 @@ class UserController
                 return;
             }
 
-            // Validate role (HOD and Dean are assignments, not base roles)
-            $validRoles = ['admin', 'faculty', 'staff'];
+            // Valid roles for direct admin creation.
+            // 'hod' is allowed so admins can create permanent dedicated HOD accounts
+            // (e.g. hod_cse@tezu.ac.in). HOD appointment records are separate.
+            $validRoles = ['admin', 'faculty', 'hod', 'staff'];
             if (!in_array($data['role'], $validRoles)) {
                 http_response_code(400);
                 echo json_encode([
@@ -356,9 +358,6 @@ class UserController
                 ]);
                 return;
             }
-
-            // HOD and Dean uniqueness is now managed via assignment tables, not user role
-            // Removed HOD/Dean uniqueness checks from user creation
 
             // Check if employee_id already exists
             if ($this->userRepository->findByEmployeeId($data['employee_id'])) {

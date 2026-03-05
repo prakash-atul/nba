@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
-import type { User, HODStats, Course } from "@/services/api";
-import { formatOrdinal } from "@/lib/utils";
+import type { User, HODStats } from "@/services/api";
 import {
 	HODStatsCards,
 	HODQuickAccess,
@@ -13,37 +12,21 @@ import {
 	HODStudents,
 	type HODPage,
 } from "@/components/hod";
-import { FacultyAssessments } from "@/components/faculty/FacultyAssessments";
-import { FacultyMarks } from "@/components/faculty/FacultyMarks";
-import { FacultyCOPO } from "@/components/faculty/FacultyCOPO";
 import { AppSidebar, AppHeader, type NavItem } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
 	LayoutDashboard,
 	BookOpen,
-	ClipboardList,
-	FileCheck,
-	Network,
 	Users,
 	GraduationCap,
 	RefreshCw,
-	ChevronDown,
 } from "lucide-react";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const hodNavItems: NavItem[] = [
 	{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
 	{ id: "courses", label: "Manage Courses", icon: BookOpen },
 	{ id: "faculty", label: "Faculty & Staff", icon: Users },
 	{ id: "students", label: "Students", icon: GraduationCap },
-	{ id: "assessments", label: "Assessments", icon: ClipboardList },
-	{ id: "marks", label: "Marks Entry", icon: FileCheck },
-	{ id: "copo", label: "CO-PO Mapping", icon: Network },
 ];
 
 export function HODDashboard() {
@@ -60,10 +43,6 @@ export function HODDashboard() {
 		totalAssessments: 0,
 	});
 
-	// Assessment page data (for faculty features)
-	const [facultyCourses, setFacultyCourses] = useState<Course[]>([]);
-	const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-
 	const navigate = useNavigate();
 
 	useEffect(() => {
@@ -72,13 +51,15 @@ export function HODDashboard() {
 			navigate("/login");
 			return;
 		}
-		if (!storedUser.is_hod) {
+		if (storedUser.role !== "hod") {
 			if (storedUser.role === "admin") {
 				navigate("/dashboard");
 			} else if (storedUser.is_dean) {
 				navigate("/dean");
 			} else if (storedUser.role === "faculty") {
 				navigate("/faculty");
+			} else if (storedUser.role === "staff") {
+				navigate("/staff");
 			} else {
 				navigate("/login");
 			}
@@ -86,7 +67,6 @@ export function HODDashboard() {
 		}
 		setUser(storedUser);
 		loadStats();
-		loadFacultyCourses();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [navigate]);
 
@@ -100,15 +80,6 @@ export function HODDashboard() {
 			console.error(error);
 		} finally {
 			setIsLoading(false);
-		}
-	};
-
-	const loadFacultyCourses = async () => {
-		try {
-			const coursesData = await apiService.getCourses();
-			setFacultyCourses(coursesData);
-		} catch (error) {
-			console.error("Failed to load faculty courses:", error);
 		}
 	};
 
@@ -149,17 +120,6 @@ export function HODDashboard() {
 			case "students":
 				return <HODStudents />;
 
-			case "assessments":
-				return <FacultyAssessments selectedCourse={selectedCourse} />;
-
-			case "marks":
-				return <FacultyMarks selectedCourse={selectedCourse} />;
-
-			case "copo":
-				return (
-					<FacultyCOPO selectedCourse={selectedCourse} user={user} />
-				);
-
 			default:
 				return null;
 		}
@@ -168,7 +128,7 @@ export function HODDashboard() {
 	return (
 		<>
 			<Toaster />
-			<div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+			<div className="flex h-screen bg-background">
 				{/* Sidebar */}
 				<AppSidebar
 					user={user}
@@ -192,91 +152,26 @@ export function HODDashboard() {
 								? "HOD Dashboard"
 								: currentPage
 						}
-						description={
-							["assessments", "marks", "copo"].includes(
-								currentPage,
-							)
-								? "Manage your academic activities"
-								: undefined
-						}
 					>
-						{["assessments", "marks", "copo"].includes(
-							currentPage,
-						) ? (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="outline"
-										className="w-[250px] justify-between"
-									>
-										<span className="truncate text-left">
-											{selectedCourse
-												? `${selectedCourse.course_code} - ${selectedCourse.course_name}`
-												: "All Courses"}
-										</span>
-										<ChevronDown className="w-4 h-4 ml-2 shrink-0" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="end"
-									className="w-[300px]"
-								>
-									<DropdownMenuItem
-										onClick={() => setSelectedCourse(null)}
-									>
-										All Courses
-									</DropdownMenuItem>
-									{facultyCourses.map((course) => (
-										<DropdownMenuItem
-											key={
-												course.offering_id ??
-												course.course_id
-											}
-											onClick={() =>
-												setSelectedCourse(course)
-											}
-										>
-											<div className="flex flex-col">
-												<span className="font-medium">
-													{course.course_code} -{" "}
-													{course.course_name}
-												</span>
-												<span className="text-xs text-gray-500">
-													{formatOrdinal(
-														course.semester,
-													)}{" "}
-													Semester, Year {course.year}
-												</span>
-											</div>
-										</DropdownMenuItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-						) : (
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={loadStats}
-								disabled={isLoading}
-							>
-								<RefreshCw
-									className={`w-4 h-4 ${
-										isLoading ? "animate-spin" : ""
-									}`}
-								/>
-							</Button>
-						)}
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={loadStats}
+							disabled={isLoading}
+						>
+							<RefreshCw
+								className={`w-4 h-4 ${
+									isLoading ? "animate-spin" : ""
+								}`}
+							/>
+						</Button>
 					</AppHeader>
 
 					{/* Content */}
 					<main className="flex-1 overflow-y-auto">
-						{["assessments", "marks", "copo", "students"].includes(
-							currentPage,
-						) ? (
-							// Faculty/HODStudents components handle their own padding/layout
+						{currentPage === "students" ? (
 							<div className="h-full">{renderContent()}</div>
 						) : (
-							// Standard HOD pages need padding
 							<div className="p-6">{renderContent()}</div>
 						)}
 					</main>

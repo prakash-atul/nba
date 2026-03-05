@@ -565,6 +565,16 @@ class Router
                 }
                 break;
 
+            case ($path === 'dean/hod/history'):
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->deanController->getHODHistory();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
             case (preg_match('#^dean/hod/(\d+)$#', $path, $matches) ? true : false):
                 if ($method === 'DELETE') {
                     $user = $this->authMiddleware->requireAuth();
