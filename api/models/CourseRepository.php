@@ -621,7 +621,16 @@ class CourseRepository
                        (SELECT COUNT(*) FROM enrollments e
                         WHERE e.offering_id = co.offering_id) AS enrollment_count,
                        (SELECT COUNT(*) FROM tests t
-                        WHERE t.offering_id = co.offering_id) AS test_count
+                        WHERE t.offering_id = co.offering_id) AS test_count,
+                       (SELECT ROUND(
+                            SUM(m.marks_obtained) / NULLIF(
+                                COUNT(DISTINCT m.student_roll_no) *
+                                (SELECT SUM(t2.full_marks) FROM tests t2 WHERE t2.offering_id = co.offering_id)
+                            , 0) * 100, 1)
+                        FROM marks m
+                        INNER JOIN tests t3 ON t3.test_id = m.test_id
+                        WHERE t3.offering_id = co.offering_id
+                       ) AS avg_score_pct
                 FROM courses c
                 INNER JOIN course_offerings co ON co.course_id = c.course_id
                 LEFT JOIN course_faculty_assignments cfa
@@ -703,6 +712,42 @@ class CourseRepository
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
             return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get per-test averages for a specific offering.
+     * Returns one row per test with avg marks and avg percentage.
+     */
+    public function getOfferingTestAverages(int $offeringId): array
+    {
+        try {
+            $sql = "
+                SELECT
+                    t.test_id,
+                    t.test_name,
+                    t.test_type,
+                    t.full_marks,
+                    ROUND(AVG(st.student_total), 1) AS avg_marks,
+                    ROUND(AVG(st.student_total) / NULLIF(t.full_marks, 0) * 100, 1) AS avg_pct,
+                    COUNT(st.student_roll_no) AS students_assessed
+                FROM tests t
+                LEFT JOIN (
+                    SELECT m.test_id, m.student_roll_no, SUM(m.marks_obtained) AS student_total
+                    FROM marks m
+                    INNER JOIN tests t2 ON t2.test_id = m.test_id
+                    WHERE t2.offering_id = ?
+                    GROUP BY m.test_id, m.student_roll_no
+                ) st ON st.test_id = t.test_id
+                WHERE t.offering_id = ?
+                GROUP BY t.test_id, t.test_name, t.test_type, t.full_marks
+                ORDER BY t.test_id
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$offeringId, $offeringId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         }

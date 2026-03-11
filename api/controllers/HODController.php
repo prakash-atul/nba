@@ -807,4 +807,52 @@ class HODController
             ]);
         }
     }
+
+    /**
+     * Get per-test averages for a course offering.
+     * Only accessible if the offering belongs to the HOD's department.
+     */
+    public function getOfferingTestAverages($offeringId)
+    {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $offeringId = (int)$offeringId;
+
+            // Verify the offering belongs to this department
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Offering not found']);
+                return;
+            }
+
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Access denied']);
+                return;
+            }
+
+            $averages = $this->courseRepository->getOfferingTestAverages($offeringId);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test averages retrieved successfully',
+                'data' => $averages,
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve test averages', 'error' => $e->getMessage()]);
+        }
+    }
 }

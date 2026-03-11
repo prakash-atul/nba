@@ -2,10 +2,13 @@
 import {
 	type ColumnDef,
 	type ColumnFiltersState,
+	type ExpandedState,
+	type Row,
 	type SortingState,
 	type VisibilityState,
 	flexRender,
 	getCoreRowModel,
+	getExpandedRowModel,
 	getFacetedRowModel,
 	getFacetedUniqueValues,
 	getFilteredRowModel,
@@ -65,6 +68,8 @@ interface DataTableProps<TData, TValue> {
 	children?: React.ReactNode | ((table: TableType<TData>) => React.ReactNode);
 	/** Pass to enable server-side pagination mode */
 	serverPagination?: ServerPaginationProps;
+	/** Optional renderer for an expanded sub-row beneath each data row */
+	renderSubRow?: (row: Row<TData>) => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -75,6 +80,7 @@ export function DataTable<TData, TValue>({
 	refreshing = false,
 	children,
 	serverPagination,
+	renderSubRow,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] =
@@ -82,6 +88,7 @@ export function DataTable<TData, TValue>({
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
+	const [expanded, setExpanded] = React.useState<ExpandedState>({});
 
 	const isServerMode = !!serverPagination;
 
@@ -93,6 +100,7 @@ export function DataTable<TData, TValue>({
 			columnFilters,
 			columnVisibility,
 			rowSelection,
+			expanded,
 		},
 		// When server manages pagination, prevent TanStack from slicing rows
 		// client-side (its default pageSize=10 would truncate server pages).
@@ -102,7 +110,9 @@ export function DataTable<TData, TValue>({
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
 		onColumnVisibilityChange: setColumnVisibility,
+		onExpandedChange: setExpanded,
 		getCoreRowModel: getCoreRowModel(),
+		getExpandedRowModel: getExpandedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		getSortedRowModel: getSortedRowModel(),
@@ -246,24 +256,37 @@ export function DataTable<TData, TValue>({
 							</>
 						) : table.getRowModel().rows?.length ? (
 							table.getRowModel().rows.map((row) => (
-								<TableRow
-									key={row.id}
-									data-state={
-										row.getIsSelected() && "selected"
-									}
-								>
-									{row.getVisibleCells().map((cell) => (
-										<TableCell
-											key={cell.id}
-											className="text-center font-medium"
-										>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
-										</TableCell>
-									))}
-								</TableRow>
+								<React.Fragment key={row.id}>
+									<TableRow
+										data-state={
+											row.getIsSelected() && "selected"
+										}
+									>
+										{row.getVisibleCells().map((cell) => (
+											<TableCell
+												key={cell.id}
+												className="text-center font-medium"
+											>
+												{flexRender(
+													cell.column.columnDef.cell,
+													cell.getContext(),
+												)}
+											</TableCell>
+										))}
+									</TableRow>
+									{row.getIsExpanded() && renderSubRow && (
+										<TableRow className="bg-muted/30 hover:bg-muted/40">
+											<TableCell
+												colSpan={
+													row.getVisibleCells().length
+												}
+												className="p-0"
+											>
+												{renderSubRow(row)}
+											</TableCell>
+										</TableRow>
+									)}
+								</React.Fragment>
 							))
 						) : (
 							<TableRow>

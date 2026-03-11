@@ -60,18 +60,18 @@ class FacultyController
                 $stmt->execute([$offeringId]);
                 $totalStudents += $stmt->fetchColumn();
 
-                // Simple attainment check (average percentage of marks for this offering)
-                // marks table has CO1-CO6 columns; tests table has full_marks
+                // Average score percentage across all students and tests in this offering
                 $stmt = $this->db->prepare("
-                    SELECT AVG(
-                        (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
-                         COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
-                        NULLIF(t.full_marks, 0) * 100
-                    ) as avg_percentage
-                    FROM marks m
-                    JOIN tests t ON m.test_id = t.test_id
-                    WHERE t.offering_id = ?
-                    AND t.full_marks IS NOT NULL AND t.full_marks > 0
+                    SELECT AVG(s.student_total / NULLIF(s.full_marks, 0) * 100) AS avg_percentage
+                    FROM (
+                        SELECT m.student_roll_no, t.test_id, t.full_marks,
+                               SUM(m.marks_obtained) AS student_total
+                        FROM marks m
+                        JOIN tests t ON m.test_id = t.test_id
+                        WHERE t.offering_id = ?
+                          AND t.full_marks > 0
+                        GROUP BY m.student_roll_no, t.test_id, t.full_marks
+                    ) s
                 ");
                 $stmt->execute([$offeringId]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -392,15 +392,16 @@ class FacultyController
 
             // Average performance (%)
             $stmt = $this->db->prepare("
-                SELECT AVG(
-                    (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
-                     COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
-                    NULLIF(t.full_marks, 0) * 100
-                ) as avg_percentage
-                FROM marks m
-                JOIN tests t ON m.test_id = t.test_id
-                WHERE t.offering_id = ?
-                AND t.full_marks IS NOT NULL AND t.full_marks > 0
+                SELECT AVG(s.student_total / NULLIF(s.full_marks, 0) * 100) AS avg_percentage
+                FROM (
+                    SELECT m.student_roll_no, t.test_id, t.full_marks,
+                           SUM(m.marks_obtained) AS student_total
+                    FROM marks m
+                    JOIN tests t ON m.test_id = t.test_id
+                    WHERE t.offering_id = ?
+                      AND t.full_marks > 0
+                    GROUP BY m.student_roll_no, t.test_id, t.full_marks
+                ) s
             ");
             $stmt->execute([$offeringId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);

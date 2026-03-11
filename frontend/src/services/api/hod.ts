@@ -3,6 +3,7 @@ import type {
 	HODStats,
 	DepartmentCourse,
 	DepartmentFaculty,
+	TestAverage,
 	CreateCourseRequest,
 	UpdateCourseRequest,
 	HODCreateUserRequest,
@@ -91,6 +92,14 @@ export const hodApi = {
 		return apiPut<UpdateStudentRequest, void>(
 			`/hod/students/${encodeURIComponent(rollNo)}`,
 			data,
+		);
+	},
+
+	async getOfferingTestAverages(
+		offeringId: number,
+	): Promise<TestAverage[]> {
+		return apiGet<TestAverage[]>(
+			`/hod/offerings/${offeringId}/test-averages`,
 		);
 	},
 };

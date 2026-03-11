@@ -398,6 +398,17 @@ export interface DepartmentCourse {
 	faculty_name?: string | null;
 	enrollment_count?: number;
 	test_count?: number;
+	avg_score_pct?: number | null;
+}
+
+export interface TestAverage {
+	test_id: number;
+	test_name: string;
+	test_type: string;
+	full_marks: number;
+	avg_marks: number | null;
+	avg_pct: number | null;
+	students_assessed: number;
 }
 
 export interface DepartmentFaculty {

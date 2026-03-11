@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,24 +41,135 @@ import {
 	X,
 	CalendarDays,
 	History,
+	ChevronRight,
+	Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
 	DepartmentCourse,
 	DepartmentFaculty,
+	TestAverage,
 	CreateCourseRequest,
 	UpdateCourseRequest,
 } from "@/services/api";
 import { hodApi } from "@/services/api/hod";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import { DataTable } from "@/components/shared/DataTable";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 
 const currentYear = new Date().getFullYear();
 const years = [currentYear - 1, currentYear, currentYear + 1];
 const semesters = ["Spring", "Autumn"] as const;
 // Jan–Jun → Spring, Jul–Dec → Autumn
 const currentSemester: string = new Date().getMonth() < 6 ? "Spring" : "Autumn";
+
+// ── Test type colour map ─────────────────────────────────────────────────────
+const TEST_TYPE_COLORS: Record<string, string> = {
+	"Mid Sem":
+		"bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300 border-violet-200 dark:border-violet-800",
+	"End Sem":
+		"bg-rose-50   text-rose-700   dark:bg-rose-950   dark:text-rose-300   border-rose-200   dark:border-rose-800",
+	Assignment:
+		"bg-amber-50  text-amber-700  dark:bg-amber-950  dark:text-amber-300  border-amber-200  dark:border-amber-800",
+	Quiz: "bg-sky-50    text-sky-700    dark:bg-sky-950    dark:text-sky-300    border-sky-200    dark:border-sky-800",
+};
+
+/** Expanded sub-row: lazy-loads per-test averages for a course offering */
+function OfferingTestAverages({ offeringId }: { offeringId: number }) {
+	const [averages, setAverages] = useState<TestAverage[] | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	const load = useCallback(async () => {
+		setLoading(true);
+		setError(null);
+		try {
+			const res = await hodApi.getOfferingTestAverages(offeringId);
+			setAverages(res);
+		} catch {
+			setError("Failed to load averages");
+		} finally {
+			setLoading(false);
+		}
+	}, [offeringId]);
+
+	useEffect(() => {
+		load();
+	}, [load]);
+
+	if (loading) {
+		return (
+			<div className="flex items-center gap-2 px-6 py-3 text-sm text-muted-foreground">
+				<Loader2 className="h-4 w-4 animate-spin" />
+				Loading test averages…
+			</div>
+		);
+	}
+	if (error) {
+		return (
+			<div className="px-6 py-3 text-sm text-destructive">{error}</div>
+		);
+	}
+	if (!averages || averages.length === 0) {
+		return (
+			<div className="px-6 py-3 text-sm text-muted-foreground">
+				No tests found for this offering.
+			</div>
+		);
+	}
+
+	return (
+		<div className="px-6 py-3">
+			<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+				Per-Test Averages
+			</p>
+			<div className="flex flex-wrap gap-3">
+				{averages.map((t) => {
+					const colorCls =
+						TEST_TYPE_COLORS[t.test_type] ??
+						"bg-gray-50 text-gray-600 border-gray-200";
+					const pct = t.avg_pct != null ? `${t.avg_pct}%` : "—";
+					const marks =
+						t.avg_marks != null
+							? `${t.avg_marks} / ${t.full_marks}`
+							: `— / ${t.full_marks}`;
+					return (
+						<div
+							key={t.test_id}
+							className="flex flex-col gap-1 rounded-lg border bg-white dark:bg-slate-900 p-3 min-w-[140px]"
+						>
+							<div className="flex items-center justify-between gap-2">
+								<Badge
+									variant="secondary"
+									className={`text-[10px] ${colorCls}`}
+								>
+									{t.test_type}
+								</Badge>
+								<span className="text-xs text-muted-foreground">
+									{t.students_assessed} students
+								</span>
+							</div>
+							<p
+								className="text-sm font-medium truncate"
+								title={t.test_name}
+							>
+								{t.test_name}
+							</p>
+							<div className="flex items-baseline gap-1">
+								<span className="text-lg font-bold tabular-nums">
+									{pct}
+								</span>
+								<span className="text-xs text-muted-foreground">
+									({marks})
+								</span>
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
 
 export function CoursesManagement() {
 	// ── Current semester data (locked to currentYear + currentSemester) ─────
@@ -143,6 +254,28 @@ export function CoursesManagement() {
 	};
 
 	const columns: ColumnDef<DepartmentCourse>[] = [
+		// ── Expand toggle ──────────────────────────────────────────────────
+		{
+			id: "expand",
+			header: () => null,
+			cell: ({ row }) => (
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-6 w-6 text-muted-foreground"
+					onClick={() => row.toggleExpanded()}
+					aria-label={row.getIsExpanded() ? "Collapse" : "Expand"}
+				>
+					<ChevronRight
+						className={`h-4 w-4 transition-transform duration-150 ${
+							row.getIsExpanded() ? "rotate-90" : ""
+						}`}
+					/>
+				</Button>
+			),
+			enableSorting: false,
+			enableHiding: false,
+		},
 		{
 			accessorKey: "course_code",
 			header: ({ column }) => (
@@ -363,6 +496,45 @@ export function CoursesManagement() {
 			),
 		},
 		{
+			accessorKey: "avg_score_pct",
+			header: ({ column }) => (
+				<div className="text-center">
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}
+					>
+						Avg Score
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				</div>
+			),
+			cell: ({ row }) => {
+				const pct = row.original.avg_score_pct;
+				if (pct == null) {
+					return (
+						<div className="text-center text-muted-foreground text-sm">
+							—
+						</div>
+					);
+				}
+				const color =
+					pct >= 75
+						? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+						: pct >= 50
+							? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+							: "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800";
+				return (
+					<div className="text-center">
+						<Badge variant="secondary" className={color}>
+							{pct}%
+						</Badge>
+					</div>
+				);
+			},
+		},
+		{
 			id: "actions",
 			header: () => <div className="text-right">Actions</div>,
 			cell: ({ row }) => {
@@ -509,6 +681,12 @@ export function CoursesManagement() {
 		} finally {
 			setIsSubmitting(false);
 		}
+	};
+
+	const renderSubRow = (row: Row<DepartmentCourse>) => {
+		const offeringId = row.original.offering_id;
+		if (!offeringId) return null;
+		return <OfferingTestAverages offeringId={offeringId} />;
 	};
 
 	return (
@@ -754,6 +932,7 @@ export function CoursesManagement() {
 							columns={columns}
 							data={currentCourses}
 							refreshing={isLoadingCurrent}
+							renderSubRow={renderSubRow}
 							serverPagination={{
 								pagination: currentPagination,
 								onNext: currentGoNext,
@@ -783,6 +962,7 @@ export function CoursesManagement() {
 							columns={columns}
 							data={allCourses}
 							refreshing={isLoadingAll}
+							renderSubRow={renderSubRow}
 							serverPagination={{
 								pagination: allPagination,
 								onNext: allGoNext,

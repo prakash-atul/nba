@@ -823,6 +823,15 @@ class Router
                     } else {
                         $this->sendMethodNotAllowed();
                     }
+                } elseif (preg_match('#^hod/offerings/(\d+)/test-averages$#', $path, $matches)) {
+                    $offeringId = $matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->hodController->getOfferingTestAverages($offeringId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
                 } elseif (preg_match('#^hod/courses/(\d+)$#', $path, $matches)) {
                     $courseId = $matches[1];
                     if ($method === 'PUT') {
