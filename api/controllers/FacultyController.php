@@ -351,6 +351,38 @@ class FacultyController
     /**
      * Get stats for a single course offering (scoped to requesting faculty)
      */
+    public function getOfferingTestAverages($facultyId, $offeringId)
+    {
+        try {
+            // Check if user is HOD or Admin to bypass assignment check
+            $user = $_REQUEST['authenticated_user'] ?? null;
+            $hasOverride = $user && ($user['role'] === 'admin' || $user['is_hod'] || $user['is_dean']);
+
+            if (!$hasOverride) {
+                // Verify this offering belongs to the faculty
+                if (!$this->courseFacultyAssignmentRepository->isFacultyAssignedToOffering($offeringId, $facultyId, true)) {
+                    http_response_code(403);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Access denied to this course offering']);
+                    return;
+                }
+            }
+
+            $averages = $this->courseRepository->getOfferingTestAverages($offeringId);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test averages retrieved successfully',
+                'data' => $averages,
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve test averages', 'error' => $e->getMessage()]);
+        }
+    }
+
     public function getCourseStats($facultyId, $offeringId)
     {
         try {
@@ -360,10 +392,7 @@ class FacultyController
 
             if (!$hasOverride) {
                 // Verify this offering belongs to the faculty
-                $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
-                $offeringIds = array_column($assignments, 'offering_id');
-
-                if (!in_array($offeringId, $offeringIds)) {
+                if (!$this->courseFacultyAssignmentRepository->isFacultyAssignedToOffering($offeringId, $facultyId, true)) {
                     http_response_code(403);
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'message' => 'Access denied to this course offering']);
@@ -428,6 +457,73 @@ class FacultyController
         }
     }
 
+    public function checkCourseCompletionStatus($facultyId, $offeringId)
+    {
+        try {
+            // Verify faculty is assigned and active
+            if (!$this->courseFacultyAssignmentRepository->isFacultyAssignedToOffering($offeringId, $facultyId)) {
+                http_response_code(403);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Unauthorized or already concluded access to this course offering.']);
+                return;
+            }
+
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM tests WHERE offering_id = ?");
+            $stmt->execute([$offeringId]);
+            $totalTests = (int) $stmt->fetchColumn();
+
+            $incompleteTests = [];
+            $canConclude = true;
+
+            if ($totalTests === 0) {
+                // Technically can conclude if no tests exist, but might want to warn
+                $canConclude = true; // Assuming an empty course can be concluded
+            } else {
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM enrollments WHERE offering_id = ? AND enrollment_status != 'Dropped'");
+                $stmt->execute([$offeringId]);
+                $enrolledStudentsCount = (int) $stmt->fetchColumn();
+
+                if ($enrolledStudentsCount > 0) {
+                    $stmt = $this->db->prepare("
+                        SELECT t.test_id, t.test_name, COUNT(DISTINCT m.student_roll_no) as marked_students
+                        FROM tests t
+                        LEFT JOIN marks m ON t.test_id = m.test_id
+                        WHERE t.offering_id = ?
+                        GROUP BY t.test_id
+                    ");
+                    $stmt->execute([$offeringId]);
+                    $testCompletion = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    foreach ($testCompletion as $test) {
+                        if ($test['marked_students'] < $enrolledStudentsCount) {
+                            $incompleteTests[] = $test['test_name'];
+                        }
+                    }
+
+                    if (!empty($incompleteTests)) {
+                        $canConclude = false;
+                    }
+                }
+            }
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'can_conclude' => $canConclude,
+                    'incomplete_tests' => $incompleteTests,
+                    'total_tests' => $totalTests
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log("Error checking course completion status: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to check course status']);
+        }
+    }
+
     public function concludeCourse($facultyId, $offeringId)
     {
         try {
@@ -437,6 +533,44 @@ class FacultyController
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => 'Unauthorized or already concluded access to this course offering.']);
                 return;
+            }
+
+            // Verify if marks entry is complete
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM tests WHERE offering_id = ?");
+            $stmt->execute([$offeringId]);
+            $totalTests = (int) $stmt->fetchColumn();
+
+            if ($totalTests > 0) {
+                // Get enrolled students count
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM enrollments WHERE offering_id = ? AND enrollment_status != 'Dropped'");
+                $stmt->execute([$offeringId]);
+                $enrolledStudentsCount = (int) $stmt->fetchColumn();
+
+                if ($enrolledStudentsCount > 0) {
+                    $stmt = $this->db->prepare("
+                        SELECT t.test_id, t.test_name, COUNT(DISTINCT m.student_roll_no) as marked_students
+                        FROM tests t
+                        LEFT JOIN marks m ON t.test_id = m.test_id
+                        WHERE t.offering_id = ?
+                        GROUP BY t.test_id
+                    ");
+                    $stmt->execute([$offeringId]);
+                    $testCompletion = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $incompleteTests = [];
+                    foreach ($testCompletion as $test) {
+                        if ($test['marked_students'] < $enrolledStudentsCount) {
+                            $incompleteTests[] = $test['test_name'];
+                        }
+                    }
+
+                    if (!empty($incompleteTests)) {
+                        http_response_code(400);
+                        header('Content-Type: application/json');
+                        echo json_encode(['success' => false, 'message' => 'Marks entry incomplete for tests: ' . implode(', ', $incompleteTests) . '. All enrolled students must have marks entered before concluding the course.']);
+                        return;
+                    }
+                }
             }
 
             // Begin Transaction
@@ -460,21 +594,21 @@ class FacultyController
             ");
             $stmt->execute([$offeringId]);
 
-            // 3. Purge raw marks to save space, safely since aggregation exists
-            $stmt = $this->db->prepare("
-                DELETE rm FROM raw_marks rm
-                INNER JOIN questions q ON rm.question_id = q.question_id
-                INNER JOIN tests t ON q.test_id = t.test_id
-                WHERE t.offering_id = ?
-            ");
-            $stmt->execute([$offeringId]);
+            // 3. (Temporarily disabled based on user request) Purge raw marks to save space
+            // $stmt = $this->db->prepare("
+            //     DELETE rm FROM raw_marks rm
+            //     INNER JOIN questions q ON rm.question_id = q.question_id
+            //     INNER JOIN tests t ON q.test_id = t.test_id
+            //     WHERE t.offering_id = ?
+            // ");
+            // $stmt->execute([$offeringId]);
 
             $this->db->commit();
 
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true, 
-                'message' => 'Course concluded successfully. Session finalized and obsolete raw records purged.'
+                'message' => 'Course concluded successfully. Session finalized.'
             ]);
 
         } catch (Exception $e) {

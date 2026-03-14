@@ -328,14 +328,14 @@ class CourseFacultyAssignmentRepository
      * @param int $employeeId
      * @return bool
      */
-    public function isFacultyAssignedToOffering($offeringId, $employeeId)
+    public function isFacultyAssignedToOffering($offeringId, $employeeId, $allowInactive = false)
     {
         try {
-            $stmt = $this->db->prepare("
-                SELECT COUNT(*) 
-                FROM course_faculty_assignments 
-                WHERE offering_id = ? AND employee_id = ? AND is_active = 1
-            ");
+            $sql = "SELECT COUNT(*) FROM course_faculty_assignments WHERE offering_id = ? AND employee_id = ?";
+            if (!$allowInactive) {
+                $sql .= " AND is_active = 1";
+            }
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([$offeringId, $employeeId]);
             
             return $stmt->fetchColumn() > 0;

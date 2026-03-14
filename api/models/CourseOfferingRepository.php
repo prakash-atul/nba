@@ -145,11 +145,23 @@ class CourseOfferingRepository
         try {
             $stmt = $this->db->prepare("
                 SELECT DISTINCT co.*, c.course_code, c.course_name, c.credit,
-                       cfa.assignment_type, cfa.employee_id
+                       cfa.assignment_type, cfa.employee_id, cfa.is_active as cfa_is_active,
+                       (SELECT COUNT(*) FROM enrollments e WHERE e.offering_id = co.offering_id) AS enrollment_count,
+                       (SELECT COUNT(*) FROM tests t WHERE t.offering_id = co.offering_id) AS test_count,
+                       (SELECT ROUND(
+                            SUM(m.marks_obtained) / NULLIF(
+                                COUNT(DISTINCT m.student_roll_no) * 
+                                (SELECT SUM(t2.full_marks) FROM tests t2 WHERE t2.offering_id = co.offering_id)
+                            , 0) * 100, 
+                        1)
+                        FROM marks m
+                        INNER JOIN tests t3 ON t3.test_id = m.test_id
+                        WHERE t3.offering_id = co.offering_id
+                       ) AS avg_score_pct
                 FROM course_offerings co
                 INNER JOIN courses c ON co.course_id = c.course_id
                 INNER JOIN course_faculty_assignments cfa ON co.offering_id = cfa.offering_id
-                WHERE cfa.employee_id = ? AND cfa.is_active = 1
+                WHERE cfa.employee_id = ?
                 ORDER BY co.year DESC, co.semester DESC, c.course_code
             ");
             $stmt->execute([$facultyId]);
@@ -167,7 +179,10 @@ class CourseOfferingRepository
                     'co_threshold' => $data['co_threshold'],
                     'passing_threshold' => $data['passing_threshold'],
                     'assignment_type' => $data['assignment_type'],
-                    'is_active' => $data['is_active'] ?? 1
+                    'is_active' => (int)$data['cfa_is_active'],
+                    'enrollment_count' => (int)$data['enrollment_count'],
+                    'test_count' => (int)$data['test_count'],
+                    'avg_score_pct' => $data['avg_score_pct'] !== null ? (float)$data['avg_score_pct'] : null
                 ];
             }
 

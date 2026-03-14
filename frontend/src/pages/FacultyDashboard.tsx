@@ -87,10 +87,13 @@ export function FacultyDashboard() {
 		loadStats();
 	}, [navigate]);
 
-	// Auto-select first course when courses load
+	// Auto-select first active course when courses load
 	useEffect(() => {
 		if (courses.length > 0 && !selectedCourse) {
-			setSelectedCourse(courses[0]);
+			const activeCourse = courses.find((c) => c.is_active !== 0);
+			if (activeCourse) {
+				setSelectedCourse(activeCourse);
+			}
 		}
 	}, [courses]);
 
@@ -172,17 +175,19 @@ export function FacultyDashboard() {
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent className="w-[250px]">
-										{courses.map((course) => (
-											<DropdownMenuItem
-												key={course.course_id}
-												onSelect={() =>
-													setSelectedCourse(course)
-												}
-											>
-												{course.course_code} -{" "}
-												{course.course_name}
-											</DropdownMenuItem>
-										))}
+										{courses
+											.filter((c) => c.is_active !== 0)
+											.map((course) => (
+												<DropdownMenuItem
+													key={course.course_id}
+													onSelect={() =>
+														setSelectedCourse(course)
+													}
+												>
+													{course.course_code} -{" "}
+													{course.course_name}
+												</DropdownMenuItem>
+											))}
 									</DropdownMenuContent>
 								</DropdownMenu>
 							)}
@@ -211,7 +216,7 @@ export function FacultyDashboard() {
 								<div className="p-6 space-y-6">
 									<FacultyStatsCards
 										stats={stats}
-											isLoading={isLoading}
+										isLoading={isLoading}
 									/>
 									<div>
 										<h2 className="text-lg font-semibold mb-4">
@@ -223,7 +228,8 @@ export function FacultyDashboard() {
 									</div>
 									<FacultyOverview
 										courses={courses}
-										isLoading={isLoading} onRefresh={handleRefresh}
+										isLoading={isLoading}
+										onRefresh={handleRefresh}
 									/>
 								</div>
 							</div>

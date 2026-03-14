@@ -75,6 +75,10 @@ export interface Course {
 	faculty_id: number;
 	year: number;
 	semester: string;
+	is_active?: number;
+	enrollment_count?: number;
+	test_count?: number;
+	avg_score_pct?: number | null;
 }
 
 export interface CoursesResponse {
