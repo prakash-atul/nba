@@ -275,7 +275,6 @@ class CourseRepository
                 LEFT JOIN course_faculty_assignments cfa
                        ON cfa.offering_id = co.offering_id
                       AND cfa.assignment_type = 'Primary'
-                      AND cfa.is_active = 1
                 LEFT JOIN users u ON u.employee_id = cfa.employee_id
                 WHERE 1=1
             ";

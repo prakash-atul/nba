@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Let existing files/directories resolve normally.
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route all API requests to index.php.
+
+RewriteRule ^ index.php [QSA,L]

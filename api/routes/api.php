@@ -141,18 +141,18 @@ class Router
         $method = $_SERVER['REQUEST_METHOD'];
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-        // Normalize path: Remove base path if present, otherwise trim leading slash
-        // This handles both /nba/api/login (XAMPP) and /login (Subdomain)
-        $basePath = '/nba/api/';
-        if (strpos($path, $basePath) === 0) {
-            $path = substr($path, strlen($basePath));
+        // Normalize path for any local folder name (e.g. /nba/api, /nba-met4l/api)
+        // and for reverse-proxy rewrites that forward only /login style paths.
+        $apiWithTrailingSlashPos = strpos($path, '/api/');
+        if ($apiWithTrailingSlashPos !== false) {
+            $path = substr($path, $apiWithTrailingSlashPos + 5);
         } else {
-            // Remove /api/ if it exists at the start (e.g. from Nginx rewrite)
-            if (strpos($path, '/api/') === 0) {
-                $path = substr($path, 5);
+            $apiWithoutTrailingSlashPos = strpos($path, '/api');
+            if ($apiWithoutTrailingSlashPos !== false) {
+                $path = substr($path, $apiWithoutTrailingSlashPos + 4);
             }
-            $path = ltrim($path, '/');
         }
+        $path = ltrim($path, '/');
 
         // Check for dynamic routes before switch
 
