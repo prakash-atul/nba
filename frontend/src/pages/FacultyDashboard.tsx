@@ -181,7 +181,9 @@ export function FacultyDashboard() {
 												<DropdownMenuItem
 													key={course.course_id}
 													onSelect={() =>
-														setSelectedCourse(course)
+														setSelectedCourse(
+															course,
+														)
 													}
 												>
 													{course.course_code} -{" "}
