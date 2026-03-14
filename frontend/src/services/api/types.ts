@@ -74,7 +74,7 @@ export interface Course {
 	syllabus: string | null;
 	faculty_id: number;
 	year: number;
-	semester: number;
+	semester: string;
 }
 
 export interface CoursesResponse {
@@ -302,7 +302,7 @@ export interface AdminCourse {
 	// Offering fields (latest offering per course)
 	offering_id?: number | null;
 	year?: number | null;
-	semester?: number | null;
+	semester?: string | null;
 	co_threshold?: number | null;
 	passing_threshold?: number | null;
 	faculty_id?: number | null;
@@ -325,7 +325,7 @@ export interface AdminTest {
 	full_marks: number;
 	pass_marks: number;
 	year: number;
-	semester: number;
+	semester: string;
 }
 
 export interface CreateUserRequest {
@@ -379,6 +379,17 @@ export interface HODStats {
 	totalAssessments: number;
 }
 
+export interface BaseCourse {
+	course_id: number;
+	course_code: string;
+	course_name: string;
+	credit: number;
+	department_id?: number | null;
+	course_type?: string;
+	course_level?: string;
+	is_active?: number;
+}
+
 export interface DepartmentCourse {
 	course_id: number;
 	course_code: string;
@@ -391,13 +402,25 @@ export interface DepartmentCourse {
 	// Offering fields (latest offering per course)
 	offering_id?: number | null;
 	year?: number | null;
-	semester?: number | null;
+	semester?: string | null;
 	co_threshold?: number | null;
 	passing_threshold?: number | null;
 	faculty_id?: number | null;
 	faculty_name?: string | null;
+	cfa_is_active?: number | null;
 	enrollment_count?: number;
 	test_count?: number;
+	avg_score_pct?: number | null;
+}
+
+export interface TestAverage {
+	test_id: number;
+	test_name: string;
+	test_type: string;
+	full_marks: number;
+	avg_marks: number | null;
+	avg_pct: number | null;
+	students_assessed: number;
 }
 
 export interface DepartmentFaculty {
@@ -417,7 +440,7 @@ export interface CreateCourseRequest {
 	credit: number;
 	faculty_id: number;
 	year: number;
-	semester: number;
+	semester: string;
 	co_threshold?: number;
 	passing_threshold?: number;
 }
@@ -428,7 +451,7 @@ export interface UpdateCourseRequest {
 	credit?: number;
 	faculty_id?: number;
 	year?: number;
-	semester?: number;
+	semester?: string;
 }
 
 export interface AppointHODRequest {
@@ -556,7 +579,7 @@ export interface StaffCourse {
 	is_active?: number;
 	offering_id?: number | null;
 	year?: number | null;
-	semester?: number | null;
+	semester?: string | null;
 	co_threshold?: number | null;
 	passing_threshold?: number | null;
 	faculty_id?: number | null;
@@ -619,7 +642,7 @@ export interface DeanCourse {
 	// Offering fields (latest offering per course)
 	offering_id?: number | null;
 	year?: number | null;
-	semester?: number | null;
+	semester?: string | null;
 	co_threshold?: number | null;
 	passing_threshold?: number | null;
 	faculty_id?: number | null;
@@ -650,7 +673,7 @@ export interface DeanTest {
 	course_code: string;
 	course_name: string;
 	year?: number | null;
-	semester?: number | null;
+	semester?: string | null;
 	faculty_name?: string | null;
 	department_name?: string | null;
 	department_code?: string | null;

@@ -14,7 +14,6 @@ class Test
     private $questionPaperPdf;
     private $test_type;
     private $test_date;
-    private $max_marks;
     private $weightage;
     private $courseCode; // For filename generation
     private $year; // For information
@@ -29,7 +28,6 @@ class Test
         $questionPaperPdf = null, 
         $test_type = null,
         $test_date = null,
-        $max_marks = null,
         $weightage = null,
         $courseCode = null, 
         $year = null, 
@@ -43,7 +41,6 @@ class Test
         $this->questionPaperPdf = $questionPaperPdf;
         $this->test_type = $test_type;
         $this->test_date = $test_date;
-        $this->max_marks = $max_marks;
         $this->weightage = $weightage;
         $this->courseCode = $courseCode;
         $this->year = $year;
@@ -87,10 +84,6 @@ class Test
     public function getTestDate()
     {
         return $this->test_date;
-    }
-    public function getMaxMarks()
-    {
-        return $this->max_marks;
     }
     public function getWeightage()
     {

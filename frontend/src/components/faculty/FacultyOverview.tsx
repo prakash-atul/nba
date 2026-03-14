@@ -1,19 +1,59 @@
+import { useState } from "react";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, TrendingUp, ArrowUpDown } from "lucide-react";
-import { formatOrdinal } from "@/lib/utils";
+import { BookOpen, TrendingUp, ArrowUpDown, Archive } from "lucide-react";
 import type { Course } from "@/services/api";
 import { DataTable } from "@/components/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { facultyApi } from "@/services/api/faculty";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface FacultyOverviewProps {
 	courses: Course[];
 	isLoading: boolean;
+	onRefresh?: () => void;
 }
 
-export function FacultyOverview({ courses, isLoading }: FacultyOverviewProps) {
+export function FacultyOverview({ courses, isLoading, onRefresh }: FacultyOverviewProps) {
+	const [concludeData, setConcludeData] = useState<{ isOpen: boolean; course: Course | null; isConcluding: boolean }>({
+		isOpen: false,
+		course: null,
+		isConcluding: false
+	});
+
+	const handleConcludeCourse = async () => {
+		if (!concludeData.course) return;
+		const offeringId = concludeData.course.offering_id || concludeData.course.course_id;
+
+		setConcludeData((prev) => ({ ...prev, isConcluding: true }));
+		
+		try {
+			await facultyApi.concludeCourse(offeringId);
+			toast.success("Course session concluded successfully", {
+				description: "Rollbacks are not possible. Raw marks purged and session deactivated.",
+			});
+			setConcludeData({ isOpen: false, course: null, isConcluding: false });
+			if (onRefresh) onRefresh();
+		} catch (error) {
+			console.error("Failed to conclude course", error);
+			toast.error("Failed to conclude course", {
+				description: "You might not be authorized or the server encountered an error."
+			});
+			setConcludeData((prev) => ({ ...prev, isConcluding: false }));
+		}
+	};
 	const columns = useMemo<ColumnDef<Course>[]>(
 		() => [
 			{
@@ -71,11 +111,23 @@ export function FacultyOverview({ courses, isLoading }: FacultyOverviewProps) {
 				accessorKey: "semester",
 				header: "Semester",
 				cell: ({ row }) => (
-					<Badge variant="outline">
-						{formatOrdinal(row.original.semester)} Sem
-					</Badge>
+					<Badge variant="outline">{row.original.semester}</Badge>
 				),
 			},
+			{
+				id: "actions",
+				header: "Actions",
+				cell: ({ row }) => (
+					<Button
+						variant="destructive"
+						size="sm"
+						onClick={() => setConcludeData({ isOpen: true, course: row.original, isConcluding: false })}
+					>
+						<Archive className="h-4 w-4 mr-2" />
+						Conclude
+					</Button>
+				),
+			}
 		],
 		[],
 	);
@@ -122,15 +174,7 @@ export function FacultyOverview({ courses, isLoading }: FacultyOverviewProps) {
 								Active Semester
 							</p>
 							<p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-								{courses.length > 0
-									? formatOrdinal(
-											Math.max(
-												...courses.map(
-													(c) => c.semester,
-												),
-											),
-										)
-									: "N/A"}
+								{courses[0]?.semester ?? "N/A"}
 							</p>
 						</div>
 						<div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
@@ -144,6 +188,33 @@ export function FacultyOverview({ courses, isLoading }: FacultyOverviewProps) {
 					</div>
 				</CardContent>
 			</Card>
+
+			<AlertDialog open={concludeData.isOpen} onOpenChange={(open) => !concludeData.isConcluding && setConcludeData(prev => ({ ...prev, isOpen: open }))}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently conclude the session for <span className="font-bold">{concludeData.course?.course_name}</span>.
+							<br />
+							<br />
+							All raw mark drafts will be securely purged to save space (since aggregated insights are safely submitted) and you will no longer have active faculty assignments to this specific offering. Enrolled students will also be marked as Completed.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={concludeData.isConcluding}>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={(e) => {
+								e.preventDefault();
+								handleConcludeCourse();
+							}}
+							disabled={concludeData.isConcluding}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{concludeData.isConcluding ? "Concluding Session..." : "Yes, Conclude Session"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

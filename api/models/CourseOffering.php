@@ -78,8 +78,9 @@ class CourseOffering
 
     public function setSemester($semester)
     {
-        if (!is_numeric($semester) || $semester < 1) {
-            throw new InvalidArgumentException("Semester must be a positive number");
+        $allowed = ['Spring', 'Autumn'];
+        if (!in_array($semester, $allowed, true)) {
+            throw new InvalidArgumentException("Semester must be 'Spring' or 'Autumn'");
         }
         $this->semester = $semester;
     }

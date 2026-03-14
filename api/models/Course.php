@@ -139,7 +139,7 @@ class Course
 
     public function setCourseLevel($course_level)
     {
-        $validLevels = ['Undergraduate', 'Postgraduate'];
+        $validLevels = ['Undergraduate', 'Postgraduate', 'UG & PG'];
         if (!in_array($course_level, $validLevels)) {
             throw new Exception("Course level must be one of: " . implode(', ', $validLevels));
         }

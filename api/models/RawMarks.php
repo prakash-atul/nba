@@ -7,15 +7,14 @@
 class RawMarks
 {
     private $id;
-    private $testId;
+    // testId removed: it was a transitive dependency (question_id → questions.test_id)
     private $studentId;
     private $questionId;
     private $marks_obtained;
 
-    public function __construct($testId, $studentId, $questionId, $marks_obtained, $id = null)
+    public function __construct($studentId, $questionId, $marks_obtained, $id = null)
     {
         $this->id = $id;
-        $this->testId = $testId;
         $this->studentId = $studentId;
         $this->questionId = $questionId;
         $this->marks_obtained = $marks_obtained;
@@ -25,11 +24,6 @@ class RawMarks
     public function getId()
     {
         return $this->id;
-    }
-
-    public function getTestId()
-    {
-        return $this->testId;
     }
 
     public function getStudentId()
@@ -65,7 +59,6 @@ class RawMarks
     {
         return [
             'id' => $this->id,
-            'test_id' => $this->testId,
             'student_id' => $this->studentId,
             'question_id' => $this->questionId,
             'marks_obtained' => $this->marks_obtained

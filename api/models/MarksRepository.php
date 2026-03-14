@@ -18,7 +18,20 @@ class MarksRepository
      */
     public function findByTestAndStudent($testId, $studentId)
     {
-        $stmt = $this->db->prepare("SELECT * FROM marks WHERE test_id = ? AND student_roll_no = ?");
+        // Pivot the tall (co_number, marks_obtained) rows back to CO1-CO6 for the domain model
+        $stmt = $this->db->prepare("
+            SELECT
+                student_roll_no, test_id,
+                MAX(CASE WHEN co_number = 1 THEN marks_obtained ELSE 0 END) AS CO1,
+                MAX(CASE WHEN co_number = 2 THEN marks_obtained ELSE 0 END) AS CO2,
+                MAX(CASE WHEN co_number = 3 THEN marks_obtained ELSE 0 END) AS CO3,
+                MAX(CASE WHEN co_number = 4 THEN marks_obtained ELSE 0 END) AS CO4,
+                MAX(CASE WHEN co_number = 5 THEN marks_obtained ELSE 0 END) AS CO5,
+                MAX(CASE WHEN co_number = 6 THEN marks_obtained ELSE 0 END) AS CO6
+            FROM marks
+            WHERE test_id = ? AND student_roll_no = ?
+            GROUP BY student_roll_no, test_id
+        ");
         $stmt->execute([$testId, $studentId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -43,11 +56,20 @@ class MarksRepository
      */
     public function findByTest($testId)
     {
+        // Pivot the tall rows back to CO1-CO6 per student
         $stmt = $this->db->prepare("
-            SELECT m.*, s.student_name as student_name 
+            SELECT
+                m.student_roll_no, m.test_id, s.student_name,
+                MAX(CASE WHEN m.co_number = 1 THEN m.marks_obtained ELSE 0 END) AS CO1,
+                MAX(CASE WHEN m.co_number = 2 THEN m.marks_obtained ELSE 0 END) AS CO2,
+                MAX(CASE WHEN m.co_number = 3 THEN m.marks_obtained ELSE 0 END) AS CO3,
+                MAX(CASE WHEN m.co_number = 4 THEN m.marks_obtained ELSE 0 END) AS CO4,
+                MAX(CASE WHEN m.co_number = 5 THEN m.marks_obtained ELSE 0 END) AS CO5,
+                MAX(CASE WHEN m.co_number = 6 THEN m.marks_obtained ELSE 0 END) AS CO6
             FROM marks m
             JOIN students s ON m.student_roll_no = s.roll_no
             WHERE m.test_id = ?
+            GROUP BY m.student_roll_no, m.test_id, s.student_name
             ORDER BY m.student_roll_no
         ");
         $stmt->execute([$testId]);
@@ -62,8 +84,7 @@ class MarksRepository
                 $row['CO3'],
                 $row['CO4'],
                 $row['CO5'],
-                $row['CO6'],
-                $row['id']
+                $row['CO6']
             );
             $marksList[] = [
                 'marks' => $marks,
@@ -78,31 +99,21 @@ class MarksRepository
      */
     public function save(Marks $marks)
     {
+        // Insert/update one row per CO number (tall table storage)
         $stmt = $this->db->prepare("
-            INSERT INTO marks (student_roll_no, test_id, CO1, CO2, CO3, CO4, CO5, CO6) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE 
-                CO1 = VALUES(CO1),
-                CO2 = VALUES(CO2),
-                CO3 = VALUES(CO3),
-                CO4 = VALUES(CO4),
-                CO5 = VALUES(CO5),
-                CO6 = VALUES(CO6)
+            INSERT INTO marks (student_roll_no, test_id, co_number, marks_obtained)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE marks_obtained = VALUES(marks_obtained)
         ");
 
-        $result = $stmt->execute([
-            $marks->getStudentRollNo(),
-            $marks->getTestId(),
-            $marks->getCO1(),
-            $marks->getCO2(),
-            $marks->getCO3(),
-            $marks->getCO4(),
-            $marks->getCO5(),
-            $marks->getCO6()
-        ]);
-
-        if ($result && $marks->getId() === null) {
-            $marks->setId($this->db->lastInsertId());
+        $result = true;
+        for ($co = 1; $co <= 6; $co++) {
+            $result = $stmt->execute([
+                $marks->getStudentRollNo(),
+                $marks->getTestId(),
+                $co,
+                $marks->getCOValue($co)
+            ]) && $result;
         }
 
         return $result;
@@ -132,12 +143,13 @@ class MarksRepository
      */
     public function aggregateFromRawMarks($testId, $studentId)
     {
-        // Calculate CO totals from raw marks
+        // Calculate CO totals from raw marks;
+        // test context is now derived via question_id → questions.test_id
         $stmt = $this->db->prepare("
             SELECT q.co, SUM(r.marks_obtained) as total
             FROM raw_marks r
             JOIN questions q ON r.question_id = q.question_id
-            WHERE r.test_id = ? AND r.student_id = ?
+            WHERE q.test_id = ? AND r.student_id = ?
             GROUP BY q.co
         ");
         $stmt->execute([$testId, $studentId]);

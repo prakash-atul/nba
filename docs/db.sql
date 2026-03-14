@@ -90,18 +90,19 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- HOD Assignments (Historical tracking of HOD appointments)
+-- Normalization fix: is_current removed — it is fully derived from (end_date IS NULL).
+-- All queries use WHERE end_date IS NULL for the current record. SELECT returns it computed.
 CREATE TABLE `hod_assignments` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `department_id` INT(11) NOT NULL,
     `employee_id` INT(11) NOT NULL,
     `start_date` DATE NOT NULL,
     `end_date` DATE NULL,
-    `is_current` TINYINT(1) DEFAULT 1,
     `appointment_order` VARCHAR(50) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_dept_emp_start` (`department_id`, `employee_id`, `start_date`),
-    INDEX `idx_dept_current` (`department_id`, `is_current`),
+    INDEX `idx_dept_active` (`department_id`, `end_date`),
     INDEX `idx_employee` (`employee_id`),
     INDEX `idx_dates` (`start_date`, `end_date`),
     FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE CASCADE,
@@ -109,18 +110,18 @@ CREATE TABLE `hod_assignments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dean Assignments (Historical tracking of Dean appointments)
+-- Normalization fix: is_current removed — derived from (end_date IS NULL).
 CREATE TABLE `dean_assignments` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `school_id` INT(11) NOT NULL,
     `employee_id` INT(11) NOT NULL,
     `start_date` DATE NOT NULL,
     `end_date` DATE NULL,
-    `is_current` TINYINT(1) DEFAULT 1,
     `appointment_order` VARCHAR(50) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_school_emp_start` (`school_id`, `employee_id`, `start_date`),
-    INDEX `idx_school_current` (`school_id`, `is_current`),
+    INDEX `idx_school_active` (`school_id`, `end_date`),
     INDEX `idx_employee` (`employee_id`),
     INDEX `idx_dates` (`start_date`, `end_date`),
     FOREIGN KEY (`school_id`) REFERENCES `schools`(`school_id`) ON DELETE CASCADE,
@@ -152,7 +153,7 @@ CREATE TABLE `courses` (
     `department_id` INT(11) NULL,
     `course_name` VARCHAR(255) NOT NULL,
     `course_type` ENUM('Theory', 'Lab', 'Project', 'Seminar') DEFAULT 'Theory',
-    `course_level` ENUM('Undergraduate', 'Postgraduate') DEFAULT 'Undergraduate',
+    `course_level` ENUM('Undergraduate', 'Postgraduate', 'UG & PG') DEFAULT 'Undergraduate',
     `is_active` TINYINT(1) DEFAULT 1,
     `credit` SMALLINT NOT NULL DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -169,7 +170,7 @@ CREATE TABLE `course_offerings` (
     `offering_id` BIGINT NOT NULL AUTO_INCREMENT,
     `course_id` BIGINT NOT NULL,
     `year` INT NOT NULL CHECK (`year` BETWEEN 1000 AND 9999),
-    `semester` INT NOT NULL,
+    `semester` ENUM('Spring', 'Autumn') NOT NULL,
     `co_threshold` DECIMAL(5, 2) DEFAULT 40.00 CHECK (`co_threshold` >= 0 AND `co_threshold` <= 100),
     `passing_threshold` DECIMAL(5, 2) DEFAULT 60.00 CHECK (`passing_threshold` >= 0 AND `passing_threshold` <= 100),
     `syllabus_pdf` LONGBLOB,
@@ -218,25 +219,28 @@ CREATE TABLE `attainment_scale` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CO-PO Mapping Table
+-- Normalization fix: co_name VARCHAR replaced with co_number TINYINT to match questions.co type.
+-- Repository returns CONCAT('CO', co_number) AS co_name for API backward compatibility.
 CREATE TABLE `co_po_mapping` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `course_id` BIGINT NOT NULL,
-    `co_name` VARCHAR(5) NOT NULL,  -- CO1, CO2, ... CO6
+    `co_number` TINYINT NOT NULL CHECK (`co_number` BETWEEN 1 AND 6),
     `po_name` VARCHAR(5) NOT NULL,  -- PO1..PO12, PSO1..PSO3
     `value` TINYINT NOT NULL DEFAULT 0 CHECK (`value` BETWEEN 0 AND 3),
     PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_mapping` (`course_id`, `co_name`, `po_name`),
+    UNIQUE KEY `unique_mapping` (`course_id`, `co_number`, `po_name`),
     FOREIGN KEY (`course_id`) REFERENCES `courses`(`course_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tests (references offering_id — a test belongs to a specific offering, not the template)
+-- Redundancy fix: max_marks removed — it duplicated full_marks in all recorded data.
+-- full_marks (INT NOT NULL) is the single authoritative column for total marks.
 CREATE TABLE `tests` (
     `test_id` BIGINT NOT NULL AUTO_INCREMENT,
     `offering_id` BIGINT NOT NULL,
     `test_name` VARCHAR(100) NOT NULL,
     `test_type` ENUM('Mid Sem', 'End Sem', 'Assignment', 'Quiz') NULL,
     `test_date` DATE NULL,
-    `max_marks` DECIMAL(5,2) NULL,
     `weightage` DECIMAL(5,2) NULL,
     `full_marks` INT NOT NULL CHECK (`full_marks` > 0),
     `pass_marks` INT NOT NULL CHECK (`pass_marks` >= 0),
@@ -279,34 +283,32 @@ CREATE TABLE `enrollments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Raw Marks (per-question scores, dropped every semester)
+-- 3NF fix: test_id removed — it was transitively determined by question_id → questions.test_id.
+-- Queries that need test_id join via questions table.
 CREATE TABLE `raw_marks` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `test_id` BIGINT NOT NULL,
     `student_id` VARCHAR(20) NOT NULL,
     `question_id` BIGINT NOT NULL,
     `marks_obtained` DECIMAL(5, 2) NOT NULL CHECK (`marks_obtained` >= 0),
     PRIMARY KEY (`id`),
-    UNIQUE KEY (`test_id`, `student_id`, `question_id`),
-    INDEX (`test_id`, `student_id`),
+    UNIQUE KEY `uk_student_question` (`student_id`, `question_id`),
+    INDEX (`question_id`),
     INDEX (`student_id`),
-    FOREIGN KEY (`test_id`) REFERENCES `tests`(`test_id`) ON DELETE CASCADE,
     FOREIGN KEY (`student_id`) REFERENCES `students`(`roll_no`) ON DELETE CASCADE,
     FOREIGN KEY (`question_id`) REFERENCES `questions`(`question_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Marks (CO-aggregated scores per student per test)
+-- 1NF fix: CO1-CO6 repeating columns replaced with tall (co_number, marks_obtained) structure.
+-- Repository layer pivots back to CO1-CO6 keys for the API response.
 CREATE TABLE `marks` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `student_roll_no` VARCHAR(20) NOT NULL,
     `test_id` BIGINT NOT NULL,
-    `CO1` DECIMAL(6, 2) DEFAULT 0 CHECK (`CO1` >= 0),
-    `CO2` DECIMAL(6, 2) DEFAULT 0 CHECK (`CO2` >= 0),
-    `CO3` DECIMAL(6, 2) DEFAULT 0 CHECK (`CO3` >= 0),
-    `CO4` DECIMAL(6, 2) DEFAULT 0 CHECK (`CO4` >= 0),
-    `CO5` DECIMAL(6, 2) DEFAULT 0 CHECK (`CO5` >= 0),
-    `CO6` DECIMAL(6, 2) DEFAULT 0 CHECK (`CO6` >= 0),
+    `co_number` TINYINT NOT NULL CHECK (`co_number` BETWEEN 1 AND 6),
+    `marks_obtained` DECIMAL(6, 2) NOT NULL DEFAULT 0 CHECK (`marks_obtained` >= 0),
     PRIMARY KEY (`id`),
-    UNIQUE KEY (`student_roll_no`, `test_id`),
+    UNIQUE KEY `uk_student_test_co` (`student_roll_no`, `test_id`, `co_number`),
     INDEX (`test_id`),
     FOREIGN KEY (`student_roll_no`) REFERENCES `students`(`roll_no`) ON DELETE CASCADE,
     FOREIGN KEY (`test_id`) REFERENCES `tests`(`test_id`) ON DELETE CASCADE
@@ -329,7 +331,7 @@ SELECT
 FROM `hod_assignments` h
 JOIN `users` u ON h.employee_id = u.employee_id
 JOIN `departments` d ON h.department_id = d.department_id
-WHERE h.is_current = 1;
+WHERE h.end_date IS NULL;
 
 CREATE OR REPLACE VIEW `v_current_deans` AS
 SELECT 
@@ -343,7 +345,7 @@ SELECT
 FROM `dean_assignments` da
 JOIN `users` u ON da.employee_id = u.employee_id
 JOIN `schools` s ON da.school_id = s.school_id
-WHERE da.is_current = 1;
+WHERE da.end_date IS NULL;
 
 CREATE OR REPLACE VIEW `v_current_offerings` AS
 SELECT 
@@ -397,15 +399,23 @@ VALUES
     (3005, 'Faculty Five', 'faculty_05@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, 'Assistant Professor'),
     (3006, 'Faculty Six', 'faculty_06@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, 'Assistant Professor'),
     (4001, 'Staff One', 'staff_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 1, 'Lab Assistant'),
-    (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, 'Lab Assistant');
+    (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, 'Lab Assistant'),
+    -- Dean of SoE (managed via assignment table; uses faculty role)
+    (6001, 'Dean SoE', 'dean_soe@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', NULL, 'Dean');
+
+-- Dean Assignment for School of Engineering
+INSERT INTO `dean_assignments` (`school_id`, `employee_id`, `start_date`, `appointment_order`)
+VALUES
+    (1, 6001, '2026-01-01', 'APT/2026/DEAN/SOE/001');
 
 -- HOD Assignments (record of which faculty serves as HOD — does NOT affect login role)
 -- The dedicated HOD accounts (hod_cse, hod_ece) are permanent; these records track
 -- which real faculty/staff member is the "serving HOD" for historical purposes.
-INSERT INTO `hod_assignments` (`department_id`, `employee_id`, `start_date`, `is_current`, `appointment_order`)
+-- is_current is now derived: end_date IS NULL means currently active.
+INSERT INTO `hod_assignments` (`department_id`, `employee_id`, `start_date`, `appointment_order`)
 VALUES 
-    (1, 3001, '2024-01-01', 1, 'APT/2024/HOD/CSE/001'),
-    (2, 3005, '2024-01-01', 1, 'APT/2024/HOD/ECE/001');
+    (1, 3001, '2026-01-01', 'APT/2026/HOD/CSE/001'),
+    (2, 3005, '2026-01-01', 'APT/2026/HOD/ECE/001');
 
 -- Courses (TEMPLATES — no year/semester/faculty; those live in offerings now)
 INSERT INTO `courses` (`course_id`, `course_code`, `department_id`, `course_name`, `course_type`, `course_level`, `credit`)
@@ -422,35 +432,35 @@ VALUES
 -- Course Offerings (session instances)
 INSERT INTO `course_offerings` (`offering_id`, `course_id`, `year`, `semester`, `co_threshold`, `passing_threshold`)
 VALUES 
-    -- 2024 Semester 1
-    (1, 1, 2024, 1, 40.00, 60.00),   -- CS101 Introduction to Programming
-    (2, 2, 2024, 1, 40.00, 60.00),   -- CS201 Data Structures
-    (3, 3, 2024, 1, 40.00, 60.00),   -- CS301 DBMS
-    (4, 6, 2024, 1, 40.00, 60.00),   -- CS191 Programming Lab
-    -- 2024 Semester 2
-    (5, 4, 2024, 2, 40.00, 60.00),   -- CS302 Computer Networks
-    (6, 5, 2024, 2, 40.00, 60.00),   -- CS401 Operating Systems
-    (7, 7, 2024, 2, 40.00, 60.00),   -- EC101 Digital Electronics
-    -- 2025 Semester 1 (same courses offered again with potentially different faculty)
-    (8, 1, 2025, 1, 40.00, 60.00),   -- CS101 offered again in 2025
-    (9, 8, 2025, 1, 40.00, 60.00);   -- EC201 Signals and Systems
+    -- 2026 Spring
+    (1, 1, 2026, 'Spring', 40.00, 60.00),   -- CS101 Introduction to Programming
+    (2, 2, 2026, 'Spring', 40.00, 60.00),   -- CS201 Data Structures
+    (3, 3, 2026, 'Spring', 40.00, 60.00),   -- CS301 DBMS
+    (4, 6, 2026, 'Spring', 40.00, 60.00),   -- CS191 Programming Lab
+    -- 2025 Autumn (past offerings)
+    (5, 4, 2025, 'Autumn', 40.00, 60.00),   -- CS302 Computer Networks
+    (6, 5, 2025, 'Autumn', 40.00, 60.00),   -- CS401 Operating Systems
+    (7, 7, 2025, 'Autumn', 40.00, 60.00),   -- EC101 Digital Electronics
+    -- 2025 Spring (past offerings)
+    (8, 1, 2025, 'Spring', 40.00, 60.00),   -- CS101 Spring 2025
+    (9, 8, 2025, 'Spring', 40.00, 60.00);   -- EC201 Signals and Systems 2025
 
 -- Course Faculty Assignments (who teaches which offering)
 INSERT INTO `course_faculty_assignments` (`offering_id`, `employee_id`, `assignment_type`, `assigned_date`, `is_active`)
 VALUES 
-    -- 2024 Sem 1
-    (1, 3001, 'Primary', '2024-01-01', 1),     -- Faculty One → CS101 2024-S1
-    (2, 3001, 'Primary', '2024-01-01', 1),     -- Faculty One → CS201 2024-S1
-    (3, 3002, 'Primary', '2024-01-01', 1),     -- Faculty Two → CS301 2024-S1
-    (4, 3003, 'Primary', '2024-01-01', 1),     -- Faculty Three → CS191 Lab 2024-S1
-    (4, 3004, 'Lab', '2024-01-01', 1),         -- Faculty Four → CS191 Lab assistant 2024-S1
-    -- 2024 Sem 2
-    (5, 3004, 'Primary', '2024-07-01', 1),     -- Faculty Four → CS302 2024-S2
-    (6, 3002, 'Primary', '2024-07-01', 1),     -- Faculty Two → CS401 2024-S2
-    (7, 3005, 'Primary', '2024-07-01', 1),     -- Faculty Five → EC101 2024-S2
-    -- 2025 Sem 1 (CS101 now taught by different faculty!)
-    (8, 3003, 'Primary', '2025-01-01', 1),     -- Faculty Three → CS101 2025-S1
-    (9, 3006, 'Primary', '2025-01-01', 1);     -- Faculty Six → EC201 2025-S1
+    -- 2026 Spring (ACTIVE)
+    (1, 3001, 'Primary', '2026-01-01', 1),     -- Faculty One → CS101 2026 Spring
+    (2, 3001, 'Primary', '2026-01-01', 1),     -- Faculty One → CS201 2026 Spring
+    (3, 3002, 'Primary', '2026-01-01', 1),     -- Faculty Two → CS301 2026 Spring
+    (4, 3003, 'Primary', '2026-01-01', 1),     -- Faculty Three → CS191 Lab 2026 Spring
+    (4, 3004, 'Lab', '2026-01-01', 1),         -- Faculty Four → CS191 Lab assistant 2026 Spring
+    -- 2025 Autumn (PAST)
+    (5, 3004, 'Primary', '2025-07-01', 0),     -- Faculty Four → CS302 2025 Autumn
+    (6, 3002, 'Primary', '2025-07-01', 0),     -- Faculty Two → CS401 2025 Autumn
+    (7, 3005, 'Primary', '2025-07-01', 0),     -- Faculty Five → EC101 2025 Autumn
+    -- 2025 Spring (PAST)
+    (8, 3003, 'Primary', '2025-01-01', 0),     -- Faculty Three → CS101 2025 Spring
+    (9, 3006, 'Primary', '2025-01-01', 0);     -- Faculty Six → EC201 2025 Spring
 
 -- Students
 INSERT INTO `students` (`roll_no`, `student_name`, `department_id`, `batch_year`, `student_status`, `email`)
@@ -475,7 +485,11 @@ VALUES
     -- CSE 2025 batch
     ('2025CSE001', 'Nora Singh', 1, 2025, 'Active', 'nora@student.tezu.ac.in'),
     ('2025CSE002', 'Oscar Gupta', 1, 2025, 'Active', 'oscar@student.tezu.ac.in'),
-    ('2025CSE003', 'Paula Sharma', 1, 2025, 'Active', 'paula@student.tezu.ac.in');
+    ('2025CSE003', 'Paula Sharma', 1, 2025, 'Active', 'paula@student.tezu.ac.in'),
+    -- CSE 2026 batch
+    ('2026CSE001', 'Ravi Kumar', 1, 2026, 'Active', 'ravi@student.tezu.ac.in'),
+    ('2026CSE002', 'Sita Devi', 1, 2026, 'Active', 'sita@student.tezu.ac.in'),
+    ('2026CSE003', 'Amit Singh', 1, 2026, 'Active', 'amit@student.tezu.ac.in');
 
 -- Enrollments (students enrolled in specific offerings)
 INSERT INTO `enrollments` (`offering_id`, `enrollment_status`, `student_rollno`)
@@ -524,27 +538,31 @@ VALUES
     (7, 'Enrolled', '2024ECE003'),
     (7, 'Enrolled', '2024ECE004'),
     (7, 'Enrolled', '2024ECE005'),
-    -- 2025 CSE batch in CS101 2025-S1 (offering 8)
+    -- 2025 CSE batch in CS101 2025 Spring (offering 8)
     (8, 'Enrolled', '2025CSE001'),
     (8, 'Enrolled', '2025CSE002'),
-    (8, 'Enrolled', '2025CSE003');
+    (8, 'Enrolled', '2025CSE003'),
+    -- 2026 CSE batch in CS101 2026 Spring (offering 1)
+    (1, 'Enrolled', '2026CSE001'),
+    (1, 'Enrolled', '2026CSE002'),
+    (1, 'Enrolled', '2026CSE003');
 
 -- Tests (belong to specific offerings)
-INSERT INTO `tests` (`test_id`, `offering_id`, `test_name`, `test_type`, `test_date`, `max_marks`, `weightage`, `full_marks`, `pass_marks`)
+INSERT INTO `tests` (`test_id`, `offering_id`, `test_name`, `test_type`, `test_date`, `weightage`, `full_marks`, `pass_marks`)
 VALUES 
-    -- CS101 2024-S1 (offering 1)
-    (1, 1, 'Mid Semester Exam', 'Mid Sem', '2024-03-15', 50.00, 30.00, 50, 20),
-    (2, 1, 'End Semester Exam', 'End Sem', '2024-05-20', 100.00, 70.00, 100, 40),
-    (3, 1, 'Assignment 1', 'Assignment', '2024-02-15', 20.00, NULL, 20, 8),
-    -- CS201 2024-S1 (offering 2)
-    (4, 2, 'Mid Semester Exam', 'Mid Sem', '2024-03-16', 50.00, 30.00, 50, 20),
-    (5, 2, 'Quiz 1', 'Quiz', '2024-02-20', 10.00, NULL, 10, 4),
-    -- CS301 DBMS 2024-S1 (offering 3)
-    (6, 3, 'Mid Semester Exam', 'Mid Sem', '2024-03-17', 50.00, 30.00, 50, 20),
-    -- CS302 Networks 2024-S2 (offering 5)
-    (7, 5, 'Mid Semester Exam', 'Mid Sem', '2024-09-15', 50.00, 30.00, 50, 20),
-    -- EC101 2024-S2 (offering 7)
-    (8, 7, 'Mid Semester Exam', 'Mid Sem', '2024-09-16', 50.00, 30.00, 50, 20);
+    -- CS101 2026 Spring (offering 1)
+    (1, 1, 'Mid Semester Exam', 'Mid Sem', '2026-03-15', 30.00, 50, 20),
+    (2, 1, 'End Semester Exam', 'End Sem', '2026-05-20', 70.00, 100, 40),
+    (3, 1, 'Assignment 1', 'Assignment', '2026-02-15', NULL, 20, 8),
+    -- CS201 2026 Spring (offering 2)
+    (4, 2, 'Mid Semester Exam', 'Mid Sem', '2026-03-16', 30.00, 50, 20),
+    (5, 2, 'Quiz 1', 'Quiz', '2026-02-20', NULL, 10, 4),
+    -- CS301 DBMS 2026 Spring (offering 3)
+    (6, 3, 'Mid Semester Exam', 'Mid Sem', '2026-03-17', 30.00, 50, 20),
+    -- CS302 Networks 2026 Autumn (offering 5)
+    (7, 5, 'Mid Semester Exam', 'Mid Sem', '2026-09-15', 30.00, 50, 20),
+    -- EC101 2026 Autumn (offering 7)
+    (8, 7, 'Mid Semester Exam', 'Mid Sem', '2026-09-16', 30.00, 50, 20);
 
 -- Questions (exactly as original — sub_question, is_optional, co)
 INSERT INTO `questions` (`test_id`, `question_number`, `sub_question`, `is_optional`, `co`, `max_marks`)
@@ -586,58 +604,60 @@ VALUES
     (6, 4, NULL, 0, 4, 15.00);
 
 -- Raw Marks (per-question scores for some students)
-INSERT INTO `raw_marks` (`test_id`, `student_id`, `question_id`, `marks_obtained`)
+-- test_id removed from table; test context is derived via question_id → questions.test_id.
+INSERT INTO `raw_marks` (`student_id`, `question_id`, `marks_obtained`)
 VALUES 
     -- CS101 Mid Sem (test 1) — questions 1-6
     -- Student 2024CSE001
-    (1, '2024CSE001', 1, 8.50),
-    (1, '2024CSE001', 2, 4.00),
-    (1, '2024CSE001', 3, 4.50),
-    (1, '2024CSE001', 4, 9.00),
-    (1, '2024CSE001', 6, 8.00),
+    ('2024CSE001', 1, 8.50),
+    ('2024CSE001', 2, 4.00),
+    ('2024CSE001', 3, 4.50),
+    ('2024CSE001', 4, 9.00),
+    ('2024CSE001', 6, 8.00),
     -- Student 2024CSE002
-    (1, '2024CSE002', 1, 7.00),
-    (1, '2024CSE002', 2, 3.50),
-    (1, '2024CSE002', 3, 4.00),
-    (1, '2024CSE002', 5, 8.50),
-    (1, '2024CSE002', 6, 7.50),
+    ('2024CSE002', 1, 7.00),
+    ('2024CSE002', 2, 3.50),
+    ('2024CSE002', 3, 4.00),
+    ('2024CSE002', 5, 8.50),
+    ('2024CSE002', 6, 7.50),
     -- Student 2024CSE003
-    (1, '2024CSE003', 1, 9.00),
-    (1, '2024CSE003', 2, 5.00),
-    (1, '2024CSE003', 3, 5.00),
-    (1, '2024CSE003', 4, 10.00),
-    (1, '2024CSE003', 6, 9.50),
+    ('2024CSE003', 1, 9.00),
+    ('2024CSE003', 2, 5.00),
+    ('2024CSE003', 3, 5.00),
+    ('2024CSE003', 4, 10.00),
+    ('2024CSE003', 6, 9.50),
     -- Student 2024CSE004
-    (1, '2024CSE004', 1, 6.00),
-    (1, '2024CSE004', 2, 3.00),
-    (1, '2024CSE004', 3, 2.50),
-    (1, '2024CSE004', 4, 7.00),
-    (1, '2024CSE004', 6, 5.50),
+    ('2024CSE004', 1, 6.00),
+    ('2024CSE004', 2, 3.00),
+    ('2024CSE004', 3, 2.50),
+    ('2024CSE004', 4, 7.00),
+    ('2024CSE004', 6, 5.50),
     -- Student 2024CSE005
-    (1, '2024CSE005', 1, 10.00),
-    (1, '2024CSE005', 2, 5.00),
-    (1, '2024CSE005', 3, 4.50),
-    (1, '2024CSE005', 5, 9.50),
-    (1, '2024CSE005', 6, 10.00);
+    ('2024CSE005', 1, 10.00),
+    ('2024CSE005', 2, 5.00),
+    ('2024CSE005', 3, 4.50),
+    ('2024CSE005', 5, 9.50),
+    ('2024CSE005', 6, 10.00);
 
 -- CO-PO Mappings (for course templates)
-INSERT INTO `co_po_mapping` (`course_id`, `co_name`, `po_name`, `value`)
+-- co_name strings replaced with co_number integers to match questions.co type.
+INSERT INTO `co_po_mapping` (`course_id`, `co_number`, `po_name`, `value`)
 VALUES 
     -- CS101: Introduction to Programming
-    (1, 'CO1', 'PO1', 3), (1, 'CO1', 'PO2', 2), (1, 'CO1', 'PO5', 1),
-    (1, 'CO2', 'PO1', 2), (1, 'CO2', 'PO2', 3), (1, 'CO2', 'PO3', 1),
-    (1, 'CO3', 'PO2', 2), (1, 'CO3', 'PO3', 3), (1, 'CO3', 'PO5', 2),
-    (1, 'CO4', 'PO1', 1), (1, 'CO4', 'PO3', 2), (1, 'CO4', 'PO5', 3),
+    (1, 1, 'PO1', 3), (1, 1, 'PO2', 2), (1, 1, 'PO5', 1),
+    (1, 2, 'PO1', 2), (1, 2, 'PO2', 3), (1, 2, 'PO3', 1),
+    (1, 3, 'PO2', 2), (1, 3, 'PO3', 3), (1, 3, 'PO5', 2),
+    (1, 4, 'PO1', 1), (1, 4, 'PO3', 2), (1, 4, 'PO5', 3),
     -- CS201: Data Structures
-    (2, 'CO1', 'PO1', 3), (2, 'CO1', 'PO2', 2),
-    (2, 'CO2', 'PO1', 2), (2, 'CO2', 'PO2', 3), (2, 'CO2', 'PO3', 2),
-    (2, 'CO3', 'PO2', 2), (2, 'CO3', 'PO3', 3),
-    (2, 'CO4', 'PO3', 2), (2, 'CO4', 'PO5', 2),
+    (2, 1, 'PO1', 3), (2, 1, 'PO2', 2),
+    (2, 2, 'PO1', 2), (2, 2, 'PO2', 3), (2, 2, 'PO3', 2),
+    (2, 3, 'PO2', 2), (2, 3, 'PO3', 3),
+    (2, 4, 'PO3', 2), (2, 4, 'PO5', 2),
     -- CS301: DBMS
-    (3, 'CO1', 'PO1', 3), (3, 'CO1', 'PO2', 1),
-    (3, 'CO2', 'PO1', 2), (3, 'CO2', 'PO2', 3), (3, 'CO2', 'PO3', 1),
-    (3, 'CO3', 'PO2', 2), (3, 'CO3', 'PO3', 3), (3, 'CO3', 'PO5', 1),
-    (3, 'CO4', 'PO3', 2), (3, 'CO4', 'PO5', 3);
+    (3, 1, 'PO1', 3), (3, 1, 'PO2', 1),
+    (3, 2, 'PO1', 2), (3, 2, 'PO2', 3), (3, 2, 'PO3', 1),
+    (3, 3, 'PO2', 2), (3, 3, 'PO3', 3), (3, 3, 'PO5', 1),
+    (3, 4, 'PO3', 2), (3, 4, 'PO5', 3);
 
 -- Attainment Scale (per course template)
 INSERT INTO `attainment_scale` (`course_id`, `level`, `min_percentage`)
@@ -656,8 +676,7 @@ VALUES
 SELECT 'schools' AS `table`, COUNT(*) AS `rows` FROM `schools`
 UNION ALL SELECT 'departments', COUNT(*) FROM `departments`
 UNION ALL SELECT 'users', COUNT(*) FROM `users`
-UNION ALL SELECT 'hod_assignments', COUNT(*) FROM `hod_assignments`
-UNION ALL SELECT 'students', COUNT(*) FROM `students`
+UNION ALL SELECT 'hod_assignments', COUNT(*) FROM `hod_assignments`UNION ALL SELECT 'dean_assignments', COUNT(*) FROM `dean_assignments`UNION ALL SELECT 'students', COUNT(*) FROM `students`
 UNION ALL SELECT 'courses', COUNT(*) FROM `courses`
 UNION ALL SELECT 'course_offerings', COUNT(*) FROM `course_offerings`
 UNION ALL SELECT 'faculty_assignments', COUNT(*) FROM `course_faculty_assignments`

@@ -14,7 +14,7 @@ class CoPoRepository
      */
     public function getMatrix($courseId)
     {
-        $query = "SELECT co_name, po_name, value FROM co_po_mapping WHERE course_id = :course_id";
+        $query = "SELECT CONCAT('CO', co_number) AS co_name, po_name, value FROM co_po_mapping WHERE course_id = :course_id";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':course_id', $courseId);
         $stmt->execute();
@@ -28,8 +28,8 @@ class CoPoRepository
     {
         // MatrixData is expected to be an array of ['co' => 'CO1', 'po' => 'PO1', 'value' => 2]
 
-        $query = "INSERT INTO co_po_mapping (course_id, co_name, po_name, value) 
-                  VALUES (:course_id, :co_name, :po_name, :value)
+        $query = "INSERT INTO co_po_mapping (course_id, co_number, po_name, value) 
+                  VALUES (:course_id, :co_number, :po_name, :value)
                   ON DUPLICATE KEY UPDATE value = :value_update";
 
         $stmt = $this->db->prepare($query);
@@ -40,9 +40,11 @@ class CoPoRepository
             foreach ($matrixData as $row) {
                 // Ensure value is integer
                 $val = (int)$row['value'];
+                // Convert 'CO1' → 1, 'CO2' → 2, etc.
+                $coNumber = intval(substr($row['co'], 2));
 
                 $stmt->bindValue(':course_id', $courseId);
-                $stmt->bindValue(':co_name', $row['co']);
+                $stmt->bindValue(':co_number', $coNumber);
                 $stmt->bindValue(':po_name', $row['po']);
                 $stmt->bindValue(':value', $val);
                 $stmt->bindValue(':value_update', $val);

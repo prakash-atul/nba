@@ -40,7 +40,6 @@ class TestRepository
                     $data['question_paper_pdf'],
                     $data['test_type'] ?? null,
                     $data['test_date'] ?? null,
-                    $data['max_marks'] ?? null,
                     $data['weightage'] ?? null,
                     $data['course_code'],
                     $data['year'],
@@ -81,7 +80,6 @@ class TestRepository
                     $data['question_paper_pdf'],
                     $data['test_type'] ?? null,
                     $data['test_date'] ?? null,
-                    $data['max_marks'] ?? null,
                     $data['weightage'] ?? null,
                     $data['course_code'],
                     $data['year'],
@@ -121,7 +119,6 @@ class TestRepository
                     $data['question_paper_pdf'],
                     $data['test_type'] ?? null,
                     $data['test_date'] ?? null,
-                    $data['max_marks'] ?? null,
                     $data['weightage'] ?? null,
                     $data['course_code'],
                     $data['year'],
@@ -188,7 +185,6 @@ class TestRepository
                     $data['question_paper_pdf'],
                     $data['test_type'] ?? null,
                     $data['test_date'] ?? null,
-                    $data['max_marks'] ?? null,
                     $data['weightage'] ?? null,
                     $data['course_code'],
                     $data['year'],
@@ -209,7 +205,7 @@ class TestRepository
         try {
             if ($test->getTestId()) {
                 // Update existing test
-                $stmt = $this->db->prepare("UPDATE tests SET offering_id = ?, test_name = ?, full_marks = ?, pass_marks = ?, question_paper_pdf = ?, test_type = ?, test_date = ?, max_marks = ?, weightage = ? WHERE test_id = ?");
+                $stmt = $this->db->prepare("UPDATE tests SET offering_id = ?, test_name = ?, full_marks = ?, pass_marks = ?, question_paper_pdf = ?, test_type = ?, test_date = ?, weightage = ? WHERE test_id = ?");
                 return $stmt->execute([
                     $test->getOfferingId(),
                     $test->getTestName(),
@@ -218,13 +214,12 @@ class TestRepository
                     $test->getQuestionPaperPdf(),
                     $test->getTestType(),
                     $test->getTestDate(),
-                    $test->getMaxMarks(),
                     $test->getWeightage(),
                     $test->getTestId()
                 ]);
             } else {
                 // Insert new test
-                $stmt = $this->db->prepare("INSERT INTO tests (offering_id, test_name, full_marks, pass_marks, question_paper_pdf, test_type, test_date, max_marks, weightage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $this->db->prepare("INSERT INTO tests (offering_id, test_name, full_marks, pass_marks, question_paper_pdf, test_type, test_date, weightage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 $result = $stmt->execute([
                     $test->getOfferingId(),
                     $test->getTestName(),
@@ -233,7 +228,6 @@ class TestRepository
                     $test->getQuestionPaperPdf(),
                     $test->getTestType(),
                     $test->getTestDate(),
-                    $test->getMaxMarks(),
                     $test->getWeightage()
                 ]);
 
@@ -289,7 +283,6 @@ class TestRepository
                     'pass_marks' => $data['pass_marks'],
                     'test_type' => $data['test_type'] ?? null,
                     'test_date' => $data['test_date'] ?? null,
-                    'max_marks' => $data['max_marks'] ?? null,
                     'weightage' => $data['weightage'] ?? null,
                     'year' => $data['year'],
                     'semester' => $data['semester']
@@ -329,7 +322,7 @@ class TestRepository
         try {
             $sql = "
                 SELECT t.test_id, t.offering_id, t.test_name, t.test_type,
-                       t.test_date, t.full_marks, t.pass_marks, t.max_marks, t.weightage,
+                       t.test_date, t.full_marks, t.pass_marks, t.weightage,
                        c.course_code, c.course_name, co.year, co.semester,
                        d.department_name, d.department_id
                 FROM tests t
@@ -416,7 +409,7 @@ class TestRepository
         try {
             $sql = "
                 SELECT t.test_id, t.offering_id, t.test_name, t.test_type,
-                       t.test_date, t.full_marks, t.pass_marks, t.max_marks, t.weightage,
+                       t.test_date, t.full_marks, t.pass_marks, t.weightage,
                        c.course_code, c.course_name, co.year, co.semester,
                        d.department_name, d.department_id, d.department_code,
                        u.username AS faculty_name

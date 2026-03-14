@@ -39,11 +39,20 @@ class TokenManager {
 
 export const tokenManager = new TokenManager();
 
+/** Called on any 401 response — clears stale token and sends user to login. */
+function handleUnauthorized(): never {
+	tokenManager.clearToken();
+	window.location.href = "/login";
+	throw new Error("Session expired. Please log in again.");
+}
+
 // Helper function for making GET requests
 export async function apiGet<T>(endpoint: string): Promise<T> {
 	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
 		headers: tokenManager.getAuthHeaders(),
 	});
+
+	if (response.status === 401) handleUnauthorized();
 
 	const data = await response.json();
 
@@ -61,6 +70,8 @@ export async function apiPost<T, R>(endpoint: string, body: T): Promise<R> {
 		headers: tokenManager.getJsonHeaders(),
 		body: JSON.stringify(body),
 	});
+
+	if (response.status === 401) handleUnauthorized();
 
 	const data = await response.json();
 
@@ -82,6 +93,8 @@ export async function apiDelete<T = void>(endpoint: string): Promise<T> {
 		headers: tokenManager.getAuthHeaders(),
 	});
 
+	if (response.status === 401) handleUnauthorized();
+
 	const data = await response.json();
 
 	if (!response.ok) {
@@ -98,6 +111,8 @@ export async function apiPut<T, R>(endpoint: string, body: T): Promise<R> {
 		headers: tokenManager.getJsonHeaders(),
 		body: JSON.stringify(body),
 	});
+
+	if (response.status === 401) handleUnauthorized();
 
 	const data = await response.json();
 
@@ -120,6 +135,8 @@ export async function apiGetFull<T>(
 		headers: tokenManager.getAuthHeaders(),
 	});
 
+	if (response.status === 401) handleUnauthorized();
+
 	const data = await response.json();
 
 	if (!response.ok) {
@@ -138,6 +155,8 @@ export async function apiPostFull<T, R>(
 		headers: tokenManager.getJsonHeaders(),
 		body: JSON.stringify(body),
 	});
+
+	if (response.status === 401) handleUnauthorized();
 
 	const data = await response.json();
 
@@ -175,6 +194,8 @@ export async function apiGetPaginated<T>(
 	const response = await fetch(url, {
 		headers: tokenManager.getAuthHeaders(),
 	});
+
+	if (response.status === 401) handleUnauthorized();
 
 	const data = await response.json();
 

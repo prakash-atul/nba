@@ -384,8 +384,8 @@ class UserRepository
                        CASE WHEN de.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_dean
                 FROM users u
                 LEFT JOIN departments d ON u.department_id = d.department_id
-                LEFT JOIN hod_assignments h ON u.employee_id = h.employee_id AND h.is_current = 1
-                LEFT JOIN dean_assignments de ON u.employee_id = de.employee_id AND de.is_current = 1
+                LEFT JOIN hod_assignments h ON u.employee_id = h.employee_id AND h.end_date IS NULL
+                LEFT JOIN dean_assignments de ON u.employee_id = de.employee_id AND de.end_date IS NULL
                 WHERE 1=1
             ";
             $bindings = [];
@@ -480,8 +480,8 @@ class UserRepository
                        CASE WHEN de.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_dean
                 FROM users u
                 JOIN departments d ON u.department_id = d.department_id
-                LEFT JOIN hod_assignments h ON u.employee_id = h.employee_id AND h.is_current = 1
-                LEFT JOIN dean_assignments de ON u.employee_id = de.employee_id AND de.is_current = 1
+                LEFT JOIN hod_assignments h ON u.employee_id = h.employee_id AND h.end_date IS NULL
+                LEFT JOIN dean_assignments de ON u.employee_id = de.employee_id AND de.end_date IS NULL
                 WHERE d.school_id = ?
             ";
             $bindings = [$schoolId];
@@ -647,7 +647,7 @@ class UserRepository
     public function hodExistsForDepartment($departmentId, $excludeEmployeeId = null)
     {
         try {
-            $sql = "SELECT COUNT(*) FROM hod_assignments WHERE department_id = ? AND is_current = 1";
+            $sql = "SELECT COUNT(*) FROM hod_assignments WHERE department_id = ? AND end_date IS NULL";
             $params = [$departmentId];
 
             if ($excludeEmployeeId) {
@@ -672,7 +672,7 @@ class UserRepository
     public function deanExists($excludeEmployeeId = null)
     {
         try {
-            $sql = "SELECT COUNT(*) FROM dean_assignments WHERE is_current = 1";
+            $sql = "SELECT COUNT(*) FROM dean_assignments WHERE end_date IS NULL";
             $params = [];
 
             if ($excludeEmployeeId) {
@@ -704,8 +704,8 @@ class UserRepository
                        CASE WHEN h.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_hod,
                        CASE WHEN de.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_dean
                 FROM users u
-                LEFT JOIN hod_assignments h ON u.employee_id = h.employee_id AND h.is_current = 1
-                LEFT JOIN dean_assignments de ON u.employee_id = de.employee_id AND de.is_current = 1
+                LEFT JOIN hod_assignments h ON u.employee_id = h.employee_id AND h.end_date IS NULL
+                LEFT JOIN dean_assignments de ON u.employee_id = de.employee_id AND de.end_date IS NULL
                 WHERE u.department_id = ? AND u.role IN ('faculty', 'staff')
             ";
             $bindings = [$departmentId];

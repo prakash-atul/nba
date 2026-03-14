@@ -60,18 +60,18 @@ class FacultyController
                 $stmt->execute([$offeringId]);
                 $totalStudents += $stmt->fetchColumn();
 
-                // Simple attainment check (average percentage of marks for this offering)
-                // marks table has CO1-CO6 columns; tests table has full_marks
+                // Average score percentage across all students and tests in this offering
                 $stmt = $this->db->prepare("
-                    SELECT AVG(
-                        (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
-                         COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
-                        NULLIF(t.full_marks, 0) * 100
-                    ) as avg_percentage
-                    FROM marks m
-                    JOIN tests t ON m.test_id = t.test_id
-                    WHERE t.offering_id = ?
-                    AND t.full_marks IS NOT NULL AND t.full_marks > 0
+                    SELECT AVG(s.student_total / NULLIF(s.full_marks, 0) * 100) AS avg_percentage
+                    FROM (
+                        SELECT m.student_roll_no, t.test_id, t.full_marks,
+                               SUM(m.marks_obtained) AS student_total
+                        FROM marks m
+                        JOIN tests t ON m.test_id = t.test_id
+                        WHERE t.offering_id = ?
+                          AND t.full_marks > 0
+                        GROUP BY m.student_roll_no, t.test_id, t.full_marks
+                    ) s
                 ");
                 $stmt->execute([$offeringId]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -392,15 +392,16 @@ class FacultyController
 
             // Average performance (%)
             $stmt = $this->db->prepare("
-                SELECT AVG(
-                    (COALESCE(m.CO1,0) + COALESCE(m.CO2,0) + COALESCE(m.CO3,0) +
-                     COALESCE(m.CO4,0) + COALESCE(m.CO5,0) + COALESCE(m.CO6,0)) /
-                    NULLIF(t.full_marks, 0) * 100
-                ) as avg_percentage
-                FROM marks m
-                JOIN tests t ON m.test_id = t.test_id
-                WHERE t.offering_id = ?
-                AND t.full_marks IS NOT NULL AND t.full_marks > 0
+                SELECT AVG(s.student_total / NULLIF(s.full_marks, 0) * 100) AS avg_percentage
+                FROM (
+                    SELECT m.student_roll_no, t.test_id, t.full_marks,
+                           SUM(m.marks_obtained) AS student_total
+                    FROM marks m
+                    JOIN tests t ON m.test_id = t.test_id
+                    WHERE t.offering_id = ?
+                      AND t.full_marks > 0
+                    GROUP BY m.student_roll_no, t.test_id, t.full_marks
+                ) s
             ");
             $stmt->execute([$offeringId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -424,6 +425,66 @@ class FacultyController
             http_response_code(500);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve course statistics', 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function concludeCourse($facultyId, $offeringId)
+    {
+        try {
+            // Verify faculty is assigned and active
+            if (!$this->courseFacultyAssignmentRepository->isFacultyAssignedToOffering($offeringId, $facultyId)) {
+                http_response_code(403);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Unauthorized or already concluded access to this course offering.']);
+                return;
+            }
+
+            // Begin Transaction
+            $this->db->beginTransaction();
+
+            $completionDate = date('Y-m-d');
+
+            // 1. Set assignment to inactive
+            $stmt = $this->db->prepare("
+                UPDATE course_faculty_assignments
+                SET is_active = 0, completion_date = ?
+                WHERE offering_id = ? AND employee_id = ? AND is_active = 1
+            ");
+            $stmt->execute([$completionDate, $offeringId, $facultyId]);
+
+            // 2. Set remaining enrollments to completed
+            $stmt = $this->db->prepare("
+                UPDATE enrollments 
+                SET enrollment_status = 'Completed' 
+                WHERE offering_id = ? AND (enrollment_status IS NULL OR enrollment_status != 'Completed')
+            ");
+            $stmt->execute([$offeringId]);
+
+            // 3. Purge raw marks to save space, safely since aggregation exists
+            $stmt = $this->db->prepare("
+                DELETE rm FROM raw_marks rm
+                INNER JOIN questions q ON rm.question_id = q.question_id
+                INNER JOIN tests t ON q.test_id = t.test_id
+                WHERE t.offering_id = ?
+            ");
+            $stmt->execute([$offeringId]);
+
+            $this->db->commit();
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Course concluded successfully. Session finalized and obsolete raw records purged.'
+            ]);
+
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Error concluding course: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to conclude course', 'error' => $e->getMessage()]);
         }
     }
 }

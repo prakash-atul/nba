@@ -211,7 +211,7 @@ export function FacultyDashboard() {
 								<div className="p-6 space-y-6">
 									<FacultyStatsCards
 										stats={stats}
-										isLoading={isLoading}
+											isLoading={isLoading}
 									/>
 									<div>
 										<h2 className="text-lg font-semibold mb-4">
@@ -223,7 +223,7 @@ export function FacultyDashboard() {
 									</div>
 									<FacultyOverview
 										courses={courses}
-										isLoading={isLoading}
+										isLoading={isLoading} onRefresh={handleRefresh}
 									/>
 								</div>
 							</div>

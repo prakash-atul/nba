@@ -302,7 +302,7 @@ class DepartmentRepository
                      LIMIT 1) AS latest_offering
                 FROM departments d
                 LEFT JOIN schools s ON d.school_id = s.school_id
-                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.is_current = 1
+                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.end_date IS NULL
                 LEFT JOIN users hod ON ha.employee_id = hod.employee_id
                 ORDER BY d.department_name
             ");
@@ -379,7 +379,7 @@ class DepartmentRepository
                     COALESCE(ds.active_offerings_count, 0)  AS active_offerings_count
                 FROM departments d
                 LEFT JOIN schools s ON d.school_id = s.school_id
-                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.is_current = 1
+                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.end_date IS NULL
                 LEFT JOIN users hod ON ha.employee_id = hod.employee_id
                 LEFT JOIN department_stats ds ON d.department_id = ds.department_id
                 WHERE 1=1
@@ -459,7 +459,7 @@ class DepartmentRepository
                     (SELECT COUNT(*) FROM students s WHERE s.department_id = d.department_id AND s.student_status = 'Active') AS student_count,
                     (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.department_id) AS course_count
                 FROM departments d
-                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.is_current = 1
+                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.end_date IS NULL
                 LEFT JOIN users hod ON ha.employee_id = hod.employee_id
                 WHERE d.school_id = ?
             ";
@@ -503,7 +503,7 @@ class DepartmentRepository
             $sql = "
                 SELECT COUNT(*) 
                 FROM departments d 
-                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.is_current = 1
+                LEFT JOIN hod_assignments ha ON d.department_id = ha.department_id AND ha.end_date IS NULL
                 LEFT JOIN users hod ON ha.employee_id = hod.employee_id
                 WHERE d.school_id = ?
             ";

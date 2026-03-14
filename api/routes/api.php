@@ -156,6 +156,14 @@ class Router
 
         // Check for dynamic routes before switch
 
+        // POST /faculty/courses/{offeringId}/conclude
+        if (preg_match('#^faculty/courses/(\d+)/conclude$#', $path, $matches) && $method === 'POST') {
+            $user = $this->authMiddleware->requireAuth();
+            $_REQUEST['authenticated_user'] = $user;
+            $this->facultyController->concludeCourse($user['employee_id'], intval($matches[1]));
+            return;
+        }
+
         // GET /faculty/courses/{offeringId}/stats
         if (preg_match('#^faculty/courses/(\d+)/stats$#', $path, $matches) && $method === 'GET') {
             $user = $this->authMiddleware->requireAuth();
@@ -348,6 +356,30 @@ class Router
                     $user = $this->authMiddleware->requireAuth();
                     $_REQUEST['authenticated_user'] = $user;
                     $this->hodController->getStats();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+                
+            case 'hod/base-courses':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getBaseCourses();
+                } elseif ($method === 'POST') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->createBaseCourse();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'hod/base-courses/all':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getAllBaseCourses();
                 } else {
                     $this->sendMethodNotAllowed();
                 }
@@ -823,7 +855,29 @@ class Router
                     } else {
                         $this->sendMethodNotAllowed();
                     }
-                } elseif (preg_match('#^hod/courses/(\d+)$#', $path, $matches)) {
+                } elseif (preg_match('#^hod/offerings/(\d+)/test-averages$#', $path, $matches)) {
+                    $offeringId = $matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->hodController->getOfferingTestAverages($offeringId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                                } elseif (preg_match('#^hod/base-courses/(\\d+)$#', $path, $matches)) {
+                    $courseId = $matches[1];
+                    if ($method === 'PUT') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->hodController->updateBaseCourse($courseId);
+                    } elseif ($method === 'DELETE') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->hodController->deleteBaseCourse($courseId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+} elseif (preg_match('#^hod/courses/(\d+)$#', $path, $matches)) {
                     $courseId = $matches[1];
                     if ($method === 'PUT') {
                         $user = $this->authMiddleware->requireAuth();
@@ -964,3 +1018,4 @@ class Router
 // Initialize and handle request
 $router = new Router();
 $router->handleRequest();
+

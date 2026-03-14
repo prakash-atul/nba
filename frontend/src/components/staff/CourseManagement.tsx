@@ -52,14 +52,14 @@ interface CourseFormData {
 	credit: number;
 	faculty_id: string;
 	year: number;
-	semester: number;
+	semester: string;
 }
 
 // Unused props removed
 
 const currentYear = new Date().getFullYear();
 const years = [currentYear - 1, currentYear, currentYear + 1];
-const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
+const semesters = ["Spring", "Autumn"] as const;
 
 export function CourseManagement() {
 	const {
@@ -75,7 +75,7 @@ export function CourseManagement() {
 		setSearch,
 		filters,
 		setFilter,
-	} = usePaginatedData<StaffCourse, { year?: number; semester?: number }>({
+	} = usePaginatedData<StaffCourse, { year?: number; semester?: string }>({
 		fetchFn: (params) => staffApi.getDepartmentCourses(params),
 		limit: 50,
 		defaultSort: "c.course_code",
@@ -99,7 +99,7 @@ export function CourseManagement() {
 		credit: 3,
 		faculty_id: "",
 		year: currentYear,
-		semester: 1,
+		semester: "Spring",
 	});
 	const [editFormData, setEditFormData] = useState<CourseFormData>({
 		course_code: "",
@@ -107,7 +107,7 @@ export function CourseManagement() {
 		credit: 3,
 		faculty_id: "",
 		year: currentYear,
-		semester: 1,
+		semester: "Spring",
 	});
 
 	const columns = useMemo<ColumnDef<StaffCourse>[]>(
@@ -266,7 +266,7 @@ export function CourseManagement() {
 			credit: 3,
 			faculty_id: "",
 			year: currentYear,
-			semester: 1,
+			semester: "Spring",
 		});
 	};
 
@@ -280,7 +280,7 @@ export function CourseManagement() {
 		try {
 			await staffApi.createCourse({
 				...formData,
-				semester: String(formData.semester),
+				semester: formData.semester,
 			});
 			toast.success("Course created successfully");
 			setIsAddDialogOpen(false);
@@ -319,7 +319,7 @@ export function CourseManagement() {
 			credit: course.credit,
 			faculty_id: course.faculty_id ? String(course.faculty_id) : "",
 			year: course.year ?? currentYear,
-			semester: course.semester ?? 1,
+			semester: course.semester ?? "Spring",
 		});
 		setIsEditDialogOpen(true);
 	};
@@ -340,7 +340,7 @@ export function CourseManagement() {
 		try {
 			await staffApi.updateCourse(selectedCourse.course_id, {
 				...editFormData,
-				semester: String(editFormData.semester),
+				semester: editFormData.semester,
 			});
 			toast.success("Course updated successfully");
 			setIsEditDialogOpen(false);
@@ -524,11 +524,11 @@ export function CourseManagement() {
 								<div className="space-y-2">
 									<Label htmlFor="semester">Semester *</Label>
 									<Select
-										value={String(formData.semester)}
+										value={formData.semester}
 										onValueChange={(value) =>
 											setFormData({
 												...formData,
-												semester: parseInt(value),
+												semester: value,
 											})
 										}
 									>
@@ -537,11 +537,8 @@ export function CourseManagement() {
 										</SelectTrigger>
 										<SelectContent>
 											{semesters.map((s) => (
-												<SelectItem
-													key={s}
-													value={String(s)}
-												>
-													Semester {s}
+												<SelectItem key={s} value={s}>
+													{s} Semester
 												</SelectItem>
 											))}
 										</SelectContent>
@@ -619,16 +616,9 @@ export function CourseManagement() {
 								</Button>
 							)}
 							<Select
-								value={
-									filters.semester !== undefined
-										? String(filters.semester)
-										: ""
-								}
+								value={filters.semester ?? ""}
 								onValueChange={(v) =>
-									setFilter(
-										"semester",
-										v ? Number(v) : undefined,
-									)
+									setFilter("semester", v || undefined)
 								}
 							>
 								<SelectTrigger className="w-[140px]">
@@ -636,8 +626,8 @@ export function CourseManagement() {
 								</SelectTrigger>
 								<SelectContent>
 									{semesters.map((s) => (
-										<SelectItem key={s} value={String(s)}>
-											Semester {s}
+										<SelectItem key={s} value={s}>
+											{s} Semester
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -804,11 +794,11 @@ export function CourseManagement() {
 									Semester *
 								</Label>
 								<Select
-									value={String(editFormData.semester)}
+									value={editFormData.semester}
 									onValueChange={(value) =>
 										setEditFormData({
 											...editFormData,
-											semester: parseInt(value),
+											semester: value,
 										})
 									}
 								>
@@ -817,11 +807,8 @@ export function CourseManagement() {
 									</SelectTrigger>
 									<SelectContent>
 										{semesters.map((s) => (
-											<SelectItem
-												key={s}
-												value={String(s)}
-											>
-												Semester {s}
+											<SelectItem key={s} value={s}>
+												{s} Semester
 											</SelectItem>
 										))}
 									</SelectContent>

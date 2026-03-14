@@ -32,7 +32,7 @@ interface COPOMappingProps {
 	facultyName: string;
 	departmentName: string;
 	year: number;
-	semester: number;
+	semester: string;
 }
 
 export function COPOMapping({
@@ -175,7 +175,7 @@ export function COPOMapping({
 			PSO3: 0,
 		},
 	});
-	
+
 	const [saving, setSaving] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -224,7 +224,7 @@ export function COPOMapping({
 					config.attainment_thresholds.map((t) => ({
 						id: t.id,
 						percentage: t.percentage,
-					}))
+					})),
 				);
 			}
 		} catch (error) {
@@ -250,7 +250,7 @@ export function COPOMapping({
 				apiService
 					.getTestMarks(test.id)
 					.then((data) => ({ test, marksData: data }))
-					.catch(() => ({ test, marksData: null }))
+					.catch(() => ({ test, marksData: null })),
 			);
 
 			const allMarksResults = await Promise.all(allMarksPromises);
@@ -325,7 +325,7 @@ export function COPOMapping({
 			for (const test of testsData) {
 				try {
 					const assessmentData = await apiService.getAssessment(
-						test.id
+						test.id,
 					);
 					const questions = assessmentData.questions;
 
@@ -339,7 +339,7 @@ export function COPOMapping({
 				} catch (error) {
 					console.error(
 						`Failed to load questions for test ${test.name}:`,
-						error
+						error,
 					);
 				}
 			}
@@ -389,13 +389,13 @@ export function COPOMapping({
 				});
 
 				const nonZeroCOs = Object.keys(coTotals).filter(
-					(co) => coMaxTotals[co as keyof typeof coMaxTotals] > 0
+					(co) => coMaxTotals[co as keyof typeof coMaxTotals] > 0,
 				);
 				const sumCO =
 					nonZeroCOs.reduce(
 						(sum, co) =>
 							sum + student.coTotals[co as keyof typeof coTotals],
-						0
+						0,
 					) / (nonZeroCOs.length || 1);
 
 				student.coTotals.ΣCO = sumCO;
@@ -506,10 +506,12 @@ export function COPOMapping({
 		if (updateCount > 0) {
 			setCopoMatrix(newMatrix);
 			toast.success(
-				`Imported metadata successfully (${updateCount} values updated). Click Save to persist.`
+				`Imported metadata successfully (${updateCount} values updated). Click Save to persist.`,
 			);
 		} else {
-			toast.warning("No valid data found in CSV matching CO/PO structure.");
+			toast.warning(
+				"No valid data found in CSV matching CO/PO structure.",
+			);
 		}
 	};
 
@@ -517,7 +519,7 @@ export function COPOMapping({
 	const addThreshold = () => {
 		const newId = Math.max(...attainmentThresholds.map((t) => t.id), 0) + 1;
 		const lowestPercentage = Math.min(
-			...attainmentThresholds.map((t) => t.percentage)
+			...attainmentThresholds.map((t) => t.percentage),
 		);
 		const newPercentage = Math.max(lowestPercentage - 10, 0);
 		setAttainmentThresholds([
@@ -529,8 +531,8 @@ export function COPOMapping({
 	const updateThreshold = (id: number, value: number) => {
 		setAttainmentThresholds(
 			attainmentThresholds.map((t) =>
-				t.id === id ? { ...t, percentage: value } : t
-			)
+				t.id === id ? { ...t, percentage: value } : t,
+			),
 		);
 	};
 
@@ -540,7 +542,7 @@ export function COPOMapping({
 			return;
 		}
 		setAttainmentThresholds(
-			attainmentThresholds.filter((t) => t.id !== id)
+			attainmentThresholds.filter((t) => t.id !== id),
 		);
 	};
 
@@ -574,7 +576,7 @@ export function COPOMapping({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to save settings"
+					: "Failed to save settings",
 			);
 		}
 	};
@@ -680,20 +682,20 @@ export function COPOMapping({
 			CO5: (totals.CO5 || 0) + (testMarks.CO5 || 0),
 			CO6: (totals.CO6 || 0) + (testMarks.CO6 || 0),
 		}),
-		{ CO1: 0, CO2: 0, CO3: 0, CO4: 0, CO5: 0, CO6: 0 }
+		{ CO1: 0, CO2: 0, CO3: 0, CO4: 0, CO5: 0, CO6: 0 },
 	);
 
 	// Helper function wrappers
 	// Calculate zero level threshold as lowest attainment threshold
 	const zeroLevelThreshold = Math.min(
-		...attainmentThresholds.map((t) => t.percentage)
+		...attainmentThresholds.map((t) => t.percentage),
 	);
 
 	const getLevel = (percentage: number) =>
 		getAttainmentLevel(
 			percentage,
 			attainmentThresholds,
-			zeroLevelThreshold
+			zeroLevelThreshold,
 		);
 
 	const getLevelColorFn = (level: number) =>
@@ -704,7 +706,7 @@ export function COPOMapping({
 
 	const attainmentCriteria = getAttainmentCriteria(
 		attainmentThresholds,
-		zeroLevelThreshold
+		zeroLevelThreshold,
 	);
 
 	// Export handler for attainment Excel
@@ -765,7 +767,7 @@ export function COPOMapping({
 						CO5: marks.CO5,
 						CO6: marks.CO6,
 					},
-				})
+				}),
 			);
 
 			await exportAttainmentExcel({
@@ -777,7 +779,7 @@ export function COPOMapping({
 				branch: departmentName,
 				programme: "B. Tech",
 				year: year.toString(),
-				semester: semester.toString(),
+				semester: semester,
 				courseName,
 				session: `${new Date().getFullYear()}-${(
 					new Date().getFullYear() + 1
@@ -809,9 +811,9 @@ export function COPOMapping({
 				attainmentData.presentStudents > 0
 					? (attainmentData.coStats[
 							co as keyof typeof attainmentData.coStats
-					  ].aboveCOThreshold /
+						].aboveCOThreshold /
 							attainmentData.presentStudents) *
-					  100
+						100
 					: 0;
 
 			const coLevel = getLevel(percentage);
@@ -946,7 +948,7 @@ export function COPOMapping({
 					branch: departmentName,
 					programme_name: "B. Tech",
 					year: year.toString(),
-					semester: semester.toString(),
+					semester: semester,
 					course_name: courseName,
 					course_code: courseCode,
 					session: `${new Date().getFullYear()}-${(

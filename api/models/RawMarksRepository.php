@@ -18,11 +18,12 @@ class RawMarksRepository
      */
     public function findByTestAndStudent($testId, $studentId)
     {
+        // test_id is no longer stored; derive it via the questions join
         $stmt = $this->db->prepare("
             SELECT r.*, q.question_number, q.sub_question, q.co 
             FROM raw_marks r
             JOIN questions q ON r.question_id = q.question_id
-            WHERE r.test_id = ? AND r.student_id = ?
+            WHERE q.test_id = ? AND r.student_id = ?
             ORDER BY q.question_number, q.sub_question
         ");
         $stmt->execute([$testId, $studentId]);
@@ -31,7 +32,6 @@ class RawMarksRepository
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $rawMarks[] = [
                 'raw_marks' => new RawMarks(
-                    $row['test_id'],
                     $row['student_id'],
                     $row['question_id'],
                     $row['marks_obtained'],
@@ -50,14 +50,14 @@ class RawMarksRepository
      */
     public function save(RawMarks $rawMarks)
     {
+        // test_id column removed from table; uniqueness is (student_id, question_id)
         $stmt = $this->db->prepare("
-            INSERT INTO raw_marks (test_id, student_id, question_id, marks_obtained) 
-            VALUES (?, ?, ?, ?)
+            INSERT INTO raw_marks (student_id, question_id, marks_obtained) 
+            VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE marks_obtained = VALUES(marks_obtained)
         ");
 
         $result = $stmt->execute([
-            $rawMarks->getTestId(),
             $rawMarks->getStudentId(),
             $rawMarks->getQuestionId(),
             $rawMarks->getMarksObtained()
@@ -93,7 +93,12 @@ class RawMarksRepository
      */
     public function deleteByTestAndStudent($testId, $studentId)
     {
-        $stmt = $this->db->prepare("DELETE FROM raw_marks WHERE test_id = ? AND student_id = ?");
+        // Join via questions to filter by test_id (no longer stored on raw_marks)
+        $stmt = $this->db->prepare("
+            DELETE r FROM raw_marks r
+            JOIN questions q ON r.question_id = q.question_id
+            WHERE q.test_id = ? AND r.student_id = ?
+        ");
         return $stmt->execute([$testId, $studentId]);
     }
 
@@ -103,11 +108,12 @@ class RawMarksRepository
      */
     public function calculateCOTotals($testId, $studentId)
     {
+        // test_id is derived via the questions join
         $stmt = $this->db->prepare("
             SELECT q.co, SUM(r.marks_obtained) as total
             FROM raw_marks r
             JOIN questions q ON r.question_id = q.question_id
-            WHERE r.test_id = ? AND r.student_id = ?
+            WHERE q.test_id = ? AND r.student_id = ?
             GROUP BY q.co
         ");
         $stmt->execute([$testId, $studentId]);
@@ -139,7 +145,6 @@ class RawMarksRepository
 
         if ($row) {
             return new RawMarks(
-                $row['test_id'],
                 $row['student_id'],
                 $row['question_id'],
                 $row['marks_obtained'],
@@ -172,5 +177,19 @@ class RawMarksRepository
     {
         $stmt = $this->db->prepare("DELETE FROM raw_marks WHERE id = ?");
         return $stmt->execute([$id]);
+    }
+
+    /**
+     * Delete all raw marks for a specific course offering
+     */
+    public function deleteByOfferingId($offeringId)
+    {
+        $stmt = $this->db->prepare("
+            DELETE rm FROM raw_marks rm
+            INNER JOIN questions q ON rm.question_id = q.question_id
+            INNER JOIN tests t ON q.test_id = t.test_id
+            WHERE t.offering_id = ?
+        ");
+        return $stmt->execute([$offeringId]);
     }
 }

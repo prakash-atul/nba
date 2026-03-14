@@ -22,7 +22,10 @@ class HODAssignmentRepository
     public function findById($id)
     {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM hod_assignments WHERE id = ?");
+            $stmt = $this->db->prepare("
+                SELECT *, (end_date IS NULL) AS is_current
+                FROM hod_assignments WHERE id = ?
+            ");
             $stmt->execute([$id]);
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -53,8 +56,9 @@ class HODAssignmentRepository
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT * FROM hod_assignments 
-                WHERE department_id = ? AND is_current = 1
+                SELECT *, (end_date IS NULL) AS is_current
+                FROM hod_assignments 
+                WHERE department_id = ? AND end_date IS NULL
                 LIMIT 1
             ");
             $stmt->execute([$departmentId]);
@@ -88,6 +92,7 @@ class HODAssignmentRepository
             $stmt = $this->db->prepare("
                 SELECT 
                     h.*,
+                    (h.end_date IS NULL) AS is_current,
                     d.department_name,
                     d.department_code,
                     u.username,
@@ -96,7 +101,7 @@ class HODAssignmentRepository
                 FROM hod_assignments h
                 JOIN departments d ON h.department_id = d.department_id
                 JOIN users u ON h.employee_id = u.employee_id
-                WHERE h.is_current = 1
+                WHERE h.end_date IS NULL
                 ORDER BY d.department_name
             ");
             $stmt->execute();
@@ -118,6 +123,7 @@ class HODAssignmentRepository
             $stmt = $this->db->prepare("
                 SELECT 
                     h.*,
+                    (h.end_date IS NULL) AS is_current,
                     u.username,
                     u.email,
                     u.designation
@@ -162,14 +168,15 @@ class HODAssignmentRepository
 
             if ($existingId) {
                 // Reactivate existing assignment instead of creating duplicate
+                // is_current derived from end_date: NULL = current, date = past
+                $newEndDate = $assignment->getIsCurrent() ? null : ($assignment->getEndDate() ?? date('Y-m-d'));
                 $updateStmt = $this->db->prepare("
                     UPDATE hod_assignments 
-                    SET is_current = ?, end_date = ?, appointment_order = ?
+                    SET end_date = ?, appointment_order = ?
                     WHERE id = ?
                 ");
                 $updateStmt->execute([
-                    $assignment->getIsCurrent(),
-                    $assignment->getEndDate(),
+                    $newEndDate,
                     $assignment->getAppointmentOrder(),
                     $existingId
                 ]);
@@ -178,8 +185,8 @@ class HODAssignmentRepository
                 if ($assignment->getIsCurrent()) {
                     $endOthersStmt = $this->db->prepare("
                         UPDATE hod_assignments 
-                        SET is_current = 0, end_date = CURDATE()
-                        WHERE department_id = ? AND is_current = 1 AND id != ?
+                        SET end_date = CURDATE()
+                        WHERE department_id = ? AND end_date IS NULL AND id != ?
                     ");
                     $endOthersStmt->execute([$assignment->getDepartmentId(), $existingId]);
                 }
@@ -192,25 +199,24 @@ class HODAssignmentRepository
             if ($assignment->getIsCurrent()) {
                 $stmt = $this->db->prepare("
                     UPDATE hod_assignments 
-                    SET is_current = 0, end_date = CURDATE()
-                    WHERE department_id = ? AND is_current = 1
+                    SET end_date = CURDATE()
+                    WHERE department_id = ? AND end_date IS NULL
                 ");
                 $stmt->execute([$assignment->getDepartmentId()]);
             }
 
-            // Insert new assignment
+            // Insert new assignment (is_current no longer stored; active = end_date IS NULL)
             $stmt = $this->db->prepare("
                 INSERT INTO hod_assignments 
-                (department_id, employee_id, start_date, end_date, is_current, appointment_order) 
-                VALUES (?, ?, ?, ?, ?, ?)
+                (department_id, employee_id, start_date, end_date, appointment_order) 
+                VALUES (?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
                 $assignment->getDepartmentId(),
                 $assignment->getEmployeeId(),
                 $assignment->getStartDate(),
-                $assignment->getEndDate(),
-                $assignment->getIsCurrent(),
+                $assignment->getIsCurrent() ? null : ($assignment->getEndDate() ?? date('Y-m-d')),
                 $assignment->getAppointmentOrder()
             ]);
 
@@ -240,8 +246,8 @@ class HODAssignmentRepository
             
             $stmt = $this->db->prepare("
                 UPDATE hod_assignments 
-                SET is_current = 0, end_date = ?
-                WHERE department_id = ? AND is_current = 1
+                SET end_date = ?
+                WHERE department_id = ? AND end_date IS NULL
             ");
 
             $stmt->execute([$endDate, $departmentId]);

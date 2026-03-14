@@ -162,7 +162,7 @@ class MarksController
                     return;
                 }
 
-                $rawMarksArray[] = new RawMarks($testId, $studentId, $question->getQuestionId(), $marks);
+                $rawMarksArray[] = new RawMarks($studentId, $question->getQuestionId(), $marks);
             }
 
             // Save raw marks and calculate CO totals
@@ -641,11 +641,9 @@ class MarksController
 
                     // Save raw marks
                     $rawMarks = new RawMarks(
-                        $testId,
                         $studentRollno,
                         $question->getQuestionId(),
-                        $marksObtained,
-                        null
+                        $marksObtained
                     );
 
                     $this->rawMarksRepository->save($rawMarks);

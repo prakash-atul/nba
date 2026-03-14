@@ -22,7 +22,10 @@ class DeanAssignmentRepository
     public function findById($id)
     {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM dean_assignments WHERE id = ?");
+            $stmt = $this->db->prepare("
+                SELECT *, (end_date IS NULL) AS is_current
+                FROM dean_assignments WHERE id = ?
+            ");
             $stmt->execute([$id]);
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -53,8 +56,9 @@ class DeanAssignmentRepository
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT * FROM dean_assignments 
-                WHERE school_id = ? AND is_current = 1
+                SELECT *, (end_date IS NULL) AS is_current
+                FROM dean_assignments 
+                WHERE school_id = ? AND end_date IS NULL
                 LIMIT 1
             ");
             $stmt->execute([$schoolId]);
@@ -88,6 +92,7 @@ class DeanAssignmentRepository
             $stmt = $this->db->prepare("
                 SELECT 
                     da.*,
+                    (da.end_date IS NULL) AS is_current,
                     s.school_name,
                     s.school_code,
                     u.username,
@@ -96,7 +101,7 @@ class DeanAssignmentRepository
                 FROM dean_assignments da
                 JOIN schools s ON da.school_id = s.school_id
                 JOIN users u ON da.employee_id = u.employee_id
-                WHERE da.is_current = 1
+                WHERE da.end_date IS NULL
                 ORDER BY s.school_name
             ");
             $stmt->execute();
@@ -118,6 +123,7 @@ class DeanAssignmentRepository
             $stmt = $this->db->prepare("
                 SELECT 
                     da.*,
+                    (da.end_date IS NULL) AS is_current,
                     u.username,
                     u.email,
                     u.designation
@@ -151,25 +157,24 @@ class DeanAssignmentRepository
             if ($assignment->getIsCurrent()) {
                 $stmt = $this->db->prepare("
                     UPDATE dean_assignments 
-                    SET is_current = 0, end_date = CURDATE()
-                    WHERE school_id = ? AND is_current = 1
+                    SET end_date = CURDATE()
+                    WHERE school_id = ? AND end_date IS NULL
                 ");
                 $stmt->execute([$assignment->getSchoolId()]);
             }
 
-            // Insert new assignment
+            // Insert new assignment (is_current no longer stored; active = end_date IS NULL)
             $stmt = $this->db->prepare("
                 INSERT INTO dean_assignments 
-                (school_id, employee_id, start_date, end_date, is_current, appointment_order) 
-                VALUES (?, ?, ?, ?, ?, ?)
+                (school_id, employee_id, start_date, end_date, appointment_order) 
+                VALUES (?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
                 $assignment->getSchoolId(),
                 $assignment->getEmployeeId(),
                 $assignment->getStartDate(),
-                $assignment->getEndDate(),
-                $assignment->getIsCurrent(),
+                $assignment->getIsCurrent() ? null : ($assignment->getEndDate() ?? date('Y-m-d')),
                 $assignment->getAppointmentOrder()
             ]);
 
@@ -199,8 +204,8 @@ class DeanAssignmentRepository
             
             $stmt = $this->db->prepare("
                 UPDATE dean_assignments 
-                SET is_current = 0, end_date = ?
-                WHERE school_id = ? AND is_current = 1
+                SET end_date = ?
+                WHERE school_id = ? AND end_date IS NULL
             ");
 
             $stmt->execute([$endDate, $schoolId]);

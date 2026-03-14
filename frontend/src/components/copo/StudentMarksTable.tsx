@@ -28,7 +28,7 @@ interface StudentMarksTableProps {
 	courseName: string;
 	courseCode: string;
 	year: number;
-	semester: number;
+	semester: string;
 	loading: boolean;
 	getPercentageColor: (percentage: number) => string;
 	coMaxMarks?: Record<string, number>; // Total max marks per CO across all tests
@@ -48,9 +48,8 @@ export function StudentMarksTable({
 	coMaxMarks,
 }: StudentMarksTableProps) {
 	const getAcademicYear = (year: number) => `${year}-${year + 1}`;
-	const getSemesterDisplay = (sem: number) => {
-		const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
-		return roman[sem - 1] || sem;
+	const getSemesterDisplay = (sem: string) => {
+		return sem;
 	};
 	const getCurrentSession = () => {
 		const currentYear = new Date().getFullYear();
@@ -173,7 +172,7 @@ export function StudentMarksTable({
 										>
 											Maximum Marks: {marks.total}
 										</TableHead>
-									)
+									),
 								)}
 								<TableHead
 									colSpan={7}
@@ -205,7 +204,7 @@ export function StudentMarksTable({
 													{co}
 												</TableHead>
 											);
-										})
+										}),
 								)}
 								{[
 									"CO1",
@@ -257,7 +256,7 @@ export function StudentMarksTable({
 													] || 0}
 												</TableHead>
 											);
-										})
+										}),
 								)}
 								<TableHead className="text-center border border-gray-300 dark:border-gray-700 font-bold">
 									%
@@ -358,7 +357,7 @@ export function StudentMarksTable({
 														</TableCell>
 													);
 												});
-											}
+											},
 										)}
 										<TableCell className="text-center border border-gray-300 dark:border-gray-700 font-bold bg-yellow-100 dark:bg-yellow-950">
 											{student.total.toFixed(2)}
@@ -394,7 +393,7 @@ export function StudentMarksTable({
 												<TableCell
 													key={`co-${co}`}
 													className={`text-center border border-gray-300 dark:border-gray-700 font-bold ${getPercentageColor(
-														percentage
+														percentage,
 													)}`}
 												>
 													{percentage.toFixed(2)}

@@ -1,4 +1,4 @@
-import { apiGet, apiPut, apiDelete } from "./base";
+import { apiGet, apiPut, apiDelete, apiPost } from "./base";
 import type {
 	FacultyStats,
 	CourseStats,
@@ -53,11 +53,16 @@ async function getCourseStats(offeringId: number): Promise<CourseStats> {
 	return apiGet<CourseStats>(`/faculty/courses/${offeringId}/stats`);
 }
 
+async function concludeCourse(offeringId: number): Promise<void> {
+        return apiPost<any, void>(`/faculty/courses/${offeringId}/conclude`, {});
+}
+
 export const facultyApi = {
-	getStats,
-	getCourses,
-	getEnrolledStudents,
-	updateStudent,
-	removeStudentEnrollment,
+        getStats,
+        getCourses,
+        getEnrolledStudents,
+        updateStudent,
+        removeStudentEnrollment,
 	getCourseStats,
+	concludeCourse,
 };

@@ -271,4 +271,14 @@ class EnrollmentRepository
         $stmt->execute([$departmentId]);
         return (int)$stmt->fetchColumn();
     }
+
+    /**
+     * Mark all enrollments for a course offering as completed
+     */
+    public function markEnrollmentsAsCompleted($offeringId)
+    {
+        $sql = "UPDATE enrollments SET enrollment_status = 'Completed' WHERE offering_id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$offeringId]);
+    }
 }

@@ -86,12 +86,232 @@ class HODController
     }
 
     /**
-     * Get all courses for the HOD's department
-     * Can be filtered by year and semester
+     * Get base courses (templates) for the HOD's department - paginated
      */
+    public function getBaseCourses() {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $params = PaginationHelper::parseParams(
+                $_GET,
+                'course_id',
+                'c.course_id',
+                ['course_code', 'course_name', 'credit', 'course_type', 'course_level'],
+                ['is_active', 'course_type']
+            );
+
+            $total = $this->courseRepository->countBaseCoursesByDepartmentPaginated($departmentId, $params);
+            $rows  = $this->courseRepository->findBaseCoursesByDepartmentPaginated($departmentId, $params);
+
+            // Using standard response structure from PaginationHelper
+            $result = PaginationHelper::buildResponse($rows, 'course_id', $params['limit'], $total);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode(array_merge(['success' => true, 'message' => 'Base courses retrieved successfully'], $result));
+        } catch (Exception $e) {
+            error_log("HODController::getBaseCourses error: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve base courses']);
+        }
+    }
+
+    /**
+     * Get all base courses for the HOD's department (non-paginated)
+     */
+    public function getAllBaseCourses() {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $courses = $this->courseRepository->findByDepartment($departmentId);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'data' => $courses]);
+        } catch (Exception $e) {
+            error_log("HODController::getAllBaseCourses error: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve base courses']);
+        }
+    }
+
+    /**
+     * Create a new course template (without offering)
+     */
+    public function createBaseCourse() {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            // Validate required fields
+            $requiredFields = ['course_code', 'course_name', 'credit'];
+            $errors = [];
+            foreach ($requiredFields as $field) {
+                if (empty($input[$field])) {
+                    $errors[] = "$field is required";
+                }
+            }
+
+            if (!empty($errors)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Validation failed', 'errors' => $errors]);
+                return;
+            }
+
+            $course = $this->courseRepository->findByCourseCode($input['course_code']);
+            if ($course) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Course code already exists']);
+                return;
+            }
+
+            $course = new Course(
+                null,
+                $input['course_code'],
+                $input['course_name'],
+                intval($input['credit']),
+                $departmentId,
+                $input['course_type'] ?? 'Theory',
+                $input['course_level'] ?? 'Undergraduate',
+                isset($input['is_active']) ? intval($input['is_active']) : 1
+            );
+            $this->courseRepository->save($course);
+            
+            $createdCourse = $this->courseRepository->findByIdWithDepartment($course->getCourseId());
+
+            http_response_code(201);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Base course created successfully', 'data' => $createdCourse]);
+
+        } catch (Exception $e) {
+            error_log("HODController::createBaseCourse error: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to create base course: ' . $e->getMessage()]);
+        }
+    }
+
     /**
      * Get courses in the HOD's department — paginated
      */
+
+    /**
+     * Update an existing base course
+     */
+    public function updateBaseCourse($courseId) {
+        try {
+            if (!$this->requireHOD()) return;
+            
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            $course = $this->courseRepository->findById($courseId);
+            if (!$course) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Course not found']);
+                return;
+            }
+            if ($course->getDepartmentId() !== $departmentId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized to modify this course']);
+                return;
+            }
+            
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            if (isset($input['course_code']) && $input['course_code'] !== $course->getCourseCode()) {
+                $existing = $this->courseRepository->findByCourseCode($input['course_code']);
+                if ($existing && $existing->getCourseId() !== (int)$courseId) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Course code already exists']);
+                    return;
+                }
+                $course->setCourseCode($input['course_code']);
+            }
+            if (isset($input['course_name'])) {
+                $course->setCourseName($input['course_name']);
+            }
+            if (isset($input['credit'])) {
+                $course->setCredit(intval($input['credit']));
+            }
+            if (isset($input['course_type'])) {
+                $course->setCourseType($input['course_type']);
+            }
+            if (isset($input['course_level'])) {
+                $course->setCourseLevel($input['course_level']);
+            }
+            if (isset($input['is_active'])) {
+                $course->setIsActive(intval($input['is_active']));
+            }
+            
+            $this->courseRepository->save($course);
+            
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Course updated successfully']);
+        } catch (Exception $e) {
+            error_log("HODController::updateBaseCourse error: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to update course']);
+        }
+    }
+
+    /**
+     * Delete a base course
+     */
+    public function deleteBaseCourse($courseId) {
+        try {
+            if (!$this->requireHOD()) return;
+            
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            $course = $this->courseRepository->findById($courseId);
+            if (!$course) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Course not found']);
+                return;
+            }
+            if ($course->getDepartmentId() !== $departmentId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized to delete this course']);
+                return;
+            }
+            
+            $success = $this->courseRepository->delete($courseId);
+            
+            if ($success) {
+                http_response_code(200);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Course deleted successfully']);
+            } else {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Cannot delete course (it may have active offerings or marks)']);
+            }
+        } catch (Exception $e) {
+            error_log("HODController::deleteBaseCourse error: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to delete course']);
+        }
+    }
+
     public function getDepartmentCourses()
     {
         try {
@@ -106,15 +326,15 @@ class HODController
 
             $params = PaginationHelper::parseParams(
                 $_GET,
-                'c.course_id',
-                'c.course_id',
-                ['c.course_id', 'c.course_code', 'c.course_name', 'c.credit', 'c.course_type', 'co.year', 'co.semester', 'u.username'],
-                ['is_active', 'course_type']
+                'co.offering_id',
+                'co.offering_id',
+                ['co.offering_id', 'c.course_id', 'c.course_code', 'c.course_name', 'c.credit', 'c.course_type', 'co.year', 'co.semester', 'u.username'],
+                ['is_active', 'course_type', 'year', 'semester']
             );
 
             $total  = $this->courseRepository->countByDepartmentPaginated($departmentId, $params);
             $rows   = $this->courseRepository->findByDepartmentPaginated($departmentId, $params);
-            $result = PaginationHelper::buildResponse($rows, 'course_id', $params['limit'], $total);
+            $result = PaginationHelper::buildResponse($rows, 'offering_id', $params['limit'], $total);
 
             http_response_code(200);
             header('Content-Type: application/json');
@@ -236,7 +456,7 @@ class HODController
             $offering = new CourseOffering(
                 $course->getCourseId(),
                 intval($input['year']),
-                intval($input['semester']),
+                $input['semester'],
                 $input['co_threshold'] ?? 40.00,
                 $input['passing_threshold'] ?? 60.00
             );
@@ -328,7 +548,7 @@ class HODController
 
             // 4. Update Offering Fields
             if (isset($input['year'])) $offering->setYear(intval($input['year']));
-            if (isset($input['semester'])) $offering->setSemester(intval($input['semester']));
+            if (isset($input['semester'])) $offering->setSemester($input['semester']);
             if (isset($input['co_threshold'])) $offering->setCoThreshold(floatval($input['co_threshold']));
             if (isset($input['passing_threshold'])) $offering->setPassingThreshold(floatval($input['passing_threshold']));
 
@@ -805,6 +1025,54 @@ class HODController
                 'message' => 'Failed to delete user',
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Get per-test averages for a course offering.
+     * Only accessible if the offering belongs to the HOD's department.
+     */
+    public function getOfferingTestAverages($offeringId)
+    {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $offeringId = (int)$offeringId;
+
+            // Verify the offering belongs to this department
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Offering not found']);
+                return;
+            }
+
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Access denied']);
+                return;
+            }
+
+            $averages = $this->courseRepository->getOfferingTestAverages($offeringId);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test averages retrieved successfully',
+                'data' => $averages,
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve test averages', 'error' => $e->getMessage()]);
         }
     }
 }

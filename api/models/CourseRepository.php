@@ -601,6 +601,96 @@ class CourseRepository
     }
 
     /**
+     * Count basic courses by department for pagination
+     * @param int $departmentId
+     * @param array $params
+     * @return int
+     */
+    public function countBaseCoursesByDepartmentPaginated(int $departmentId, array $params): int
+    {
+        try {
+            $sql = "SELECT COUNT(DISTINCT c.course_id) FROM courses c WHERE c.department_id = ?";
+            $bindings = [$departmentId];
+
+            if (!empty($params['search'])) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+
+            if (isset($params['filters']['is_active']) && $params['filters']['is_active'] !== '') {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Paginated base courses scoped to a department (HOD view).
+     *
+     * @param int   $departmentId
+     * @param array $params Result of PaginationHelper::parseParams()
+     * @return array raw rows
+     */
+    public function findBaseCoursesByDepartmentPaginated(int $departmentId, array $params): array
+    {
+        try {
+            $sql = "
+                SELECT c.course_id, c.course_code, c.course_name, c.credit,
+                       c.department_id, c.course_type, c.course_level,
+                       c.is_active, c.created_at, c.updated_at
+                FROM courses c
+                WHERE c.department_id = ?
+            ";
+            $bindings = [$departmentId];
+
+            if (!empty($params['search'])) {
+                $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
+                $like = '%' . $params['search'] . '%';
+                $bindings[] = $like;
+                $bindings[] = $like;
+            }
+
+            if (isset($params['filters']['is_active']) && $params['filters']['is_active'] !== '') {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+
+            PaginationHelper::applyCursor($sql, $bindings, 'c.course_id', $params['cursor'] ?? null, $params['sortDir'] ?? 'ASC');
+
+            $limit = (int)($params['limit'] ?? 20) + 1;
+            $sortDir = $params['sortDir'] ?? 'ASC';
+            
+            // Valid columns for sorting
+            $validSorts = ['course_code', 'course_name', 'credit', 'course_type', 'course_level'];
+            $sortField = in_array($params['sort'] ?? '', $validSorts) ? "c.{$params['sort']}" : 'c.course_id';
+
+            $sql .= " ORDER BY {$sortField} {$sortDir} LIMIT {$limit}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($bindings);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Paginated courses scoped to a department (HOD / Staff view).
      *
      * @param int   $departmentId
@@ -618,22 +708,25 @@ class CourseRepository
                        co.co_threshold, co.passing_threshold,
                        u.employee_id AS faculty_id,
                        u.username    AS faculty_name,
+                       cfa.is_active AS cfa_is_active,
                        (SELECT COUNT(*) FROM enrollments e
                         WHERE e.offering_id = co.offering_id) AS enrollment_count,
                        (SELECT COUNT(*) FROM tests t
-                        WHERE t.offering_id = co.offering_id) AS test_count
+                        WHERE t.offering_id = co.offering_id) AS test_count,
+                       (SELECT ROUND(
+                            SUM(m.marks_obtained) / NULLIF(
+                                COUNT(DISTINCT m.student_roll_no) *
+                                (SELECT SUM(t2.full_marks) FROM tests t2 WHERE t2.offering_id = co.offering_id)
+                            , 0) * 100, 1)
+                        FROM marks m
+                        INNER JOIN tests t3 ON t3.test_id = m.test_id
+                        WHERE t3.offering_id = co.offering_id
+                       ) AS avg_score_pct
                 FROM courses c
-                LEFT JOIN course_offerings co
-                       ON co.course_id = c.course_id
-                      AND co.offering_id = (
-                              SELECT MAX(co2.offering_id)
-                              FROM course_offerings co2
-                              WHERE co2.course_id = c.course_id
-                          )
+                INNER JOIN course_offerings co ON co.course_id = c.course_id
                 LEFT JOIN course_faculty_assignments cfa
                        ON cfa.offering_id = co.offering_id
                       AND cfa.assignment_type = 'Primary'
-                      AND cfa.is_active = 1
                 LEFT JOIN users u ON u.employee_id = cfa.employee_id
                 WHERE c.department_id = ?
             ";
@@ -653,8 +746,16 @@ class CourseRepository
                 $sql .= " AND c.course_type = ?";
                 $bindings[] = $params['filters']['course_type'];
             }
+            if (!empty($params['filters']['year'])) {
+                $sql .= " AND co.year = ?";
+                $bindings[] = (int)$params['filters']['year'];
+            }
+            if (!empty($params['filters']['semester'])) {
+                $sql .= " AND co.semester = ?";
+                $bindings[] = $params['filters']['semester'];
+            }
 
-            PaginationHelper::applyCursor($sql, $bindings, 'c.course_id', $params['cursor'], $params['sortDir']);
+            PaginationHelper::applyCursor($sql, $bindings, 'co.offering_id', $params['cursor'], $params['sortDir']);
 
             $limit = (int)$params['limit'] + 1;
             $sql .= " ORDER BY {$params['sort']} {$params['sortDir']} LIMIT {$limit}";
@@ -673,7 +774,7 @@ class CourseRepository
     public function countByDepartmentPaginated(int $departmentId, array $params): int
     {
         try {
-            $sql = "SELECT COUNT(*) FROM courses c WHERE c.department_id = ?";
+            $sql = "SELECT COUNT(*) FROM courses c INNER JOIN course_offerings co ON co.course_id = c.course_id WHERE c.department_id = ?";
             $bindings = [$departmentId];
 
             if ($params['search']) {
@@ -690,10 +791,54 @@ class CourseRepository
                 $sql .= " AND c.course_type = ?";
                 $bindings[] = $params['filters']['course_type'];
             }
+            if (!empty($params['filters']['year'])) {
+                $sql .= " AND co.year = ?";
+                $bindings[] = (int)$params['filters']['year'];
+            }
+            if (!empty($params['filters']['semester'])) {
+                $sql .= " AND co.semester = ?";
+                $bindings[] = $params['filters']['semester'];
+            }
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
             return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get per-test averages for a specific offering.
+     * Returns one row per test with avg marks and avg percentage.
+     */
+    public function getOfferingTestAverages(int $offeringId): array
+    {
+        try {
+            $sql = "
+                SELECT
+                    t.test_id,
+                    t.test_name,
+                    t.test_type,
+                    t.full_marks,
+                    ROUND(AVG(st.student_total), 1) AS avg_marks,
+                    ROUND(AVG(st.student_total) / NULLIF(t.full_marks, 0) * 100, 1) AS avg_pct,
+                    COUNT(st.student_roll_no) AS students_assessed
+                FROM tests t
+                LEFT JOIN (
+                    SELECT m.test_id, m.student_roll_no, SUM(m.marks_obtained) AS student_total
+                    FROM marks m
+                    INNER JOIN tests t2 ON t2.test_id = m.test_id
+                    WHERE t2.offering_id = ?
+                    GROUP BY m.test_id, m.student_roll_no
+                ) st ON st.test_id = t.test_id
+                WHERE t.offering_id = ?
+                GROUP BY t.test_id, t.test_name, t.test_type, t.full_marks
+                ORDER BY t.test_id
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$offeringId, $offeringId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         }
