@@ -31,7 +31,7 @@ class AuthService
      * Authenticate user with employee ID/email and password
      * @param string $employeeIdOrEmail
      * @param string $password
-     * @return array|null Token and user data or null if authentication fails
+     * @return array|null Token and user data or array with error if authentication fails
      */
     public function authenticate($employeeIdOrEmail, $password)
     {
@@ -39,12 +39,12 @@ class AuthService
         $user = $this->userRepository->findByEmployeeIdOrEmail($employeeIdOrEmail);
 
         if (!$user) {
-            return null; // User not found
+            return ['error' => 'user_not_found']; // User not found
         }
 
         // Verify password
         if (!password_verify($password, $user->getPassword())) {
-            return null; // Invalid password
+            return ['error' => 'invalid_password']; // Invalid password
         }
 
         // Check HOD assignment

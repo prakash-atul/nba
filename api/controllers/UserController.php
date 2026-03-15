@@ -42,11 +42,18 @@ class UserController
             // Attempt authentication
             $result = $this->authService->authenticate($data['employeeIdOrEmail'], $data['password']);
 
-            if (!$result) {
+            if (isset($result['error'])) {
                 http_response_code(401);
+                $message = 'Invalid credentials';
+                if ($result['error'] === 'user_not_found') {
+                    $message = 'No account found with this email or employee ID.';
+                } else if ($result['error'] === 'invalid_password') {
+                    $message = 'Incorrect password. Please try again.';
+                }
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Invalid credentials'
+                    'message' => $message,
+                    'error_code' => $result['error']
                 ]);
                 return;
             }
