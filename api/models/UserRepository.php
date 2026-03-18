@@ -15,6 +15,60 @@ class UserRepository
     }
 
     /**
+     * Get the maximum employee ID currently in the system
+     * @return int
+     */
+    public function getMaxEmployeeId()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT MAX(employee_id) FROM users");
+            $stmt->execute();
+            $max = $stmt->fetchColumn();
+            return $max ? (int)$max : 0;
+        } catch (PDOException $e) {
+            error_log("Error getting max employee_id: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Generate a system account ID based on role to avoid collisions with HR given IDs.
+     * Admin: 9000000+, Dean: 8000000+, HOD: 7000000+
+     * @param string $role
+     * @return int
+     */
+    public function generateSystemAccountId($role)
+    {
+        $base = 0;
+        switch ($role) {
+            case 'admin':
+                $base = 9000000;
+                break;
+            case 'dean':
+                $base = 8000000;
+                break;
+            case 'hod':
+                $base = 7000000;
+                break;
+            default:
+                // Fallback for unexpected system generation
+                $base = 6000000;
+        }
+
+        try {
+            // Find the highest ID within this block
+            $stmt = $this->db->prepare("SELECT MAX(employee_id) FROM users WHERE employee_id >= ? AND employee_id < ?");
+            $stmt->execute([$base, $base + 1000000]);
+            $max = $stmt->fetchColumn();
+            
+            return $max ? (int)$max + 1 : $base + 1;
+        } catch (PDOException $e) {
+            error_log("Error generating system account ID: " . $e->getMessage());
+            return $base + rand(100, 999);
+        }
+    }
+
+    /**
      * Find user by employee ID
      * @param int $employeeId
      * @return User|null
@@ -37,7 +91,8 @@ class UserRepository
                     $userData['designation'] ?? null,
                     $userData['phone'] ?? null,
                     $userData['created_at'] ?? null,
-                    $userData['updated_at'] ?? null
+                    $userData['updated_at'] ?? null,
+                    $userData['school_id'] ?? null
                 );
             }
             return null;
@@ -69,7 +124,8 @@ class UserRepository
                     $userData['designation'] ?? null,
                     $userData['phone'] ?? null,
                     $userData['created_at'] ?? null,
-                    $userData['updated_at'] ?? null
+                    $userData['updated_at'] ?? null,
+                    $userData['school_id'] ?? null
                 );
             }
             return null;
@@ -132,7 +188,8 @@ class UserRepository
                     $userData['designation'] ?? null,
                     $userData['phone'] ?? null,
                     $userData['created_at'] ?? null,
-                    $userData['updated_at'] ?? null
+                    $userData['updated_at'] ?? null,
+                    $userData['school_id'] ?? null
                 );
             }
             return $users;
@@ -153,16 +210,10 @@ class UserRepository
             $sql = "
                 SELECT COUNT(*) 
                 FROM users u
-                JOIN departments d ON u.department_id = d.department_id
-                WHERE d.school_id = ?
+                LEFT JOIN departments d ON u.department_id = d.department_id
+                WHERE (d.school_id = ? OR u.school_id = ?)
             ";
-            $params = [$schoolId];
-
-            if ($role) {
-                $sql .= " AND u.role = ?";
-                $params[] = $role;
-            }
-
+            $params = [$schoolId, $schoolId];
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return (int)$stmt->fetchColumn();
@@ -194,7 +245,8 @@ class UserRepository
                     $userData['designation'] ?? null,
                     $userData['phone'] ?? null,
                     $userData['created_at'] ?? null,
-                    $userData['updated_at'] ?? null
+                    $userData['updated_at'] ?? null,
+                    $userData['school_id'] ?? null
                 );
             }
             return null;
@@ -216,7 +268,7 @@ class UserRepository
 
             if ($existingUser) {
                 // Update existing user
-                $stmt = $this->db->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, role = ?, department_id = ?, designation = ?, phone = ? WHERE employee_id = ?");
+                $stmt = $this->db->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, role = ?, department_id = ?, designation = ?, phone = ?, school_id = ? WHERE employee_id = ?");
                 return $stmt->execute([
                     $user->getUsername(),
                     $user->getEmail(),
@@ -225,11 +277,12 @@ class UserRepository
                     $user->getDepartmentId(),
                     $user->getDesignation(),
                     $user->getPhone(),
+                    $user->getSchoolId(),
                     $user->getEmployeeId()
                 ]);
             } else {
                 // Insert new user
-                $stmt = $this->db->prepare("INSERT INTO users (employee_id, username, email, password_hash, role, department_id, designation, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $this->db->prepare("INSERT INTO users (employee_id, username, email, password_hash, role, department_id, designation, phone, school_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 return $stmt->execute([
                     $user->getEmployeeId(),
                     $user->getUsername(),
@@ -238,7 +291,8 @@ class UserRepository
                     $user->getRole(),
                     $user->getDepartmentId(),
                     $user->getDesignation(),
-                    $user->getPhone()
+                    $user->getPhone(),
+                    $user->getSchoolId()
                 ]);
             }
         } catch (PDOException $e) {
@@ -258,6 +312,40 @@ class UserRepository
             return $stmt->execute([$employeeId]);
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get system accessor account IDs (Dean) for a school
+     * @param int $schoolId
+     * @return array
+     */
+    public function getSystemAccessorIdsBySchool($schoolId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT employee_id FROM users WHERE role = 'dean' AND school_id = ?");
+            $stmt->execute([$schoolId]);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException $e) {
+            error_log("Error finding dean accounts: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get system accessor account IDs (HOD) for a department
+     * @param int $departmentId
+     * @return array
+     */
+    public function getSystemAccessorIdsByDepartment($departmentId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT employee_id FROM users WHERE role = 'hod' AND department_id = ?");
+            $stmt->execute([$departmentId]);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException $e) {
+            error_log("Error finding HOD accounts: " . $e->getMessage());
+            return [];
         }
     }
 
@@ -379,7 +467,7 @@ class UserRepository
                 SELECT u.employee_id, u.username, u.email, u.role,
                        u.designation, u.phone, u.department_id,
                        u.created_at, u.updated_at,
-                       d.department_name, d.department_code, d.school_id,
+                       d.department_name, d.department_code, COALESCE(u.school_id, d.school_id) as school_id,
                        CASE WHEN h.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_hod,
                        CASE WHEN de.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_dean
                 FROM users u
@@ -475,16 +563,16 @@ class UserRepository
                 SELECT u.employee_id, u.username, u.email, u.role,
                        u.designation, u.phone, u.department_id,
                        u.created_at, u.updated_at,
-                       d.department_name, d.department_code,
+                       d.department_name, d.department_code, COALESCE(u.school_id, d.school_id) as school_id,
                        CASE WHEN h.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_hod,
-                       CASE WHEN de.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_dean
+                       CASE WHEN de.employee_id IS NOT NULL THEN 1 ELSE 0 END as is_dean        
                 FROM users u
-                JOIN departments d ON u.department_id = d.department_id
+                LEFT JOIN departments d ON u.department_id = d.department_id
                 LEFT JOIN hod_assignments h ON u.employee_id = h.employee_id AND h.end_date IS NULL
                 LEFT JOIN dean_assignments de ON u.employee_id = de.employee_id AND de.end_date IS NULL
-                WHERE d.school_id = ?
+                WHERE (d.school_id = ? OR u.school_id = ?)
             ";
-            $bindings = [$schoolId];
+            $bindings = [$schoolId, $schoolId];
 
             if ($params['search']) {
                 $sql .= " AND (u.username LIKE ? OR u.email LIKE ?)";
@@ -523,10 +611,10 @@ class UserRepository
             $sql = "
                 SELECT COUNT(*)
                 FROM users u
-                JOIN departments d ON u.department_id = d.department_id
-                WHERE d.school_id = ?
+                LEFT JOIN departments d ON u.department_id = d.department_id
+                WHERE (d.school_id = ? OR u.school_id = ?)
             ";
-            $bindings = [$schoolId];
+            $bindings = [$schoolId, $schoolId];
 
             if ($params['search']) {
                 $sql .= " AND (u.username LIKE ? OR u.email LIKE ?)";
@@ -610,10 +698,14 @@ class UserRepository
      * @param int $departmentId
      * @return int
      */
-    public function countByDepartment($departmentId)
+    public function countByDepartment($departmentId, $excludeSystemAccounts = false)
     {
         try {
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE department_id = ?");
+            $query = "SELECT COUNT(*) FROM users WHERE department_id = ?";
+            if ($excludeSystemAccounts) {
+                $query .= " AND role NOT IN ('hod', 'dean')";
+            }
+            $stmt = $this->db->prepare($query);
             $stmt->execute([$departmentId]);
             return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {

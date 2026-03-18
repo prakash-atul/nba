@@ -1,4 +1,4 @@
-import { COPOMapping } from "@/components/copo";
+import { COPOMapping } from "@/features/copo";
 import type { Course, User } from "@/services/api";
 
 interface FacultyCOPOProps {

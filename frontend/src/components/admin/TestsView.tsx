@@ -1,4 +1,4 @@
-﻿import { DataTable } from "@/components/shared/DataTable";
+﻿import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";

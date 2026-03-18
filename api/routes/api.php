@@ -634,6 +634,16 @@ class Router
                 break;
 
             // Admin Dean management routes
+            case 'admin/dean/history':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->adminController->getDeanHistory();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
             case (preg_match('#^admin/schools/(\d+)/dean$#', $path, $matches) ? true : false):
                 if ($method === 'POST') {
                     $user = $this->authMiddleware->requireAuth();
@@ -864,7 +874,11 @@ class Router
                     }
                 } elseif (preg_match('#^admin/users/(\d+)$#', $path, $matches)) {
                     $employeeId = $matches[1];
-                    if ($method === 'DELETE') {
+                    if ($method === 'PUT') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->userController->updateUser($employeeId);
+                    } elseif ($method === 'DELETE') {
                         $user = $this->authMiddleware->requireAuth();
                         $_REQUEST['authenticated_user'] = $user;
                         $this->userController->deleteUser($employeeId);
@@ -929,6 +943,29 @@ class Router
                         $user = $this->authMiddleware->requireAuth();
                         $_REQUEST['authenticated_user'] = $user;
                         $this->adminController->deleteDepartment($departmentId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^staff/courses/(\d+)/enrollments$#', $path, $matches)) {
+                    $courseId = $matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->staffController->getCourseEnrollments($courseId);
+                    } elseif ($method === 'POST') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->staffController->bulkEnroll($courseId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^staff/courses/(\d+)/enrollments/([\w\d_-]+)$#', $path, $matches)) {
+                    $courseId = $matches[1];
+                    $rollNo = $matches[2];
+                    if ($method === 'DELETE') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->staffController->removeEnrollment($courseId, $rollNo);
                     } else {
                         $this->sendMethodNotAllowed();
                     }

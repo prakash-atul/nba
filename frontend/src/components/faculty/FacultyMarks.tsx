@@ -31,9 +31,9 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from "@/components/ui/pagination";
-import { BulkMarksTable } from "@/components/marks/BulkMarksTable";
-import { MarksEntryByCO } from "@/components/marks/MarksEntryByCO";
-import { ViewTestMarks } from "@/components/marks/ViewTestMarks";
+import { BulkMarksTable } from "@/features/marks/BulkMarksTable";
+import { MarksEntryByCO } from "@/features/marks/MarksEntryByCO";
+import { ViewTestMarks } from "@/features/marks/ViewTestMarks";
 
 type ViewMode = "by-question" | "by-co" | "bulk";
 

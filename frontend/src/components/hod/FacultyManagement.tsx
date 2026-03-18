@@ -48,7 +48,7 @@ import type {
 } from "@/services/api";
 import { hodApi } from "@/services/api/hod";
 import { usePaginatedData } from "@/lib/usePaginatedData";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export function FacultyManagement() {

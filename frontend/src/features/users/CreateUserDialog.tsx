@@ -1,0 +1,425 @@
+import { useState } from "react";
+import { debugLogger } from "@/lib/debugLogger";
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import type { Department, School } from "@/services/api";
+
+export interface CreateUserDialogProps {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	onSave: (data: any) => Promise<void>;
+	departments: Department[];
+	schools?: School[];
+	isLoading?: boolean;
+}
+
+export function CreateUserDialog({
+	open,
+	onOpenChange,
+	onSave,
+	departments,
+	schools = [],
+	isLoading = false,
+}: CreateUserDialogProps) {
+	const [formData, setFormData] = useState({
+		employee_id: "",
+		username: "",
+		email: "",
+		password: "",
+		role: "staff",
+		department_id: "",
+		school_id: "",
+		designation: "",
+		phone: "",
+	});
+
+	const [errors, setErrors] = useState<Record<string, string>>({});
+
+	const validateForm = (): boolean => {
+		const newErrors: Record<string, string> = {};
+
+		if (!formData.employee_id)
+			newErrors.employee_id = "Employee ID is required";
+		if (!formData.username) newErrors.username = "Username is required";
+		if (!formData.email) {
+			newErrors.email = "Email is required";
+		} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+			newErrors.email = "Invalid email format";
+		}
+		if (!formData.password) newErrors.password = "Password is required";
+		if (formData.password.length < 6) {
+			newErrors.password = "Password must be at least 6 characters";
+		}
+
+		if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
+			newErrors.phone = "Phone number must be exactly 10 digits";
+		}
+
+		setErrors(newErrors);
+
+		if (Object.keys(newErrors).length > 0) {
+			debugLogger.warn(
+				"CreateUserDialog",
+				"Form validation failed",
+				newErrors,
+			);
+		} else {
+			debugLogger.debug("CreateUserDialog", "Form validation passed");
+		}
+
+		return Object.keys(newErrors).length === 0;
+	};
+
+	const handleSave = async () => {
+		if (!validateForm()) return;
+
+		debugLogger.info("CreateUserDialog", "Submitting new user form", {
+			employee_id: formData.employee_id,
+			username: formData.username,
+			email: formData.email,
+			role: formData.role,
+		});
+
+		await onSave({
+			employee_id: parseInt(formData.employee_id),
+			username: formData.username,
+			email: formData.email,
+			password: formData.password,
+			role: formData.role,
+			department_id:
+				formData.department_id && formData.department_id !== "none"
+					? parseInt(formData.department_id)
+					: null,
+			school_id:
+				formData.school_id && formData.school_id !== "none"
+					? parseInt(formData.school_id)
+					: null,
+			designation: formData.designation || null,
+			phone: formData.phone || null,
+		});
+
+		setFormData({
+			employee_id: "",
+			username: "",
+			email: "",
+			password: "",
+			role: "staff",
+			department_id: "",
+			school_id: "",
+			designation: "",
+			phone: "",
+		});
+		setErrors({});
+		onOpenChange(false);
+		debugLogger.info("CreateUserDialog", "Form reset and dialog closed");
+	};
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+				<DialogHeader>
+					<DialogTitle>Create New User</DialogTitle>
+				</DialogHeader>
+
+				<div className="space-y-4 py-2">
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="employee_id"
+								className="text-sm font-medium"
+							>
+								Employee ID *
+							</Label>
+							<Input
+								id="employee_id"
+								type="number"
+								placeholder="12345"
+								value={formData.employee_id}
+								onChange={(e) =>
+									setFormData({
+										...formData,
+										employee_id: e.target.value,
+									})
+								}
+								disabled={isLoading}
+								className={
+									errors.employee_id ? "border-red-500" : ""
+								}
+							/>
+							{errors.employee_id && (
+								<p className="text-xs text-red-500">
+									{errors.employee_id}
+								</p>
+							)}
+						</div>
+
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="role"
+								className="text-sm font-medium"
+							>
+								Role *
+							</Label>
+							<Select
+								value={formData.role}
+								onValueChange={(value) =>
+									setFormData({
+										...formData,
+										role: value,
+									})
+								}
+								disabled={isLoading}
+							>
+								<SelectTrigger id="role">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="admin">Admin</SelectItem>
+									<SelectItem value="dean">Dean</SelectItem>
+									<SelectItem value="hod">HOD</SelectItem>
+									<SelectItem value="faculty">
+										Faculty
+									</SelectItem>
+									<SelectItem value="staff">Staff</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="username"
+								className="text-sm font-medium"
+							>
+								Username *
+							</Label>
+							<Input
+								id="username"
+								placeholder="john_doe"
+								value={formData.username}
+								onChange={(e) =>
+									setFormData({
+										...formData,
+										username: e.target.value,
+									})
+								}
+								disabled={isLoading}
+								className={
+									errors.username ? "border-red-500" : ""
+								}
+							/>
+							{errors.username && (
+								<p className="text-xs text-red-500">
+									{errors.username}
+								</p>
+							)}
+						</div>
+
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="email"
+								className="text-sm font-medium"
+							>
+								Email *
+							</Label>
+							<Input
+								id="email"
+								type="email"
+								placeholder="john@example.com"
+								value={formData.email}
+								onChange={(e) =>
+									setFormData({
+										...formData,
+										email: e.target.value,
+									})
+								}
+								disabled={isLoading}
+								className={errors.email ? "border-red-500" : ""}
+							/>
+							{errors.email && (
+								<p className="text-xs text-red-500">
+									{errors.email}
+								</p>
+							)}
+						</div>
+
+						<div className="space-y-1.5 col-span-2">
+							<Label
+								htmlFor="password"
+								className="text-sm font-medium"
+							>
+								Password *
+							</Label>
+							<Input
+								id="password"
+								type="password"
+								placeholder="••••••"
+								value={formData.password}
+								onChange={(e) =>
+									setFormData({
+										...formData,
+										password: e.target.value,
+									})
+								}
+								disabled={isLoading}
+								className={
+									errors.password ? "border-red-500" : ""
+								}
+							/>
+							{errors.password && (
+								<p className="text-xs text-red-500">
+									{errors.password}
+								</p>
+							)}
+						</div>
+
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="department_id"
+								className="text-sm font-medium"
+							>
+								{formData.role === "dean"
+									? "School"
+									: "Department"}
+							</Label>
+							{formData.role === "dean" ? (
+								<Select
+									value={formData.school_id}
+									onValueChange={(value) =>
+										setFormData({
+											...formData,
+											school_id: value,
+										})
+									}
+									disabled={isLoading}
+								>
+									<SelectTrigger id="school_id">
+										<SelectValue placeholder="Select school" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">
+											None
+										</SelectItem>
+										{schools.map((school) => (
+											<SelectItem
+												key={school.school_id}
+												value={school.school_id.toString()}
+											>
+												{school.school_code}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							) : (
+								<Select
+									value={formData.department_id}
+									onValueChange={(value) =>
+										setFormData({
+											...formData,
+											department_id: value,
+										})
+									}
+									disabled={isLoading}
+								>
+									<SelectTrigger id="department_id">
+										<SelectValue placeholder="Select department" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">
+											None
+										</SelectItem>
+										{departments.map((dept) => (
+											<SelectItem
+												key={dept.department_id}
+												value={dept.department_id.toString()}
+											>
+												{dept.department_code}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							)}
+						</div>
+
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="designation"
+								className="text-sm font-medium"
+							>
+								Designation
+							</Label>
+							<Input
+								id="designation"
+								placeholder="e.g., Senior Lecturer"
+								value={formData.designation}
+								onChange={(e) =>
+									setFormData({
+										...formData,
+										designation: e.target.value,
+									})
+								}
+								disabled={isLoading}
+							/>
+						</div>
+
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="phone"
+								className="text-sm font-medium"
+							>
+								Phone
+							</Label>
+							<Input
+								id="phone"
+								placeholder="1234567890"
+								value={formData.phone}
+								onChange={(e) =>
+									setFormData({
+										...formData,
+										phone: e.target.value
+											.replace(/\D/g, "")
+											.slice(0, 10),
+									})
+								}
+								disabled={isLoading}
+								className={errors.phone ? "border-red-500" : ""}
+							/>
+							{errors.phone && (
+								<p className="text-xs text-red-500">
+									{errors.phone}
+								</p>
+							)}
+						</div>
+					</div>
+				</div>
+
+				<DialogFooter>
+					<Button
+						variant="outline"
+						onClick={() => onOpenChange(false)}
+						disabled={isLoading}
+					>
+						Cancel
+					</Button>
+					<Button onClick={handleSave} disabled={isLoading}>
+						{isLoading ? "Creating..." : "Create User"}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}

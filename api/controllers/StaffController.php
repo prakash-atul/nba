@@ -131,7 +131,7 @@ class StaffController
                 'c.course_id',
                 'c.course_id',
                 ['c.course_id', 'c.course_code', 'c.course_name', 'c.credit', 'c.course_type', 'co.year', 'co.semester', 'u.username'],
-                ['is_active', 'course_type']
+                ['is_active', 'course_type', 'year', 'semester']
             );
 
             $total  = $this->courseRepository->countByDepartmentPaginated($departmentId, $params);
@@ -457,49 +457,40 @@ class StaffController
     }
 
     /**
-     * Get enrollments for a specific course
-     * @deprecated This method needs to be updated to work with course offerings instead of course templates
+     * Get enrollments for a specific course offering
      */
-    public function getCourseEnrollments($courseId)
+    public function getCourseEnrollments($offeringId)
     {
         try {
             if (!$this->requireStaff()) return;
-            
-            http_response_code(501);
-            echo json_encode([
-                'success' => false,
-                'message' => 'This feature needs to be updated to work with course offerings. Please use the offering-specific enrollment endpoints instead.'
-            ]);
-            return;
-            
-            // TODO: Update to work with offering_id instead of course_id
-            /*
+
             $userData = $_REQUEST['authenticated_user'];
             $departmentId = $userData['department_id'];
 
-            // Verify course exists and belongs to the staff's department
-            $course = $this->courseRepository->findById($courseId);
-            if (!$course) {
+            // Verify offering exists
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Course not found'
+                    'message' => 'Course offering not found'
                 ]);
                 return;
             }
 
-            // Check if the course belongs to the staff's department
-            if ($course->getDepartmentId() != $departmentId) {
+            // Verify course belongs to the staff's department
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'You are not authorized to view enrollments for this course'
+                    'message' => 'You are not authorized to view enrollments for this offering'
                 ]);
                 return;
             }
 
             // Get enrollments
-            $enrollments = $this->enrollmentRepository->findByCourseId($courseId);
+            $enrollments = $this->enrollmentRepository->findByOfferingId($offeringId);
             $count = count($enrollments);
 
             http_response_code(200);
@@ -507,14 +498,14 @@ class StaffController
                 'success' => true,
                 'message' => "Found $count enrolled students",
                 'data' => [
-                    'course_id' => $courseId,
+                    'offering_id' => $offeringId,
+                    'course_id' => $course->getCourseId(),
                     'course_code' => $course->getCourseCode(),
                     'course_name' => $course->getCourseName(),
                     'enrollment_count' => $count,
                     'enrollments' => $enrollments
                 ]
             ]);
-            */
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([
@@ -525,23 +516,13 @@ class StaffController
     }
 
     /**
-     * Bulk enroll students in a course
-     * @deprecated This method needs to be updated to work with course offerings instead of course templates
+     * Bulk enroll students in a course offering
      */
-    public function bulkEnroll($courseId)
+    public function bulkEnroll($offeringId)
     {
         try {
             if (!$this->requireStaff()) return;
 
-            http_response_code(501);
-            echo json_encode([
-                'success' => false,
-                'message' => 'This feature needs to be updated to work with course offerings. Please use the offering-specific enrollment endpoints instead.'
-            ]);
-            return;
-            
-            // TODO: Update to work with offering_id instead of course_id
-            /*
             $userData = $_REQUEST['authenticated_user'];
             $departmentId = $userData['department_id'];
 
@@ -567,23 +548,24 @@ class StaffController
                 return;
             }
 
-            // Verify course exists and belongs to the staff's department
-            $course = $this->courseRepository->findById($courseId);
-            if (!$course) {
+            // Verify offering exists
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Course not found'
+                    'message' => 'Course offering not found'
                 ]);
                 return;
             }
 
             // Check if the course belongs to the staff's department
-            if ($course->getDepartmentId() != $departmentId) {
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'You are not authorized to enroll students in this course'
+                    'message' => 'You are not authorized to enroll students in this offering'
                 ]);
                 return;
             }
@@ -616,8 +598,8 @@ class StaffController
                 $existingStudent = $this->studentRepository->findByRollno($rollno);
                 if (!$existingStudent) {
                     // Create new student with the staff's department
-                    $student = new Student($rollno, $name, $departmentId);
-                    $this->studentRepository->save($student);
+                    $studentModel = new Student($rollno, $name, $departmentId);
+                    $this->studentRepository->save($studentModel);
                 }
 
                 $validatedStudents[] = [
@@ -626,8 +608,8 @@ class StaffController
                 ];
             }
 
-            // Perform bulk enrollment
-            $results = $this->enrollmentRepository->bulkEnrollStudents($courseId, $validatedStudents);
+            // Perform bulk enrollment using offering_id
+            $results = $this->enrollmentRepository->bulkEnrollStudents($offeringId, $validatedStudents);
 
             // Return results
             http_response_code(200);
@@ -636,7 +618,6 @@ class StaffController
                 'message' => "Enrollment completed: {$results['success_count']} successful, {$results['failure_count']} failed",
                 'data' => $results
             ]);
-            */
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([
@@ -647,66 +628,56 @@ class StaffController
     }
 
     /**
-     * Remove a student from a course
-     * @deprecated This method needs to be updated to work with course offerings instead of course templates
+     * Remove a student from a course offering
      */
-    public function removeEnrollment($courseId, $rollno)
+    public function removeEnrollment($offeringId, $rollno)
     {
         try {
             if (!$this->requireStaff()) return;
 
-            http_response_code(501);
-            echo json_encode([
-                'success' => false,
-                'message' => 'This feature needs to be updated to work with course offerings. Please use the offering-specific enrollment endpoints instead.'
-            ]);
-            return;
-            
-            // TODO: Update to work with offering_id instead of course_id
-            /*
             $userData = $_REQUEST['authenticated_user'];
             $departmentId = $userData['department_id'];
 
-            // Verify course exists and belongs to the staff's department
-            $course = $this->courseRepository->findById($courseId);
-            if (!$course) {
+            // Verify offering exists
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Course not found'
+                    'message' => 'Course offering not found'
                 ]);
                 return;
             }
 
             // Check if the course belongs to the staff's department
-            if ($course->getDepartmentId() != $departmentId) {
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'You are not authorized to remove enrollments from this course'
+                    'message' => 'You are not authorized to remove enrollments from this offering'
                 ]);
                 return;
             }
 
             // Check if student is enrolled
-            if (!$this->enrollmentRepository->isEnrolled($courseId, $rollno)) {
+            if (!$this->enrollmentRepository->isEnrolled($offeringId, $rollno)) {
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Student is not enrolled in this course'
+                    'message' => 'Student is not enrolled in this offering'
                 ]);
                 return;
             }
 
             // Remove enrollment
-            $this->enrollmentRepository->removeEnrollment($courseId, $rollno);
+            $this->enrollmentRepository->removeEnrollment($offeringId, $rollno);
 
             http_response_code(200);
             echo json_encode([
                 'success' => true,
-                'message' => 'Student removed from course successfully'
+                'message' => 'Student removed from offering successfully'
             ]);
-            */
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([
@@ -716,9 +687,7 @@ class StaffController
         }
     }
 
-    /**
-     * Get all students in the department
-     */
+
     /**
      * Get students in the staff's department — paginated
      */

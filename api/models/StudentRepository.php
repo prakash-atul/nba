@@ -255,6 +255,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             // String PK cursor (roll_no)
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
@@ -298,6 +303,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
@@ -341,6 +351,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
 
@@ -387,6 +402,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
@@ -429,6 +449,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
 
@@ -466,6 +491,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);

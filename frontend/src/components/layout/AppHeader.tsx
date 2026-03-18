@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 
 interface AppHeaderProps {
 	sidebarOpen: boolean;
 	onToggleSidebar: () => void;
 	title: string;
 	description?: string;
+	onLogout?: () => void;
 	children?: React.ReactNode; // For custom actions like Refresh, Course Selector
 }
 
@@ -15,6 +16,7 @@ export function AppHeader({
 	onToggleSidebar,
 	title,
 	description,
+	onLogout,
 	children,
 }: AppHeaderProps) {
 	return (
@@ -47,6 +49,17 @@ export function AppHeader({
 			<div className="flex items-center gap-3">
 				{children}
 				<AnimatedThemeToggler />
+				{onLogout && (
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={onLogout}
+						className="text-gray-700 dark:text-gray-300 ml-2"
+						title="Logout"
+					>
+						<LogOut className="w-5 h-5" />
+					</Button>
+				)}
 			</div>
 		</header>
 	);

@@ -1,0 +1,230 @@
+﻿    /**
+     * Get enrollments for a specific course offering
+     */
+    public function getCourseEnrollments($offeringId)
+    {
+        try {
+            if (!$this->requireStaff()) return;
+
+            $userData = $_REQUEST['authenticated_user'];
+            $departmentId = $userData['department_id'];
+
+            // Verify offering exists
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Course offering not found'
+                ]);
+                return;
+            }
+
+            // Verify course belongs to the staff's department
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You are not authorized to view enrollments for this offering'
+                ]);
+                return;
+            }
+
+            // Get enrollments
+            $enrollments = $this->enrollmentRepository->findByOfferingId($offeringId);
+            $count = count($enrollments);
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => "Found $count enrolled students",
+                'data' => [
+                    'offering_id' => $offeringId,
+                    'course_id' => $course->getCourseId(),
+                    'course_code' => $course->getCourseCode(),
+                    'course_name' => $course->getCourseName(),
+                    'enrollment_count' => $count,
+                    'enrollments' => $enrollments
+                ]
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Bulk enroll students in a course offering
+     */
+    public function bulkEnroll($offeringId)
+    {
+        try {
+            if (!$this->requireStaff()) return;
+
+            $userData = $_REQUEST['authenticated_user'];
+            $departmentId = $userData['department_id'];
+
+            // Get request body
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            // Validate students array
+            if (!isset($data['students']) || !is_array($data['students'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'students array is required'
+                ]);
+                return;
+            }
+
+            if (empty($data['students'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'students array cannot be empty'
+                ]);
+                return;
+            }
+
+            // Verify offering exists
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Course offering not found'
+                ]);
+                return;
+            }
+
+            // Check if the course belongs to the staff's department
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You are not authorized to enroll students in this offering'
+                ]);
+                return;
+            }
+
+            // Validate each student entry
+            $validatedStudents = [];
+            foreach ($data['students'] as $index => $student) {
+                if (!isset($student['rollno']) || !isset($student['name'])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "Student at index $index missing rollno or name"
+                    ]);
+                    return;
+                }
+
+                $rollno = trim($student['rollno']);
+                $name = trim($student['name']);
+
+                if (empty($rollno) || empty($name)) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "Student at index $index has empty rollno or name"
+                    ]);
+                    return;
+                }
+
+                // Check if student exists in database, if not create them
+                $existingStudent = $this->studentRepository->findByRollno($rollno);
+                if (!$existingStudent) {
+                    // Create new student with the staff's department
+                    $studentModel = new Student($rollno, $name, $departmentId);
+                    $this->studentRepository->save($studentModel);
+                }
+
+                $validatedStudents[] = [
+                    'rollno' => $rollno,
+                    'name' => $name
+                ];
+            }
+
+            // Perform bulk enrollment using offering_id
+            $results = $this->enrollmentRepository->bulkEnrollStudents($offeringId, $validatedStudents);
+
+            // Return results
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => "Enrollment completed: {$results['success_count']} successful, {$results['failure_count']} failed",
+                'data' => $results
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Remove a student from a course offering
+     */
+    public function removeEnrollment($offeringId, $rollno)
+    {
+        try {
+            if (!$this->requireStaff()) return;
+
+            $userData = $_REQUEST['authenticated_user'];
+            $departmentId = $userData['department_id'];
+
+            // Verify offering exists
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Course offering not found'
+                ]);
+                return;
+            }
+
+            // Check if the course belongs to the staff's department
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You are not authorized to remove enrollments from this offering'
+                ]);
+                return;
+            }
+
+            // Check if student is enrolled
+            if (!$this->enrollmentRepository->isEnrolled($offeringId, $rollno)) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Student is not enrolled in this offering'
+                ]);
+                return;
+            }
+
+            // Remove enrollment
+            $this->enrollmentRepository->removeEnrollment($offeringId, $rollno);
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Student removed from offering successfully'
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
+        }
+    }

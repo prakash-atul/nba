@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { AlertCircle } from "lucide-react";
 
 interface LoginFormProps {
 	onSubmit: (identifier: string, password: string) => Promise<void>;

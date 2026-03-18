@@ -43,6 +43,9 @@ $corsMiddleware = new CorsMiddleware();
 $corsMiddleware->setCorsHeaders();
 $corsMiddleware->handlePreflight();
 
+// Load File Logger for debugging
+require_once __DIR__ . '/utils/FileLogger.php';
+
 // Set headers for JSON API
 header('Content-Type: application/json');
 

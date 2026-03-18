@@ -55,7 +55,7 @@ import type {
 } from "@/services/api";
 import { hodApi } from "@/services/api/hod";
 import { usePaginatedData } from "@/lib/usePaginatedData";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 
 const currentYear = new Date().getFullYear();
@@ -253,7 +253,7 @@ export function CoursesManagement() {
 		course_name: "",
 		credit: 3,
 		course_type: "Theory",
-		course_level: "Undergraduate",
+		course_level: "UG",
 		is_active: 1,
 	});
 	const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] =
@@ -265,7 +265,7 @@ export function CoursesManagement() {
 		course_name: "",
 		credit: 3,
 		course_type: "Theory",
-		course_level: "Undergraduate",
+		course_level: "UG",
 		is_active: 1,
 	});
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -668,7 +668,10 @@ export function CoursesManagement() {
 						semester === "Autumn" &&
 						currentSemester === "Spring");
 				const isConcluded = row.original.cfa_is_active === 0;
-				const isActive = !isConcluded && isCurrentYear && semester === currentSemester;
+				const isActive =
+					!isConcluded &&
+					isCurrentYear &&
+					semester === currentSemester;
 				const label = isActive
 					? "Active"
 					: isFuture
@@ -871,7 +874,7 @@ export function CoursesManagement() {
 			course_name: course.course_name,
 			credit: course.credit,
 			course_type: course.course_type ?? "Theory",
-			course_level: course.course_level ?? "Undergraduate",
+			course_level: course.course_level ?? "UG",
 			is_active: course.is_active ?? 1,
 		});
 		setIsEditTemplateDialogOpen(true);
@@ -1418,14 +1421,17 @@ export function CoursesManagement() {
 														<SelectValue placeholder="Select level" />
 													</SelectTrigger>
 													<SelectContent>
-														<SelectItem value="Undergraduate">
-															Undergraduate
+														<SelectItem value="UG">
+															UG
 														</SelectItem>
-														<SelectItem value="Postgraduate">
-															Postgraduate
+														<SelectItem value="PG">
+															PG
 														</SelectItem>
-														<SelectItem value="Both UG and PG">
-															Both UG and PG
+														<SelectItem value="UG & PG">
+															UG & PG
+														</SelectItem>
+														<SelectItem value="PHD">
+															PHD
 														</SelectItem>
 													</SelectContent>
 												</Select>
@@ -1468,8 +1474,7 @@ export function CoursesManagement() {
 														course_name: "",
 														credit: 3,
 														course_type: "Theory",
-														course_level:
-															"Undergraduate",
+														course_level: "UG",
 														is_active: 1,
 													});
 												}}
@@ -1496,8 +1501,7 @@ export function CoursesManagement() {
 															credit: 3,
 															course_type:
 																"Theory",
-															course_level:
-																"Undergraduate",
+															course_level: "UG",
 															is_active: 1,
 														});
 														refreshBase();
@@ -1753,15 +1757,12 @@ export function CoursesManagement() {
 									<SelectValue placeholder="Select level" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="Undergraduate">
-										Undergraduate
-									</SelectItem>
-									<SelectItem value="Postgraduate">
-										Postgraduate
-									</SelectItem>
+									<SelectItem value="UG">UG</SelectItem>
+									<SelectItem value="PG">PG</SelectItem>
 									<SelectItem value="UG & PG">
 										UG & PG
 									</SelectItem>
+									<SelectItem value="PHD">PHD</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>

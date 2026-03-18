@@ -7,6 +7,7 @@ import type {
 	AdminCourse,
 	AdminTest,
 	CreateUserRequest,
+	AdminUpdateUserRequest,
 	CreateDepartmentRequest,
 	UpdateDepartmentRequest,
 	School,
@@ -31,6 +32,16 @@ export const adminApi = {
 
 	async createUser(userData: CreateUserRequest): Promise<User> {
 		return apiPost<CreateUserRequest, User>("/admin/users", userData);
+	},
+
+	async updateUser(
+		employeeId: number,
+		userData: AdminUpdateUserRequest,
+	): Promise<User> {
+		return apiPut<AdminUpdateUserRequest, User>(
+			`/admin/users/${employeeId}`,
+			userData,
+		);
 	},
 
 	async deleteUser(employeeId: number): Promise<void> {
@@ -73,6 +84,10 @@ export const adminApi = {
 
 	async demoteDean(employeeId: number): Promise<void> {
 		return apiDelete(`/admin/dean/${employeeId}`);
+	},
+
+	async getDeanHistory(): Promise<any> {
+		return apiGet("/admin/dean/history");
 	},
 
 	async getAllDepartments(

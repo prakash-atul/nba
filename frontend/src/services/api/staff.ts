@@ -73,22 +73,20 @@ export const staffApi = {
 				successful: Array<{ rollno: string; name: string }>;
 				failed: Array<{ rollno: string; name: string; reason: string }>;
 			}
-		>(`/staff/courses/${courseId}/enroll`, { students });
+		>(`/staff/courses/${courseId}/enrollments`, { students });
 	},
 
 	/**
 	 * Remove a student from a course
 	 */
 	async removeEnrollment(courseId: number, rollno: string): Promise<void> {
-		return apiDelete(`/staff/courses/${courseId}/enroll/${rollno}`);
+		return apiDelete(`/staff/courses/${courseId}/enrollments/${rollno}`);
 	},
 
 	/**
 	 * Get department faculty list — paginated
 	 */
-	async getDepartmentFaculty(
-		params?: PaginationParams,
-	): Promise<
+	async getDepartmentFaculty(params?: PaginationParams): Promise<
 		PaginatedResponse<{
 			employee_id: string;
 			username: string;

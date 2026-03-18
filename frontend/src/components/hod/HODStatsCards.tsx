@@ -1,4 +1,4 @@
-import { StatsGrid, type StatItem } from "@/components/shared";
+import { StatsGrid, type StatItem } from "@/features/shared";
 import { BookOpen, Users, GraduationCap, ClipboardList } from "lucide-react";
 import type { HODStats } from "@/services/api";
 

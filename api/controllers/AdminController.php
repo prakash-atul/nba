@@ -294,10 +294,43 @@ class AdminController
 
             if ($schoolId) {
                 $school->setSchoolId($schoolId);
+
+                // Auto-create a dean login account for this school
+                try {
+                    $deanUsername = 'dean_' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $input['school_code']));
+                    $deanEmail = $deanUsername . '@tezu.ernet.in';
+                    $deanPassword = password_hash('password123', PASSWORD_BCRYPT);
+                    
+                    $newEmpId = $this->userRepository->generateSystemAccountId('dean');
+                    
+                    if ($this->userRepository->findByUsername($deanUsername)) {
+                        $deanUsername .= '_' . rand(10, 99);
+                        $deanEmail = $deanUsername . '@tezu.ernet.in';
+                    }
+
+                    $deanUser = new User(
+                        $newEmpId,
+                        'Dean ' . strtoupper($input['school_code']),
+                        $deanEmail,
+                        $deanPassword,
+                        'dean',
+                        null,
+                        'Dean',
+                        null,
+                        null,
+                        null,
+                        $schoolId
+                    );
+                    
+                    $this->userRepository->save($deanUser);
+                } catch (Exception $userEx) {
+                    error_log("Failed to create default dean account for school: " . $userEx->getMessage());
+                }
+
                 http_response_code(201);
                 echo json_encode([
                     'success' => true,
-                    'message' => 'School created successfully',
+                    'message' => 'School and Dean account created successfully',
                     'data' => $school->toArray()
                 ]);
             } else {
@@ -388,8 +421,17 @@ class AdminController
                 return;
             }
 
+            // Get auto-generated dean accounts to clean up
+            $deanIds = $this->userRepository->getSystemAccessorIdsBySchool($schoolId);
+
             // Attempt delete (will fail if constraints exist, caught by catch block)
             if ($this->schoolRepository->delete($schoolId)) {
+                
+                // Clean up auto-generated Dean accounts associated with this school
+                foreach ($deanIds as $empId) {
+                    $this->userRepository->delete($empId);
+                }
+
                 http_response_code(200);
                 echo json_encode([
                     'success' => true,
@@ -462,11 +504,43 @@ class AdminController
             $result = $this->departmentRepository->save($department);
 
             if ($result) {
+                // Auto-create an HOD login account for this department
+                try {
+                    $hodUsername = 'hod_' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $departmentCode));
+                    $hodEmail = $hodUsername . '@tezu.ernet.in';
+                    $hodPassword = password_hash('password123', PASSWORD_BCRYPT);
+                    
+                    $newEmpId = $this->userRepository->generateSystemAccountId('hod');
+                    
+                    if ($this->userRepository->findByUsername($hodUsername)) {
+                        $hodUsername .= '_' . rand(10, 99);
+                        $hodEmail = $hodUsername . '@tezu.ernet.in';
+                    }
+
+                    $hodUser = new User(
+                        $newEmpId,
+                        'HOD ' . $departmentCode,
+                        $hodEmail,
+                        $hodPassword,
+                        'hod',
+                        $department->getDepartmentId(),
+                        'Professor',
+                        null,
+                        null,
+                        null,
+                        null
+                    );
+                    
+                    $this->userRepository->save($hodUser);
+                } catch (Exception $userEx) {
+                    error_log("Failed to create default HOD account for department: " . $userEx->getMessage());
+                }
+
                 http_response_code(201);
                 header('Content-Type: application/json');
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Department created successfully',
+                    'message' => 'Department and HOD account created successfully',
                     'data' => [
                         'department_id' => $department->getDepartmentId(),
                         'department_name' => $department->getDepartmentName(),
@@ -609,20 +683,28 @@ class AdminController
                 return;
             }
 
-            // Check if department has users
-            $userCount = $this->userRepository->countByDepartment($departmentId);
+            // Check if department has real non-system users
+            $userCount = $this->userRepository->countByDepartment($departmentId, true);
             if ($userCount > 0) {
                 http_response_code(409);
                 echo json_encode([
                     'success' => false,
-                    'message' => "Cannot delete department. It has {$userCount} user(s) assigned."
+                    'message' => "Cannot delete department. It has {$userCount} real user(s) assigned."
                 ]);
                 return;
             }
 
+            // Get auto-generated HOD accounts to clean up
+            $hodIds = $this->userRepository->getSystemAccessorIdsByDepartment($departmentId);
+
             $result = $this->departmentRepository->delete($departmentId);
 
             if ($result) {
+                // Clean up auto-generated HOD accounts associated with this department
+                foreach ($hodIds as $empId) {
+                    $this->userRepository->delete($empId);
+                }
+
                 http_response_code(200);
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -713,11 +795,11 @@ class AdminController
                 }
 
                 // Validate user is faculty or staff
-                if (!in_array($user->getRole(), ['faculty', 'staff'])) {
+                if (!in_array($user->getRole(), ['faculty', 'staff', 'dean'])) {
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
-                        'message' => 'Only faculty or staff members can be appointed as Dean'
+                        'message' => 'Only faculty, staff, or dean members can be appointed as Dean'
                     ]);
                     return;
                 }
@@ -768,11 +850,11 @@ class AdminController
                 }
 
                 // Validate role is faculty or staff
-                if (!in_array($data['role'], ['faculty', 'staff'])) {
+                if (!in_array($data['role'], ['faculty', 'staff', 'dean'])) {
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
-                        'message' => 'Dean must have role of faculty or staff'
+                        'message' => 'Dean must have role of faculty, staff, or dean'
                     ]);
                     return;
                 }
@@ -925,4 +1007,31 @@ class AdminController
             ]);
         }
     }
+
+    public function getDeanHistory() {
+        if (!$this->requireAdmin()) return;
+        try {
+            $schools = $this->schoolRepository->findAll();
+            $history = [];
+            foreach ($schools as $school) {
+                if ($this->deanAssignmentRepository) {
+                    $records = $this->deanAssignmentRepository->getHistoryBySchool($school['school_id']);
+                    foreach ($records as $record) {
+                        $record['school_name'] = $school['school_name'];
+                        $record['school_code'] = $school['school_code'];
+                        $history[] = $record;
+                    }
+                }
+            }
+            usort($history, function ($a, $b) {
+                return strtotime($b['start_date']) - strtotime($a['start_date']);
+            });
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Dean history retrieved successfully', 'data' => $history]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
 }

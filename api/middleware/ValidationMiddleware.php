@@ -48,9 +48,22 @@ class ValidationMiddleware
             $errors[] = "Password must be at least 6 characters long";
         }
 
+        // Check if role is valid
         if (isset($data['role']) && !in_array($data['role'], ['admin', 'dean', 'hod', 'faculty', 'staff'])) {
             $errors[] = "Invalid role";
         }
+
+        return $errors;
+    }
+
+    /**
+     * Validate user profile self-update data (by normal users)
+     * @param array $data
+     * @return array Array of validation errors, empty if valid
+     */
+    public function validateSelfProfileUpdateData($data)
+    {
+        $errors = $this->validateProfileUpdateData($data);
 
         // Prevent users from changing their department
         if (isset($data['department_id'])) {

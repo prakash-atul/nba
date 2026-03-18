@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
 	Select,
@@ -47,12 +47,20 @@ interface StudentEntry {
 }
 
 export function StaffEnrollmentView() {
+	const currentYear = new Date().getFullYear();
+	const currentSemester = new Date().getMonth() < 6 ? "Spring" : "Autumn";
+
 	const {
 		data: courses,
 		refresh: refreshCourses,
 		loading: isLoading,
 	} = usePaginatedData<StaffCourse>({
-		fetchFn: staffApi.getDepartmentCourses,
+		fetchFn: (params) =>
+			staffApi.getDepartmentCourses({
+				...params,
+				year: currentYear.toString(),
+				semester: currentSemester,
+			}),
 		limit: 100,
 	});
 	const [selectedCourse, setSelectedCourse] = useState<StaffCourse | null>(
@@ -143,7 +151,7 @@ export function StaffEnrollmentView() {
 				},
 			},
 		],
-		[],
+		[selectedCourse],
 	);
 
 	const studentColumns = useMemo<ColumnDef<StudentEntry>[]>(
@@ -191,14 +199,14 @@ export function StaffEnrollmentView() {
 		setStudents([]);
 
 		if (course) {
-			await loadEnrollments(course.course_id);
+			await loadEnrollments(course.offering_id!);
 		}
 	};
 
-	const loadEnrollments = async (courseId: number) => {
+	const loadEnrollments = async (offeringId: number) => {
 		setLoadingEnrollments(true);
 		try {
-			const data = await staffApi.getCourseEnrollments(courseId);
+			const data = await staffApi.getCourseEnrollments(offeringId);
 			setEnrollments(data.enrollments);
 		} catch (error) {
 			toast.error(
@@ -297,7 +305,7 @@ export function StaffEnrollmentView() {
 		setEnrolling(true);
 		try {
 			const result = await staffApi.bulkEnrollStudents(
-				selectedCourse.course_id,
+				selectedCourse.offering_id!,
 				students,
 			);
 
@@ -317,7 +325,7 @@ export function StaffEnrollmentView() {
 			if (fileInputRef.current) {
 				fileInputRef.current.value = "";
 			}
-			await loadEnrollments(selectedCourse.course_id);
+			await loadEnrollments(selectedCourse.offering_id!);
 			refreshCourses();
 		} catch (error) {
 			toast.error(
@@ -334,9 +342,12 @@ export function StaffEnrollmentView() {
 		if (!selectedCourse) return;
 
 		try {
-			await staffApi.removeEnrollment(selectedCourse.course_id, rollno);
+			await staffApi.removeEnrollment(
+				selectedCourse.offering_id!,
+				rollno,
+			);
 			toast.success("Student removed from course successfully");
-			await loadEnrollments(selectedCourse.course_id);
+			await loadEnrollments(selectedCourse.offering_id!);
 			refreshCourses();
 		} catch (error) {
 			toast.error(
@@ -426,7 +437,7 @@ export function StaffEnrollmentView() {
 						<SelectContent>
 							{courses.map((course) => (
 								<SelectItem
-									key={course.course_id}
+									key={course.offering_id || course.course_id}
 									value={course.course_id.toString()}
 								>
 									<span className="font-mono mr-2">

@@ -1,4 +1,4 @@
-import { QuickAccessGrid, type QuickAccessItem } from "@/components/shared";
+import { QuickAccessGrid, type QuickAccessItem } from "@/features/shared";
 import { Users, BookOpen, GraduationCap, FileText } from "lucide-react";
 import type { AdminStats } from "@/services/api";
 

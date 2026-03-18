@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import { ArrowUpDown, ClipboardList, X } from "lucide-react";
 import type { DeanTest, DeanDepartment } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";

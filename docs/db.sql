@@ -69,16 +69,17 @@ CREATE TABLE `departments` (
     FOREIGN KEY (`school_id`) REFERENCES `schools`(`school_id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Users (Admin, Faculty, HOD, Staff)
--- Note: HOD has its own role with a dedicated login credential per department.
--- Dean roles are still managed via assignment tables.
+-- Users (Admin, Faculty, HOD, Dean, Staff)
+-- Note: HOD and Dean have their own roles for dedicated login credentials per department/school.
+-- Faculty/staff acting as HOD/Dean are tracked via assignment tables.
 CREATE TABLE `users` (
     `employee_id` INT(11) NOT NULL,
     `username` VARCHAR(64) NOT NULL,
     `email` VARCHAR(64) NOT NULL,
     `password_hash` VARCHAR(255) NOT NULL,
-    `role` ENUM('admin', 'faculty', 'hod', 'staff') NOT NULL,
+    `role` ENUM('admin', 'faculty', 'hod', 'dean', 'staff') NOT NULL,
     `department_id` INT(11) NULL,
+    `school_id` INT(11) NULL,
     `designation` VARCHAR(50) NULL,
     `phone` VARCHAR(15) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -86,7 +87,9 @@ CREATE TABLE `users` (
     PRIMARY KEY (`employee_id`),
     UNIQUE KEY (`email`),
     INDEX (`department_id`),
-    FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE SET NULL
+    INDEX (`school_id`),
+    FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE SET NULL,
+    FOREIGN KEY (`school_id`) REFERENCES `schools`(`school_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- HOD Assignments (Historical tracking of HOD appointments)
@@ -387,26 +390,26 @@ VALUES
     (1, 'Electronics & Communication Engineering', 'ECE', 'Department of Electronics & Communication Engineering');
 
 -- Users (password: password123, bcrypt hash)
-INSERT INTO `users` (`employee_id`, `username`, `email`, `password_hash`, `role`, `department_id`, `designation`)
+INSERT INTO `users` (`employee_id`, `username`, `email`, `password_hash`, `role`, `department_id`, `school_id`, `designation`)
 VALUES 
-    (1001, 'Admin One', 'admin_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'admin', NULL, 'System Administrator'),
-    (2001, 'HOD CSE', 'hod_cse@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 1, 'Professor'),
-    (2002, 'HOD ECE', 'hod_ece@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 2, 'Professor'),
-    (3001, 'Faculty One', 'faculty_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Associate Professor'),
-    (3002, 'Faculty Two', 'faculty_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Associate Professor'),
-    (3003, 'Faculty Three', 'faculty_03@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Assistant Professor'),
-    (3004, 'Faculty Four', 'faculty_04@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Assistant Professor'),
-    (3005, 'Faculty Five', 'faculty_05@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, 'Assistant Professor'),
-    (3006, 'Faculty Six', 'faculty_06@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, 'Assistant Professor'),
-    (4001, 'Staff One', 'staff_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 1, 'Lab Assistant'),
-    (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, 'Lab Assistant'),
-    -- Dean of SoE (managed via assignment table; uses faculty role)
-    (6001, 'Dean SoE', 'dean_soe@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', NULL, 'Dean');
+    (9000001, 'Admin One', 'admin_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'admin', NULL, NULL, 'System Administrator'),
+    (7000001, 'HOD CSE', 'hod_cse@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 1, NULL, 'Professor'),
+    (7000002, 'HOD ECE', 'hod_ece@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 2, NULL, 'Professor'),
+    (3001, 'Faculty One', 'faculty_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Associate Professor'),
+    (3002, 'Faculty Two', 'faculty_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Associate Professor'),
+    (3003, 'Faculty Three', 'faculty_03@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Assistant Professor'),
+    (3004, 'Faculty Four', 'faculty_04@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Assistant Professor'),
+    (3005, 'Faculty Five', 'faculty_05@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, NULL, 'Assistant Professor'),
+    (3006, 'Faculty Six', 'faculty_06@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, NULL, 'Assistant Professor'),
+    (4001, 'Staff One', 'staff_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 1, NULL, 'Lab Assistant'),
+    (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, NULL, 'Lab Assistant'),
+    -- Dedicated login for Dean of SoE
+    (8000001, 'Dean SoE', 'dean_soe@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'dean', NULL, 1, 'Dean');
 
 -- Dean Assignment for School of Engineering
 INSERT INTO `dean_assignments` (`school_id`, `employee_id`, `start_date`, `appointment_order`)
 VALUES
-    (1, 6001, '2026-01-01', 'APT/2026/DEAN/SOE/001');
+    (1, 8000001, '2026-01-01', 'APT/2026/DEAN/SOE/001');
 
 -- HOD Assignments (record of which faculty serves as HOD — does NOT affect login role)
 -- The dedicated HOD accounts (hod_cse, hod_ece) are permanent; these records track

@@ -750,9 +750,15 @@ class CourseRepository
                 $bindings[] = (int)$params['filters']['year'];
             }
             if (!empty($params['filters']['semester'])) {
-                $sql .= " AND co.semester = ?";
-                $bindings[] = $params['filters']['semester'];
-            }
+    if (strtolower(trim($params['filters']['semester'])) === 'autumn') {
+        $sql .= " AND co.semester = 'Autumn'";
+    } elseif (strtolower(trim($params['filters']['semester'])) === 'spring') {
+        $sql .= " AND co.semester = 'Spring'";
+    } else {
+        $sql .= " AND co.semester = ?";
+        $bindings[] = $params['filters']['semester'];
+    }
+}
 
             PaginationHelper::applyCursor($sql, $bindings, 'co.offering_id', $params['cursor'], $params['sortDir']);
 
@@ -795,9 +801,15 @@ class CourseRepository
                 $bindings[] = (int)$params['filters']['year'];
             }
             if (!empty($params['filters']['semester'])) {
-                $sql .= " AND co.semester = ?";
-                $bindings[] = $params['filters']['semester'];
-            }
+    if (strtolower(trim($params['filters']['semester'])) === 'autumn') {
+        $sql .= " AND co.semester = 'Autumn'";
+    } elseif (strtolower(trim($params['filters']['semester'])) === 'spring') {
+        $sql .= " AND co.semester = 'Spring'";
+    } else {
+        $sql .= " AND co.semester = ?";
+        $bindings[] = $params['filters']['semester'];
+    }
+}
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);

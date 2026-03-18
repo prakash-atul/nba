@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { DataTable } from "@/components/shared/DataTable";
+import { useState, useEffect } from "react";
+import { DataTable } from "@/features/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
-import type { User, Department, CreateUserRequest } from "@/services/api";
+import type {
+	User,
+	Department,
+	CreateUserRequest,
+	School,
+} from "@/services/api";
 import { adminApi } from "@/services/api/admin";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 
@@ -64,6 +69,15 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 	const [isDeleteUserOpen, setIsDeleteUserOpen] = useState(false);
 	const [userToDelete, setUserToDelete] = useState<User | null>(null);
 	const [submitting, setSubmitting] = useState(false);
+	const [schools, setSchools] = useState<School[]>([]);
+
+	useEffect(() => {
+		adminApi
+			.getAllSchools()
+			.then((data) => setSchools(data))
+			.catch((err) => console.error("Failed to load schools", err));
+	}, []);
+
 	const [newUser, setNewUser] = useState<CreateUserRequest>({
 		employee_id: 0,
 		username: "",
@@ -71,7 +85,7 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 		password: "",
 		role: "faculty",
 		department_id: null,
-		designation: "",
+		school_id: null,
 		phone: "",
 	});
 
@@ -491,6 +505,9 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 										<SelectItem value="hod">
 											HOD (Dedicated Account)
 										</SelectItem>
+										<SelectItem value="dean">
+											Dean (Dedicated Account)
+										</SelectItem>
 										<SelectItem value="faculty">
 											Faculty
 										</SelectItem>
@@ -591,33 +608,65 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 								}
 							/>
 						</div>
-						<div className="space-y-2">
-							<Label htmlFor="department">Department</Label>
-							<select
-								id="department"
-								className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-								value={newUser.department_id || ""}
-								onChange={(e) =>
-									setNewUser({
-										...newUser,
-										department_id: e.target.value
-											? parseInt(e.target.value)
-											: null,
-									})
-								}
-							>
-								<option value="">No Department</option>
-								{departments.map((dept) => (
-									<option
-										key={dept.department_id}
-										value={dept.department_id}
-									>
-										{dept.department_name} (
-										{dept.department_code})
-									</option>
-								))}
-							</select>
-						</div>
+
+						{newUser.role === "dean" ? (
+							<div className="space-y-2">
+								<Label htmlFor="school">
+									School (Required for Dean)
+								</Label>
+								<select
+									id="school"
+									className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+									value={newUser.school_id || ""}
+									onChange={(e) =>
+										setNewUser({
+											...newUser,
+											school_id: e.target.value
+												? parseInt(e.target.value)
+												: null,
+										})
+									}
+								>
+									<option value="">Select a School</option>
+									{schools.map((sch) => (
+										<option
+											key={sch.school_id}
+											value={sch.school_id}
+										>
+											{sch.school_name}
+										</option>
+									))}
+								</select>
+							</div>
+						) : (
+							<div className="space-y-2">
+								<Label htmlFor="department">Department</Label>
+								<select
+									id="department"
+									className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+									value={newUser.department_id || ""}
+									onChange={(e) =>
+										setNewUser({
+											...newUser,
+											department_id: e.target.value
+												? parseInt(e.target.value)
+												: null,
+										})
+									}
+								>
+									<option value="">No Department</option>
+									{departments.map((dept) => (
+										<option
+											key={dept.department_id}
+											value={dept.department_id}
+										>
+											{dept.department_name} (
+											{dept.department_code})
+										</option>
+									))}
+								</select>
+							</div>
+						)}
 					</div>
 					<DialogFooter>
 						<Button

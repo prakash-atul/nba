@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { facultyApi } from "@/services/api/faculty";
 import type { EnrolledStudent, UpdateStudentRequest } from "@/services/api";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

@@ -1,3 +1,5 @@
+import { debugLogger } from "@/lib/debugLogger";
+
 export const API_BASE_URL =
 	import.meta.env.VITE_API_BASE_URL || "http://localhost/nba/api";
 
@@ -48,83 +50,166 @@ function handleUnauthorized(): never {
 
 // Helper function for making GET requests
 export async function apiGet<T>(endpoint: string): Promise<T> {
-	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-		headers: tokenManager.getAuthHeaders(),
-	});
+	debugLogger.debug("API", `GET request: ${endpoint}`);
+	const startTime = performance.now();
 
-	if (response.status === 401) handleUnauthorized();
+	try {
+		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+			headers: tokenManager.getAuthHeaders(),
+		});
 
-	const data = await response.json();
+		const duration = performance.now() - startTime;
+		debugLogger.debug(
+			"API",
+			`GET ${endpoint} - Status: ${response.status} (${duration.toFixed(2)}ms)`,
+		);
 
-	if (!response.ok) {
-		throw new Error(data.message || "Request failed");
+		if (response.status === 401) handleUnauthorized();
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			debugLogger.error("API", `GET ${endpoint} failed`, {
+				status: response.status,
+				message: data.message,
+			});
+			throw new Error(data.message || "Request failed");
+		}
+
+		debugLogger.debug("API", `GET ${endpoint} - Success`);
+		return data.data;
+	} catch (error) {
+		debugLogger.error("API", `GET ${endpoint} - Error`, error);
+		throw error;
 	}
-
-	return data.data;
 }
 
 // Helper function for making POST requests
 export async function apiPost<T, R>(endpoint: string, body: T): Promise<R> {
-	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-		method: "POST",
-		headers: tokenManager.getJsonHeaders(),
-		body: JSON.stringify(body),
-	});
+	debugLogger.info("API", `POST request: ${endpoint}`, { body });
+	const startTime = performance.now();
 
-	if (response.status === 401) handleUnauthorized();
+	try {
+		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+			method: "POST",
+			headers: tokenManager.getJsonHeaders(),
+			body: JSON.stringify(body),
+		});
 
-	const data = await response.json();
-
-	if (!response.ok) {
-		throw new Error(
-			data.errors
-				? data.errors.join(", ")
-				: data.message || "Request failed",
+		const duration = performance.now() - startTime;
+		debugLogger.debug(
+			"API",
+			`POST ${endpoint} - Status: ${response.status} (${duration.toFixed(2)}ms)`,
 		);
-	}
 
-	return data.data;
+		if (response.status === 401) handleUnauthorized();
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			debugLogger.error("API", `POST ${endpoint} failed`, {
+				status: response.status,
+				errors: data.errors,
+				message: data.message,
+			});
+			throw new Error(
+				data.errors
+					? data.errors.join(", ")
+					: data.message || "Request failed",
+			);
+		}
+
+		debugLogger.info("API", `POST ${endpoint} - Success`, {
+			data: data.data,
+		});
+		return data.data;
+	} catch (error) {
+		debugLogger.error("API", `POST ${endpoint} - Error`, error);
+		throw error;
+	}
 }
 
 // Helper function for making DELETE requests
 export async function apiDelete<T = void>(endpoint: string): Promise<T> {
-	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-		method: "DELETE",
-		headers: tokenManager.getAuthHeaders(),
-	});
+	debugLogger.warn("API", `DELETE request: ${endpoint}`);
+	const startTime = performance.now();
 
-	if (response.status === 401) handleUnauthorized();
+	try {
+		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+			method: "DELETE",
+			headers: tokenManager.getAuthHeaders(),
+		});
 
-	const data = await response.json();
+		const duration = performance.now() - startTime;
+		debugLogger.debug(
+			"API",
+			`DELETE ${endpoint} - Status: ${response.status} (${duration.toFixed(2)}ms)`,
+		);
 
-	if (!response.ok) {
-		throw new Error(data.message || "Request failed");
+		if (response.status === 401) handleUnauthorized();
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			debugLogger.error("API", `DELETE ${endpoint} failed`, {
+				status: response.status,
+				message: data.message,
+			});
+			throw new Error(data.message || "Request failed");
+		}
+
+		debugLogger.warn("API", `DELETE ${endpoint} - Success`);
+		return data as T;
+	} catch (error) {
+		debugLogger.error("API", `DELETE ${endpoint} - Error`, error);
+		throw error;
 	}
-
-	return data as T;
 }
 
 // Helper function for making PUT requests
 export async function apiPut<T, R>(endpoint: string, body: T): Promise<R> {
-	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-		method: "PUT",
-		headers: tokenManager.getJsonHeaders(),
-		body: JSON.stringify(body),
-	});
+	debugLogger.info("API", `PUT request: ${endpoint}`, { body });
+	const startTime = performance.now();
 
-	if (response.status === 401) handleUnauthorized();
+	try {
+		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+			method: "PUT",
+			headers: tokenManager.getJsonHeaders(),
+			body: JSON.stringify(body),
+		});
 
-	const data = await response.json();
-
-	if (!response.ok) {
-		throw new Error(
-			data.errors
-				? data.errors.join(", ")
-				: data.message || data.error || "Request failed",
+		const duration = performance.now() - startTime;
+		debugLogger.debug(
+			"API",
+			`PUT ${endpoint} - Status: ${response.status} (${duration.toFixed(2)}ms)`,
 		);
-	}
 
-	return data.data;
+		if (response.status === 401) handleUnauthorized();
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			debugLogger.error("API", `PUT ${endpoint} failed`, {
+				status: response.status,
+				errors: data.errors,
+				message: data.message,
+				error: data.error,
+			});
+			throw new Error(
+				data.errors
+					? data.errors.join(", ")
+					: data.message || data.error || "Request failed",
+			);
+		}
+
+		debugLogger.info("API", `PUT ${endpoint} - Success`, {
+			data: data.data,
+		});
+		return data.data;
+	} catch (error) {
+		debugLogger.error("API", `PUT ${endpoint} - Error`, error);
+		throw error;
+	}
 }
 
 // Helper for full response (when we need success, message, data)

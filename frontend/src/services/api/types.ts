@@ -337,10 +337,11 @@ export interface CreateUserRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "admin" | "faculty" | "hod" | "staff";
+	role: "admin" | "faculty" | "hod" | "staff" | "dean";
 	designation?: string | null;
 	phone?: string | null;
 	department_id?: number | null;
+	school_id?: number | null;
 }
 
 // Attainment Types
@@ -499,6 +500,17 @@ export interface HODUpdateUserRequest {
 	phone?: string | null;
 }
 
+export interface AdminUpdateUserRequest {
+	username?: string;
+	email?: string;
+	password?: string;
+	role?: "admin" | "dean" | "hod" | "faculty" | "staff";
+	department_id?: number | null;
+	school_id?: number | null;
+	designation?: string | null;
+	phone?: string | null;
+}
+
 // School Types
 export interface School {
 	school_id: number;
@@ -531,8 +543,8 @@ export interface CreateDeanRequest extends AppointDeanRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "faculty";
-	department_id: number;
+	role: "dean";
+	department_id?: number | null;
 }
 
 // Admin Department Management Types

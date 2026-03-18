@@ -17,11 +17,12 @@ class User
     private $phone;
     private $createdAt;
     private $updatedAt;
+    private $schoolId;
 
-    // Valid roles (HOD has its own dedicated role; Dean is still assignment-based)
-    const ROLES = ['admin', 'faculty', 'hod', 'staff'];
+    // Valid roles (HOD has its own dedicated role; Dean now also has its own dedicated role)
+    const ROLES = ['admin', 'faculty', 'hod', 'dean', 'staff'];
 
-    public function __construct($employeeId, $username = null, $email = null, $password = null, $role = null, $departmentId = null, $designation = null, $phone = null, $createdAt = null, $updatedAt = null)
+    public function __construct($employeeId, $username = null, $email = null, $password = null, $role = null, $departmentId = null, $designation = null, $phone = null, $createdAt = null, $updatedAt = null, $schoolId = null)
     {
         $this->employeeId = $employeeId;
         $this->username = $username;
@@ -33,6 +34,7 @@ class User
         $this->phone = $phone;
         $this->createdAt = $createdAt;
         $this->updatedAt = $updatedAt;
+        $this->schoolId = $schoolId;
     }
 
     // Getters
@@ -67,6 +69,10 @@ class User
     public function getPhone()
     {
         return $this->phone;
+    }
+    public function getSchoolId()
+    {
+        return $this->schoolId;
     }
     public function getCreatedAt()
     {
@@ -126,6 +132,14 @@ class User
         $this->departmentId = $departmentId;
     }
 
+    public function setSchoolId($schoolId)
+    {
+        if ($schoolId !== null && (!is_numeric($schoolId) || $schoolId <= 0)) {
+            throw new InvalidArgumentException("School ID must be a positive number or null");
+        }
+        $this->schoolId = $schoolId;
+    }
+
     public function setDesignation($designation)
     {
         $this->designation = $designation;
@@ -161,6 +175,7 @@ class User
             'email' => $this->email,
             'role' => $this->role,
             'department_id' => $this->departmentId,
+            'school_id' => $this->schoolId,
             'designation' => $this->designation,
             'phone' => $this->phone,
             'created_at' => $this->createdAt,

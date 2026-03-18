@@ -1,4 +1,4 @@
-import { QuickAccessGrid, type QuickAccessItem } from "@/components/shared";
+import { QuickAccessGrid, type QuickAccessItem } from "@/features/shared";
 import { BookOpen, Users, GraduationCap } from "lucide-react";
 
 type HODPage = "dashboard" | "courses" | "faculty" | "students";

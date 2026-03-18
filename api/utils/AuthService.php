@@ -61,16 +61,10 @@ class AuthService
             $flags['hod_department_id'] = $user->getDepartmentId();
         }
 
-        // Check Dean assignment - check if user is a current Dean for any school
-        if ($this->deanAssignmentRepository) {
-            $allCurrentDeans = $this->deanAssignmentRepository->getAllCurrentDeans();
-            foreach ($allCurrentDeans as $deanData) {
-                if ($deanData['employee_id'] == $user->getEmployeeId()) {
-                    $flags['is_dean'] = true;
-                    $flags['school_id'] = $deanData['school_id'];
-                    break;
-                }
-            }
+        // If user role is 'dean', they are a dedicated Dean account
+        if ($user->getRole() === 'dean') {
+            $flags['is_dean'] = true;
+            $flags['school_id'] = $user->getSchoolId();
         }
 
         // Generate token with assignment flags

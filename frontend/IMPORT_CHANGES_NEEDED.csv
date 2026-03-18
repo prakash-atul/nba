@@ -1,0 +1,35 @@
+file_path,imported_items,needs_update
+src/components/faculty/FacultyOverview.tsx,DataTable,true
+src/components/admin/StudentsView.tsx,DataTable,true
+src/components/admin/UsersView.tsx,DataTable,true
+src/features/users/StudentList.tsx,DataTable,true
+src/features/courses/CourseList.tsx,DataTable,true
+src/features/assessments/TestsList.tsx,DataTable,true
+src/components/admin/DepartmentsView.tsx,DataTable,true
+src/components/admin/TestsView.tsx,DataTable,true
+src/components/admin/CoursesView.tsx,DataTable,true
+src/components/staff/StaffEnrollmentView.tsx,DataTable,true
+src/components/dean/UsersView.tsx,DataTable,true
+src/components/staff/CourseManagement.tsx,DataTable,true
+src/components/dean/TestsView.tsx,DataTable,true
+src/components/dean/StudentsView.tsx,DataTable,true
+src/components/faculty/FacultyStudents.tsx,DataTable,true
+src/components/dean/HODManagement.tsx,DataTable,true
+src/components/dean/DepartmentsView.tsx,DataTable,true
+src/components/dean/CoursesView.tsx,DataTable,true
+src/components/hod/HODStudents.tsx,DataTable,true
+src/components/dean/AnalyticsView.tsx,DataTable,true
+src/components/hod/CoursesManagement.tsx,DataTable,true
+src/components/hod/FacultyManagement.tsx,DataTable,true
+src/components/assessments/TestsList.tsx,DataTable,true
+src/features/marks/EmptyStateCard.tsx,EmptyState,true
+src/components/marks/EmptyStateCard.tsx,EmptyState,true
+src/components/admin/StatsCards.tsx,StatsGrid + StatItem,true
+src/components/admin/QuickAccessCards.tsx,QuickAccessGrid + QuickAccessItem,true
+src/components/staff/StaffStatsCards.tsx,StatsGrid + StatItem,true
+src/components/staff/StaffQuickAccess.tsx,QuickAccessGrid + QuickAccessItem,true
+src/components/faculty/FacultyStatsCards.tsx,StatsGrid + StatItem,true
+src/components/dean/DeanStatsCards.tsx,StatsGrid + StatsGridSkeleton + StatItem,true
+src/components/faculty/FacultyQuickAccess.tsx,QuickAccessGrid + QuickAccessItem,true
+src/components/hod/HODStatsCards.tsx,StatsGrid + StatItem,true
+src/components/hod/HODQuickAccess.tsx,QuickAccessGrid + QuickAccessItem,true
