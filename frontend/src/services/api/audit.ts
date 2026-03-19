@@ -42,4 +42,13 @@ export const auditApi = {
 		});
 		return apiGetFull(`/hod/logs?${queryParams.toString()}`);
 	},
+	getFacultyLogs: (filters: AuditLogFilters = {}) => {
+		const queryParams = new URLSearchParams();
+		Object.entries(filters).forEach(([key, value]) => {
+			if (value !== undefined && value !== null && value !== "") {
+				queryParams.append(key, String(value));
+			}
+		});
+		return apiGetFull(`/faculty/logs?${queryParams.toString()}`);
+	},
 };

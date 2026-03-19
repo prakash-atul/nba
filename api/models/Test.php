@@ -14,6 +14,7 @@ class Test
     private $questionPaperPdf;
     private $test_type;
     private $test_date;
+    private $max_marks;
     private $weightage;
     private $courseCode; // For filename generation
     private $year; // For information

@@ -130,7 +130,7 @@ class Router
         $this->staffController = new StaffController($userRepository, $courseRepository, $departmentRepository, $enrollmentRepository, $studentRepository, $validationMiddleware, $db, $courseOfferingRepository, $courseFacultyAssignmentRepository, $auditService);
 
         // Initialize faculty controller
-        $this->facultyController = new FacultyController($courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $testRepository, $enrollmentRepository, $marksRepository, $db, $auditService);
+        $this->facultyController = new FacultyController($courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $testRepository, $enrollmentRepository, $marksRepository, $db, $auditService, $auditLogRepository);
 
         // Initialize dean controller
         $this->deanController = new DeanController($userRepository, $courseRepository, $courseOfferingRepository, $studentRepository, $testRepository, $departmentRepository, $enrollmentRepository, $marksRepository, $hodAssignmentRepository, $courseFacultyAssignmentRepository, $auditService);
@@ -492,6 +492,16 @@ class Router
                 break;
 
             // Faculty routes
+            case 'faculty/logs':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->facultyController->getLogs($_GET);
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
             case 'faculty/stats':
                 if ($method === 'GET') {
                     $user = $this->authMiddleware->requireAuth();
@@ -819,6 +829,7 @@ class Router
                     $offeringId = $matches[1];
                     if ($method === 'POST') {
                         $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
                         $this->enrollmentController->bulkEnroll($offeringId, $user['employee_id']);
                     } else {
                         $this->sendMethodNotAllowed();

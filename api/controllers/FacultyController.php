@@ -7,6 +7,7 @@
 class FacultyController
 {
     protected $auditService;
+    protected $auditLogRepository;
 
     private $courseRepository;
     private $courseOfferingRepository;
@@ -24,8 +25,9 @@ class FacultyController
         EnrollmentRepository $enrollmentRepository,
         MarksRepository $marksRepository,
         $db
-    , ?AuditService $auditService = null) {
+    , ?AuditService $auditService = null, ?AuditLogRepository $auditLogRepository = null) {
         $this->auditService = $auditService;
+        $this->auditLogRepository = $auditLogRepository;
 
         $this->courseRepository = $courseRepository;
         $this->courseOfferingRepository = $courseOfferingRepository;
@@ -34,6 +36,59 @@ class FacultyController
         $this->enrollmentRepository = $enrollmentRepository;
         $this->marksRepository = $marksRepository;
         $this->db = $db;
+    }
+
+    /**
+     * Get recent audit logs for Faculty context (similar layout to HOD/Admin)
+     */
+    public function getLogs($request) {
+        try {
+            // Validate user is logged in
+            $userData = $_REQUEST['authenticated_user'] ?? null;
+            if (!$userData || ($userData['role'] !== 'faculty' && $userData['role'] !== 'admin' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean')) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                return;
+            }
+
+            $filters = [
+                'user_id' => $_GET['user_id'] ?? null,
+                'action' => $_GET['action'] ?? null,
+                'entity_type' => $_GET['entity_type'] ?? null,
+                'entity_id' => $_GET['entity_id'] ?? null,
+                'date_from' => $_GET['date_from'] ?? null,
+                'date_to' => $_GET['date_to'] ?? null,
+            ];
+            
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+
+            $result = $this->auditLogRepository->findAll($filters, $page, $limit);
+
+            $items = $result['data'];
+            
+            http_response_code(200);
+            header("Content-Type: application/json");
+            echo json_encode([
+                "success" => true,
+                "data" => $items,
+                "pagination" => [
+                    "current_page" => $page,
+                    "per_page" => $limit,
+                    "total_records" => $result['total'],
+                    "total_pages" => ceil($result['total'] / $limit)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            error_log("Error in FacultyController@getLogs: " . $e->getMessage());
+            http_response_code(500);
+            header("Content-Type: application/json");
+            echo json_encode([
+                "success" => false,
+                "message" => "An error occurred while fetching audit logs for Faculty.",
+                "error" => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -125,15 +180,7 @@ class FacultyController
             if (empty($assignments)) {
                 http_response_code(200);
                 header('Content-Type: application/json');
-                
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
-            if (isset($this->auditService)) {
-                $this->auditService->log('CREATE', 'getEnrolledStudents', null, null, $auditPayload);
-            }
-            if (isset($GLOBALS['fileLogger'])) {
-                $GLOBALS['fileLogger']->log('INFO', 'FacultyController', 'CREATE operation successful in getEnrolledStudents');
-            }
-            echo json_encode(['success' => true, 'data' => []]);
+                echo json_encode(['success' => true, 'data' => []]);
                 return;
             }
 
@@ -167,13 +214,6 @@ class FacultyController
             http_response_code(200);
             header('Content-Type: application/json');
             
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
-            if (isset($this->auditService)) {
-                $this->auditService->log('CREATE', 'getEnrolledStudents', null, null, $auditPayload);
-            }
-            if (isset($GLOBALS['fileLogger'])) {
-                $GLOBALS['fileLogger']->log('INFO', 'FacultyController', 'CREATE operation successful in getEnrolledStudents');
-            }
             echo json_encode(['success' => true, 'data' => $students]);
         } catch (Exception $e) {
             error_log("Error getting enrolled students: " . $e->getMessage());
@@ -350,7 +390,7 @@ class FacultyController
                 SELECT 
                     (SELECT COUNT(*) FROM questions WHERE test_id = ?) as question_count,
                     (SELECT COUNT(DISTINCT student_roll_no) FROM marks WHERE test_id = ?) as student_count,
-                    (SELECT COUNT(*) FROM raw_marks WHERE test_id = ?) as raw_marks_count
+                    (SELECT COUNT(*) FROM raw_marks rm JOIN questions q ON rm.question_id = q.question_id WHERE q.test_id = ?) as raw_marks_count
             ");
             $stmt->execute([$testId, $testId, $testId]);
             $counts = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -19,6 +19,7 @@ import { FacultyAssessments } from "./pages/faculty/FacultyAssessments";
 import { FacultyStudents } from "./pages/faculty/FacultyStudents";
 import { FacultyMarks } from "./pages/faculty/FacultyMarks";
 import { FacultyCOPO } from "./pages/faculty/FacultyCOPO";
+import { FacultyLogs } from "./pages/faculty/FacultyLogs";
 import { StaffHome } from "./pages/staff/StaffHome";
 import { StaffCourses } from "./pages/staff/StaffCourses";
 import { StaffEnrollments } from "./pages/staff/StaffEnrollments";
@@ -65,6 +66,7 @@ function App() {
 					<Route path="/hod/courses" element={<HODCourses />} />
 					<Route path="/hod/logs" element={<HODLogs />} />
 					<Route path="/faculty" element={<FacultyHome />} />
+					<Route path="/faculty/logs" element={<FacultyLogs />} />
 					<Route
 						path="/faculty/assessments"
 						element={<FacultyAssessments />}

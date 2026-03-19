@@ -20,7 +20,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, History } from "lucide-react";
 
 export function FacultyHome() {
 	const { user, sidebarOpen, setSidebarOpen } = useOutletContext<{
@@ -172,7 +172,7 @@ export function FacultyHome() {
 								icon: RefreshCw,
 							},
 							{
-								id: "marking",
+								id: "marks",
 								title: "Marking",
 								description: "Enter and review student marks",
 								icon: RefreshCw,
@@ -183,13 +183,19 @@ export function FacultyHome() {
 								description: "View and manage course outcomes",
 								icon: RefreshCw,
 							},
+							{
+								id: "logs",
+								title: "Audit Logs",
+								description: "View your activity logs",
+								icon: History,
+							},
 						] as QuickAccessItem[]
 					}
 					onItemClick={(nav) =>
 						(window.location.href = `/faculty/${nav}`)
 					}
 					variant="elevated"
-					columns={3}
+					columns={4}
 				/>
 				<FacultyOverview
 					courses={courses}

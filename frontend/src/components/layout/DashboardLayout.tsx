@@ -99,6 +99,7 @@ export function DashboardLayout() {
 					{ id: "students", label: "Students", icon: GraduationCap },
 					{ id: "marks", label: "Marks Entry", icon: FileCheck },
 					{ id: "copo", label: "CO-PO Mapping", icon: Network },
+					{ id: "logs", label: "Audit Logs", icon: History },
 				];
 			case "staff":
 				return [
