@@ -33,4 +33,13 @@ export const auditApi = {
 		});
 		return apiGetFull(`/admin/logs?${queryParams.toString()}`);
 	},
+	getHodLogs: (filters: AuditLogFilters = {}) => {
+		const queryParams = new URLSearchParams();
+		Object.entries(filters).forEach(([key, value]) => {
+			if (value !== undefined && value !== null && value !== "") {
+				queryParams.append(key, String(value));
+			}
+		});
+		return apiGetFull(`/hod/logs?${queryParams.toString()}`);
+	},
 };

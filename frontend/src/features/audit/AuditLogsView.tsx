@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
-import { type AuditLog, auditApi } from "../../services/api/audit";
+import { type AuditLog } from "../../services/api/audit";
 import { DataTable } from "../../features/shared/DataTable";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -15,7 +15,11 @@ import { RefreshCw, Eye, Activity } from "lucide-react";
 
 const ACTION_FILTERS = ["ALL", "CREATE", "UPDATE", "DELETE"] as const;
 
-export function AuditLogsView() {
+export interface AuditLogsViewProps {
+	fetchFn: (params: { page?: number; limit?: number }) => Promise<any>;
+}
+
+export function AuditLogsView({ fetchFn }: AuditLogsViewProps) {
 	const [logs, setLogs] = useState<AuditLog[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [page, setPage] = useState(1);
@@ -28,7 +32,7 @@ export function AuditLogsView() {
 	const fetchLogs = async (p = page) => {
 		setIsLoading(true);
 		try {
-			const res: any = await auditApi.getLogs({ page: p, limit: 15 });
+			const res: any = await fetchFn({ page: p, limit: 15 });
 			if (res.success) {
 				setLogs(res.data);
 				if (res.pagination) {

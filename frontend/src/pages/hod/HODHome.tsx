@@ -12,7 +12,7 @@ import {
 import { createHODStats } from "@/features/shared/statsFactory";
 import { AppHeader } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, GraduationCap } from "lucide-react";
+import { BookOpen, Users, GraduationCap, History } from "lucide-react";
 
 export function HODHome() {
 	const { sidebarOpen, setSidebarOpen } = useOutletContext<{
@@ -121,13 +121,20 @@ export function HODHome() {
 											"View and manage department students",
 										icon: GraduationCap,
 									},
+									{
+										id: "logs",
+										title: "Audit Logs",
+										description:
+											"View recent activity logs in your department",
+										icon: History,
+									},
 								] as QuickAccessItem[]
 							}
 							onItemClick={(nav) =>
 								(window.location.href = `/hod/${nav}`)
 							}
 							variant="elevated"
-							columns={3}
+							columns={4}
 						/>
 					</>
 				)}

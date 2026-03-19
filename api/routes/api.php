@@ -123,7 +123,7 @@ class Router
         $this->enrollmentController = new EnrollmentController($db, $auditService);
         $this->attainmentController = new AttainmentController($courseRepository, $courseOfferingRepository, $attainmentScaleRepository, $coPoRepository, $auditService);
         $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository, $deanAssignmentRepository, $schoolRepository, $auditService);
-        $this->hodController = new HODController($userRepository, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $departmentRepository, $validationMiddleware, $studentRepository, $auditService);
+        $this->hodController = new HODController($userRepository, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $departmentRepository, $validationMiddleware, $studentRepository, $auditService, $auditLogRepository);
 
         // Initialize enrollment repository for staff controller
         $enrollmentRepository = new EnrollmentRepository($db);
@@ -392,6 +392,16 @@ class Router
                 break;
 
             // HOD routes
+            case 'hod/logs':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getLogs($_GET);
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
             case 'hod/stats':
                 if ($method === 'GET') {
                     $user = $this->authMiddleware->requireAuth();

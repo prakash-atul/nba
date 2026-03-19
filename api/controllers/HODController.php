@@ -7,6 +7,7 @@
 class HODController
 {
     protected $auditService;
+    protected $auditLogRepository;
 
     private $userRepository;
     private $courseRepository;
@@ -24,8 +25,9 @@ class HODController
         ?DepartmentRepository $departmentRepository = null,
         ?ValidationMiddleware $validationMiddleware = null,
         ?StudentRepository $studentRepository = null
-    , ?AuditService $auditService = null) {
+    , ?AuditService $auditService = null, ?AuditLogRepository $auditLogRepository = null) {
         $this->auditService = $auditService;
+        $this->auditLogRepository = $auditLogRepository;
 
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
@@ -85,6 +87,53 @@ class HODController
                 'success' => false,
                 'message' => 'Failed to retrieve stats',
                 'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get recent audit logs for HOD department 
+     */
+    public function getLogs($request) {
+        try {
+            if (!$this->requireHOD()) return;
+            
+            $filters = [
+                'user_id' => $_GET['user_id'] ?? null,
+                'action' => $_GET['action'] ?? null,
+                'entity_type' => $_GET['entity_type'] ?? null,
+                'entity_id' => $_GET['entity_id'] ?? null,
+                'date_from' => $_GET['date_from'] ?? null,
+                'date_to' => $_GET['date_to'] ?? null,
+            ];
+            
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+
+            $result = $this->auditLogRepository->findAll($filters, $page, $limit);
+
+            $items = $result['data'];
+            
+            http_response_code(200);
+            header("Content-Type: application/json");
+            echo json_encode([
+                "success" => true,
+                "data" => $items,
+                "pagination" => [
+                    "current_page" => $page,
+                    "per_page" => $limit,
+                    "total_records" => $result['total'],
+                    "total_pages" => ceil($result['total'] / $limit)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            error_log("Error in HODController@getLogs: " . $e->getMessage());
+            http_response_code(500);
+            header("Content-Type: application/json");
+            echo json_encode([
+                "success" => false,
+                "message" => "An error occurred while fetching audit logs for HOD.",
+                "error" => $e->getMessage()
             ]);
         }
     }

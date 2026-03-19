@@ -86,6 +86,7 @@ export function DashboardLayout() {
 					{ id: "faculty", label: "Faculty", icon: Users },
 					{ id: "students", label: "Students", icon: GraduationCap },
 					{ id: "courses", label: "Courses", icon: BookOpen },
+					{ id: "logs", label: "Audit Logs", icon: History },
 				];
 			case "faculty":
 				return [
