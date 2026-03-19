@@ -4,9 +4,16 @@ import { type AuditLog, auditApi } from "../../services/api/audit";
 import { DataTable } from "../../features/shared/DataTable";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { Card, CardContent } from "../../components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "../../components/ui/card";
 import { ViewDiffModal } from "./ViewDiffModal";
-import { RefreshCw, Eye } from "lucide-react";
+import { RefreshCw, Eye, Activity } from "lucide-react";
+
+const ACTION_FILTERS = ["ALL", "CREATE", "UPDATE", "DELETE"] as const;
 
 export function AuditLogsView() {
 	const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -14,6 +21,9 @@ export function AuditLogsView() {
 	const [page, setPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
 	const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [actionFilter, setActionFilter] =
+		useState<(typeof ACTION_FILTERS)[number]>("ALL");
 
 	const fetchLogs = async (p = page) => {
 		setIsLoading(true);
@@ -40,6 +50,23 @@ export function AuditLogsView() {
 		setPage(newPage);
 		fetchLogs(newPage);
 	};
+
+	const filteredLogs = useMemo(() => {
+		const query = searchTerm.trim().toLowerCase();
+
+		return logs.filter((log) => {
+			const matchesAction =
+				actionFilter === "ALL" || log.action === actionFilter;
+			const matchesSearch =
+				!query ||
+				(log.entity_type || "").toLowerCase().includes(query) ||
+				(log.entity_id || "").toLowerCase().includes(query) ||
+				(log.username || "").toLowerCase().includes(query) ||
+				(log.action || "").toLowerCase().includes(query);
+
+			return matchesAction && matchesSearch;
+		});
+	}, [logs, searchTerm, actionFilter]);
 
 	const columns = useMemo(
 		() => [
@@ -104,7 +131,7 @@ export function AuditLogsView() {
 						size="sm"
 						onClick={() => setSelectedLog(row.original)}
 					>
-						<Eye className="h-4 w-4 mr-2" />
+						<Eye className="mr-2 h-4 w-4" />
 						View
 					</Button>
 				),
@@ -115,23 +142,57 @@ export function AuditLogsView() {
 
 	return (
 		<Card>
-			<CardContent className="p-6">
-				<div className="flex justify-between mb-4">
-					<h2 className="text-xl font-semibold">Audit Trial</h2>
+			<CardHeader className="space-y-4 pb-4">
+				<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+					<div className="space-y-1">
+						<CardTitle className="flex items-center gap-2">
+							<Activity className="h-5 w-5" />
+							System Audit Trail
+						</CardTitle>
+						<p className="text-sm text-muted-foreground">
+							High-density event stream for user and system
+							changes.
+						</p>
+					</div>
+
 					<Button
 						variant="outline"
 						size="sm"
 						onClick={() => fetchLogs()}
 						disabled={isLoading}
 					>
-						<RefreshCw className="mr-2 h-4 w-4" /> Refresh
+						<RefreshCw
+							className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+						/>
+						Refresh
 					</Button>
 				</div>
 
+				<div className="flex flex-wrap items-center gap-2">
+					{ACTION_FILTERS.map((action) => (
+						<Button
+							key={action}
+							size="sm"
+							variant={
+								actionFilter === action ? "default" : "outline"
+							}
+							onClick={() => setActionFilter(action)}
+						>
+							{action}
+						</Button>
+					))}
+					<Badge variant="outline" className="ml-auto">
+						Showing {filteredLogs.length} of {logs.length} on this
+						page
+					</Badge>
+				</div>
+			</CardHeader>
+			<CardContent>
 				<DataTable
 					columns={columns}
-					data={logs}
+					data={filteredLogs}
 					refreshing={isLoading}
+					searchPlaceholder="Search actor, entity, or action..."
 					serverPagination={{
 						pagination: {
 							total: totalPages * 15,
@@ -144,8 +205,8 @@ export function AuditLogsView() {
 						onPrev: () => handlePageChange(page - 1),
 						canPrev: page > 1,
 						pageIndex: page,
-						search: "",
-						onSearch: () => {},
+						search: searchTerm,
+						onSearch: setSearchTerm,
 					}}
 				/>
 
