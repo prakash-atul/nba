@@ -14,7 +14,7 @@ class User
     private $role;
     private $departmentId;
     private $designation;
-    private $phone;
+    private $phones = [];
     private $createdAt;
     private $updatedAt;
     private $schoolId;
@@ -22,7 +22,7 @@ class User
     // Valid roles (HOD has its own dedicated role; Dean now also has its own dedicated role)
     const ROLES = ['admin', 'faculty', 'hod', 'dean', 'staff'];
 
-    public function __construct($employeeId, $username = null, $email = null, $password = null, $role = null, $departmentId = null, $designation = null, $phone = null, $createdAt = null, $updatedAt = null, $schoolId = null)
+    public function __construct($employeeId, $username = null, $email = null, $password = null, $role = null, $departmentId = null, $designation = null, $phones = [], $createdAt = null, $updatedAt = null, $schoolId = null)
     {
         $this->employeeId = $employeeId;
         $this->username = $username;
@@ -31,7 +31,7 @@ class User
         $this->role = $role;
         $this->departmentId = $departmentId;
         $this->designation = $designation;
-        $this->phone = $phone;
+        $this->phones = is_array($phones) ? $phones : (is_string($phones) ? array_filter(explode(',', $phones)) : []);
         $this->createdAt = $createdAt;
         $this->updatedAt = $updatedAt;
         $this->schoolId = $schoolId;
@@ -66,9 +66,9 @@ class User
     {
         return $this->designation;
     }
-    public function getPhone()
+    public function getPhones()
     {
-        return $this->phone;
+        return $this->phones;
     }
     public function getSchoolId()
     {
@@ -145,12 +145,9 @@ class User
         $this->designation = $designation;
     }
 
-    public function setPhone($phone)
+    public function setPhones(array $phones)
     {
-        if ($phone !== null && strlen($phone) > 15) {
-            throw new InvalidArgumentException("Phone number must not exceed 15 characters");
-        }
-        $this->phone = $phone;
+        $this->phones = $phones;
     }
 
     public function setCreatedAt($createdAt)
@@ -177,7 +174,7 @@ class User
             'department_id' => $this->departmentId,
             'school_id' => $this->schoolId,
             'designation' => $this->designation,
-            'phone' => $this->phone,
+            'phones' => $this->phones,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt
         ];

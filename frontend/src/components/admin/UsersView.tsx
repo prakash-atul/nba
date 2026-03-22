@@ -86,7 +86,7 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 		role: "faculty",
 		department_id: null,
 		school_id: null,
-		phone: "",
+		phones: [""],
 	});
 
 	const getRoleBadgeColor = (role: string) => {
@@ -185,13 +185,26 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 			),
 		},
 		{
-			accessorKey: "phone",
-			header: "Phone",
-			cell: ({ row }) => (
-				<div className="text-muted-foreground font-mono flex">
-					{row.getValue("phone") || "—"}
-				</div>
-			),
+			id: "phones",
+			header: "Phones",
+			cell: ({ row }) => {
+				const phones = row.original.phones;
+				return (
+					<div className="text-muted-foreground flex flex-wrap gap-1">
+						{phones && phones.length > 0
+							? phones.map((phone, i) => (
+									<Badge
+										variant="secondary"
+										key={i}
+										className="font-mono"
+									>
+										{phone}
+									</Badge>
+								))
+							: "—"}
+					</div>
+				);
+			},
 		},
 		{
 			accessorKey: "role",
@@ -304,14 +317,20 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 		}
 
 		// Phone validation
-		if (newUser.phone && !/^\d{10}$/.test(String(newUser.phone))) {
-			toast.error("Phone number must be exactly 10 digits");
-			return;
+		const validPhones = (newUser.phones || []).filter(
+			(p) => p.trim() !== "",
+		);
+		for (const phone of validPhones) {
+			if (!/^\d{10}$/.test(phone)) {
+				toast.error("Phone number must be exactly 10 digits");
+				return;
+			}
 		}
 
 		setSubmitting(true);
 		try {
-			await apiService.createUser(newUser);
+			const payload = { ...newUser, phones: validPhones };
+			await apiService.createUser(payload);
 			toast.success("User created successfully");
 			setIsAddUserOpen(false);
 			setNewUser({
@@ -322,7 +341,7 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 				role: "faculty",
 				department_id: null,
 				designation: "",
-				phone: "",
+				phones: [""],
 			});
 			refresh();
 		} catch (error: any) {
@@ -570,27 +589,87 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 									}
 								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="phone">Phone Number</Label>
-								<Input
-									id="phone"
-									type="tel"
-									maxLength={10}
-									pattern="\d{10}"
-									placeholder="e.g., 9876543210"
-									value={newUser.phone || ""}
-									onChange={(e) => {
-										// Only allow digits constraint directly on input
-										const val = e.target.value.replace(
-											/\D/g,
-											"",
-										);
-										setNewUser({
-											...newUser,
-											phone: val,
-										});
-									}}
-								/>
+							<div className="space-y-4 col-span-2 mt-2">
+								<div className="flex items-center justify-between">
+									<Label>Phone Numbers</Label>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={() => {
+											const currentPhones =
+												newUser.phones || [];
+											setNewUser({
+												...newUser,
+												phones: [...currentPhones, ""],
+											});
+										}}
+										className="h-8 gap-1"
+									>
+										<Plus className="h-3 w-3" />
+										Add Phone
+									</Button>
+								</div>
+								<div className="space-y-2">
+									{(newUser.phones || [""]).map(
+										(phone, index) => (
+											<div
+												key={index}
+												className="flex gap-2 items-center"
+											>
+												<Input
+													type="tel"
+													maxLength={10}
+													placeholder="e.g., 9876543210"
+													value={phone}
+													onChange={(e) => {
+														const val =
+															e.target.value.replace(
+																/\D/g,
+																"",
+															);
+														const newPhones = [
+															...(newUser.phones || [
+																"",
+															]),
+														];
+														newPhones[index] = val;
+														setNewUser({
+															...newUser,
+															phones: newPhones,
+														});
+													}}
+												/>
+												{(newUser.phones || []).length >
+													1 && (
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
+														onClick={() => {
+															const newPhones = [
+																...(newUser.phones || [
+																	"",
+																]),
+															];
+															newPhones.splice(
+																index,
+																1,
+															);
+															setNewUser({
+																...newUser,
+																phones: newPhones,
+															});
+														}}
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
+												)}
+											</div>
+										),
+									)}
+								</div>
 							</div>
 						</div>
 						<div className="space-y-2">

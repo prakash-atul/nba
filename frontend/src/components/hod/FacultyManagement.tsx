@@ -39,6 +39,7 @@ import {
 	Users,
 	Eye,
 	EyeOff,
+	Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -49,6 +50,7 @@ import type {
 import { hodApi } from "@/services/api/hod";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import { DataTable } from "@/features/shared/DataTable";
+import { UserPhonesRow } from "@/features/users";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export function FacultyManagement() {
@@ -84,7 +86,7 @@ export function FacultyManagement() {
 		password: "",
 		role: "faculty",
 		designation: "",
-		phone: "",
+		phones: [""],
 	});
 	const [editFormData, setEditFormData] = useState<HODUpdateUserRequest>({
 		username: "",
@@ -92,7 +94,7 @@ export function FacultyManagement() {
 		password: "",
 		role: "faculty" as "faculty" | "staff",
 		designation: "",
-		phone: "",
+		phones: [""],
 	});
 
 	const resetForm = () => {
@@ -103,7 +105,7 @@ export function FacultyManagement() {
 			password: "",
 			role: "faculty",
 			designation: "",
-			phone: "",
+			phones: [""],
 		});
 		setShowPassword(false);
 	};
@@ -124,8 +126,11 @@ export function FacultyManagement() {
 			return;
 		}
 
-		if (formData.phone && !/^\d{10}$/.test(String(formData.phone))) {
-			toast.error("Phone number must be exactly 10 digits");
+		const invalidPhones = formData.phones?.filter(
+			(p) => p !== "" && !/^\d{10}$/.test(p),
+		);
+		if (invalidPhones && invalidPhones.length > 0) {
+			toast.error("All phone numbers must be exactly 10 digits");
 			return;
 		}
 
@@ -164,11 +169,11 @@ export function FacultyManagement() {
 			return;
 		}
 
-		if (
-			editFormData.phone &&
-			!/^\d{10}$/.test(String(editFormData.phone))
-		) {
-			toast.error("Phone number must be exactly 10 digits");
+		const invalidEditPhones = editFormData.phones?.filter(
+			(p) => p !== "" && !/^\d{10}$/.test(p),
+		);
+		if (invalidEditPhones && invalidEditPhones.length > 0) {
+			toast.error("All phone numbers must be exactly 10 digits");
 			return;
 		}
 
@@ -179,7 +184,7 @@ export function FacultyManagement() {
 				email: editFormData.email,
 				role: editFormData.role,
 				designation: editFormData.designation || null,
-				phone: editFormData.phone || null,
+				phones: editFormData.phones?.filter(Boolean) || undefined,
 			};
 
 			if (editFormData.password) {
@@ -232,7 +237,7 @@ export function FacultyManagement() {
 			password: "",
 			role: user.role as "faculty" | "staff",
 			designation: user.designation ?? "",
-			phone: user.phone ?? "",
+			phones: user.phones?.length ? user.phones : [""],
 		});
 		setIsEditDialogOpen(true);
 	};
@@ -361,12 +366,18 @@ export function FacultyManagement() {
 			),
 		},
 		{
-			accessorKey: "phone",
-			header: "Phone",
+			id: "phone_action",
+			header: "Phones",
 			cell: ({ row }) => (
-				<div className="text-muted-foreground">
-					{(row.getValue("phone") as string) || "—"}
-				</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={() => row.toggleExpanded()}
+					className="h-8 gap-2"
+				>
+					<Phone className="h-4 w-4" />
+					{row.getIsExpanded() ? "Hide" : "Show"}
+				</Button>
 			),
 		},
 		{
@@ -568,25 +579,87 @@ export function FacultyManagement() {
 									/>
 								</div>
 								<div className="space-y-2">
-									<Label htmlFor="phone">Phone</Label>
-									<Input
-										id="phone"
-										type="tel"
-										maxLength={10}
-										pattern="\d{10}"
-										placeholder="e.g., 9876543210"
-										value={formData.phone ?? ""}
-										onChange={(e) => {
-											const val = e.target.value.replace(
-												/\D/g,
-												"",
-											);
+									<Label>Phone Numbers</Label>
+									{(formData.phones?.length
+										? formData.phones
+										: [""]
+									).map((phone, idx) => (
+										<div
+											key={idx}
+											className="flex items-center gap-2"
+										>
+											<Input
+												type="tel"
+												maxLength={10}
+												pattern="\d{10}"
+												placeholder="e.g., 9876543210"
+												value={phone}
+												onChange={(e) => {
+													const val =
+														e.target.value.replace(
+															/\D/g,
+															"",
+														);
+													const newPhones = [
+														...(formData.phones ||
+															[]),
+													];
+													newPhones[idx] = val;
+													setFormData({
+														...formData,
+														phones: newPhones,
+													});
+												}}
+											/>
+											{(formData.phones?.length
+												? formData.phones.length
+												: 1) > 1 && (
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													className="text-red-500 hover:text-red-700 hover:bg-red-50"
+													onClick={() => {
+														const newPhones = (
+															formData.phones ||
+															[]
+														).filter(
+															(_, i) => i !== idx,
+														);
+														if (
+															newPhones.length ===
+															0
+														)
+															newPhones.push("");
+														setFormData({
+															...formData,
+															phones: newPhones,
+														});
+													}}
+												>
+													<Trash2 className="w-4 h-4" />
+												</Button>
+											)}
+										</div>
+									))}
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="w-full mt-2"
+										onClick={() => {
 											setFormData({
 												...formData,
-												phone: val,
+												phones: [
+													...(formData.phones || []),
+													"",
+												],
 											});
 										}}
-									/>
+									>
+										<Plus className="w-4 h-4 mr-2" />
+										Add Phone Number
+									</Button>
 								</div>
 							</div>
 							<div className="space-y-2">
@@ -656,6 +729,11 @@ export function FacultyManagement() {
 						search,
 						onSearch: setSearch,
 					}}
+					renderSubRow={(row) => (
+						<UserPhonesRow
+							employeeId={(row.original as any).employee_id}
+						/>
+					)}
 				>
 					{() => (
 						<Select
@@ -757,25 +835,84 @@ export function FacultyManagement() {
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="edit_phone">Phone</Label>
-								<Input
-									id="edit_phone"
-									type="tel"
-									maxLength={10}
-									pattern="\d{10}"
-									placeholder="e.g., 9876543210"
-									value={(editFormData.phone as string) ?? ""}
-									onChange={(e) => {
-										const val = e.target.value.replace(
-											/\D/g,
-											"",
-										);
+								<Label>Phone Numbers</Label>
+								{(editFormData.phones?.length
+									? editFormData.phones
+									: [""]
+								).map((phone, idx) => (
+									<div
+										key={idx}
+										className="flex items-center gap-2"
+									>
+										<Input
+											type="tel"
+											maxLength={10}
+											pattern="\d{10}"
+											placeholder="e.g., 9876543210"
+											value={phone}
+											onChange={(e) => {
+												const val =
+													e.target.value.replace(
+														/\D/g,
+														"",
+													);
+												const newPhones = [
+													...(editFormData.phones ||
+														[]),
+												];
+												newPhones[idx] = val;
+												setEditFormData({
+													...editFormData,
+													phones: newPhones,
+												});
+											}}
+										/>
+										{(editFormData.phones?.length
+											? editFormData.phones.length
+											: 1) > 1 && (
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												className="text-red-500 hover:text-red-700 hover:bg-red-50"
+												onClick={() => {
+													const newPhones = (
+														editFormData.phones ||
+														[]
+													).filter(
+														(_, i) => i !== idx,
+													);
+													if (newPhones.length === 0)
+														newPhones.push("");
+													setEditFormData({
+														...editFormData,
+														phones: newPhones,
+													});
+												}}
+											>
+												<Trash2 className="w-4 h-4" />
+											</Button>
+										)}
+									</div>
+								))}
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="w-full mt-2"
+									onClick={() => {
 										setEditFormData({
 											...editFormData,
-											phone: val || null,
+											phones: [
+												...(editFormData.phones || []),
+												"",
+											],
 										});
 									}}
-								/>
+								>
+									<Plus className="w-4 h-4 mr-2" />
+									Add Phone Number
+								</Button>
 							</div>
 						</div>
 						<div className="space-y-2">

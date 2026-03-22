@@ -14,3 +14,5 @@ export {
 	createStudentColumns,
 	type StudentListColumnConfig,
 } from "./utils";
+
+export { UserPhonesRow } from "./UserPhonesRow";

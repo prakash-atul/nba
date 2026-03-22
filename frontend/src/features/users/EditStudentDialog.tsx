@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Trash2, Plus } from "lucide-react";
 import {
 	Dialog,
 	DialogContent,
@@ -38,14 +39,25 @@ export function EditStudentDialog({
 	const [formData, setFormData] = useState<UpdateStudentRequest>(() => ({
 		student_name: student?.student_name || "",
 		email: student?.email || null,
-		phone: student?.phone || null,
+		phones: student?.phones || [],
 		batch_year: student?.batch_year,
 		student_status: student?.student_status || "Active",
 	}));
 
 	const handleSave = async () => {
 		if (student) {
-			await onSave(student.roll_no, formData);
+			const cleanedPhones = (formData.phones || []).filter(
+				(p) => typeof p === "string" && p.trim() !== "",
+			);
+			if (cleanedPhones.some((p) => p.replace(/\D/g, "").length !== 10)) {
+				alert("Phone numbers must be exactly 10 digits");
+				return;
+			}
+			await onSave(student.roll_no, {
+				...formData,
+				phones: cleanedPhones,
+                                phone: cleanedPhones.length > 0 ? cleanedPhones[0] : null,
+			});
 			onOpenChange(false);
 		}
 	};
@@ -87,17 +99,73 @@ export function EditStudentDialog({
 							/>
 						</div>
 						<div className="space-y-1.5">
-							<Label>Phone</Label>
-							<Input
-								value={formData.phone ?? ""}
-								onChange={(e) =>
-									setFormData((f) => ({
-										...f,
-										phone: e.target.value || null,
-									}))
-								}
-								disabled={isLoading}
-							/>
+							<Label>Phone Numbers</Label>
+							<div className="space-y-2">
+								{(formData.phones?.length
+									? formData.phones
+									: [""]
+								).map((phone, idx, arr) => (
+									<div
+										key={idx}
+										className="flex gap-2 items-center"
+									>
+										<Input
+											type="tel"
+											value={phone}
+											onChange={(e) =>
+												setFormData((f) => {
+													const newPhones = [
+														...(f.phones || []),
+													];
+													newPhones[idx] =
+														e.target.value;
+													return {
+														...f,
+														phones: newPhones,
+													};
+												})
+											}
+											disabled={isLoading}
+										/>
+										{arr.length > 1 && (
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												className="h-9 w-9 text-red-500 hover:text-red-600 hover:bg-red-50"
+												onClick={() =>
+													setFormData((f) => ({
+														...f,
+														phones: (
+															f.phones || []
+														).filter(
+															(_, i) => i !== idx,
+														),
+													}))
+												}
+												disabled={isLoading}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										)}
+									</div>
+								))}
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() =>
+										setFormData((f) => ({
+											...f,
+											phones: [...(f.phones || []), ""],
+										}))
+									}
+									disabled={isLoading}
+									className="text-xs h-8 mt-2"
+								>
+									<Plus className="mr-2 h-3.5 w-3.5" /> Add
+									Phone Number
+								</Button>
+							</div>
 						</div>
 					</div>
 					<div className="grid grid-cols-2 gap-4">

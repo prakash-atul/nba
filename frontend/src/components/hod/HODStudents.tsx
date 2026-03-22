@@ -30,6 +30,8 @@ import {
 	Building2,
 	BookOpen,
 	X,
+	Trash2,
+	Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePaginatedData } from "@/lib/usePaginatedData";
@@ -98,7 +100,7 @@ export function HODStudents() {
 		setEditForm({
 			student_name: student.student_name,
 			email: student.email ?? "",
-			phone: student.phone ?? "",
+			phones: student.phones?.length ? student.phones : [],
 			student_status: student.student_status,
 			batch_year: student.batch_year,
 		});
@@ -107,14 +109,24 @@ export function HODStudents() {
 	const handleEditSave = async () => {
 		if (!editTarget) return;
 
-		if (editForm.phone && !/^\d{10}$/.test(String(editForm.phone))) {
+		const validPhones = (editForm.phones || []).filter(
+			(p) => p.trim() !== "",
+		);
+		if (
+			validPhones.length > 0 &&
+			validPhones.some((p) => !/^\d{10}$/.test(p))
+		) {
 			toast.error("Phone number must be exactly 10 digits");
 			return;
 		}
 
 		setEditSaving(true);
 		try {
-			await hodApi.updateStudent(editTarget.roll_no, editForm);
+			await hodApi.updateStudent(editTarget.roll_no, {
+				...editForm,
+				phones: validPhones,
+								phone: validPhones.length > 0 ? validPhones[0] : null,
+			});
 			toast.success("Student updated successfully");
 			setEditTarget(null);
 			refresh();
@@ -210,13 +222,31 @@ export function HODStudents() {
 				),
 			},
 			{
-				accessorKey: "phone",
-				header: "Phone",
-				cell: ({ row }) => (
-					<span className="text-sm text-muted-foreground font-mono">
-						{row.original.phone ?? "—"}
-					</span>
-				),
+				accessorKey: "phones",
+				header: "Phones",
+				cell: ({ row }) => {
+					const phones = row.original.phones?.length ? row.original.phones : (row.original as any).phone ? [(row.original as any).phone] : [];
+					if (!phones || phones.length === 0) {
+						return (
+							<span className="text-sm text-muted-foreground">
+								—
+							</span>
+						);
+					}
+					return (
+						<div className="flex flex-wrap gap-1">
+							{phones.map((p, i) => (
+								<Badge
+									key={i}
+									variant="outline"
+									className="font-mono text-xs"
+								>
+									{p}
+								</Badge>
+							))}
+						</div>
+					);
+				},
 			},
 			{
 				accessorKey: "student_status",
@@ -405,23 +435,73 @@ export function HODStudents() {
 								/>
 							</div>
 							<div className="space-y-1.5">
-								<Label>Phone</Label>
-								<Input
-									type="tel"
-									maxLength={10}
-									pattern="\d{10}"
-									value={editForm.phone ?? ""}
-									onChange={(e) => {
-										const val = e.target.value.replace(
-											/\D/g,
-											"",
-										);
+								<Label>Phone Numbers</Label>
+								{(editForm.phones?.length
+									? editForm.phones
+									: [""]
+								).map((phone, index, arr) => (
+									<div
+										key={index}
+										className="flex gap-2 mb-2"
+									>
+										<Input
+											type="tel"
+											maxLength={10}
+											pattern="\d{10}"
+											value={phone}
+											placeholder="10-digit phone number"
+											onChange={(e) => {
+												const val =
+													e.target.value.replace(
+														/\D/g,
+														"",
+													);
+												const newPhones = [...arr];
+												newPhones[index] = val;
+												setEditForm((f) => ({
+													...f,
+													phones: newPhones,
+												}));
+											}}
+										/>
+										{arr.length > 1 && (
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												className="shrink-0 text-destructive hover:bg-destructive/10"
+												onClick={() => {
+													const newPhones =
+														arr.filter(
+															(_, i) =>
+																i !== index,
+														);
+													setEditForm((f) => ({
+														...f,
+														phones: newPhones,
+													}));
+												}}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										)}
+									</div>
+								))}
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="mt-1 flex items-center gap-1 w-full border-dashed"
+									onClick={() => {
 										setEditForm((f) => ({
 											...f,
-											phone: val || null,
+											phones: [...(f.phones || []), ""],
 										}));
 									}}
-								/>
+								>
+									<Plus className="h-4 w-4" />
+									Add Phone Number
+								</Button>
 							</div>
 						</div>
 						<div className="grid grid-cols-2 gap-4">

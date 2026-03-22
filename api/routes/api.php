@@ -245,6 +245,20 @@ class Router
             }
         }
 
+        // GET /users/{id}/phones
+        if (preg_match('/^users\/(\d+)\/phones$/', $path, $matches)) {
+            $employeeId = $matches[1];
+            if ($method === 'GET') {
+                $user = $this->authMiddleware->requireAuth();
+                $_REQUEST['authenticated_user'] = $user;
+                $this->userController->getUserPhones($employeeId);
+                return;
+            } else {
+                $this->sendMethodNotAllowed();
+                return;
+            }
+        }
+
         // Route requests
         switch ($path) {
             case '':

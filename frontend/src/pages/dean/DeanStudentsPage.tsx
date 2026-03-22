@@ -18,7 +18,7 @@ export function DeanStudentsPage() {
 				allowDepartmentFilter: true,
 			}}
 			title="All Students"
-			showPhone={false}
+			showPhone={true}
 			availableFilters={["department", "batch", "status", "course"]}
 		/>
 	);

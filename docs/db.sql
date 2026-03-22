@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS `marks`;
 DROP TABLE IF EXISTS `enrollments`;
 DROP TABLE IF EXISTS `questions`;
 DROP TABLE IF EXISTS `tests`;
+DROP TABLE IF EXISTS `user_phones`;
 DROP TABLE IF EXISTS `co_po_mapping`;
 DROP TABLE IF EXISTS `attainment_scale`;
 DROP TABLE IF EXISTS `course_faculty_assignments`;
@@ -82,7 +83,6 @@ CREATE TABLE `users` (
     `department_id` INT(11) NULL,
     `school_id` INT(11) NULL,
     `designation` VARCHAR(50) NULL,
-    `phone` VARCHAR(15) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`employee_id`),
@@ -91,6 +91,18 @@ CREATE TABLE `users` (
     INDEX (`school_id`),
     FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE SET NULL,
     FOREIGN KEY (`school_id`) REFERENCES `schools`(`school_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- User Phone Numbers (normalized multi-phone storage)
+CREATE TABLE `user_phones` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `employee_id` INT(11) NOT NULL,
+    `phone_number` VARCHAR(15) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_emp_phone` (`employee_id`, `phone_number`),
+    INDEX `idx_user_phone` (`employee_id`),
+    FOREIGN KEY (`employee_id`) REFERENCES `users`(`employee_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- HOD Assignments (Historical tracking of HOD appointments)
@@ -428,6 +440,15 @@ VALUES
     (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, NULL, 'Lab Assistant'),
     -- Dedicated login for Dean of SoE
     (8000001, 'Dean SoE', 'dean_soe@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'dean', NULL, 1, 'Dean');
+
+-- User Phone Numbers
+INSERT INTO `user_phones` (`employee_id`, `phone_number`)
+VALUES
+    (9000001, '9876543210'), (9000001, '9876543211'),
+    (7000001, '9876543212'),
+    (3001, '9876543213'), (3001, '9876543214'),
+    (3002, '9876543215'),
+    (8000001, '9876543216');
 
 -- Dean Assignment for School of Engineering
 INSERT INTO `dean_assignments` (`school_id`, `employee_id`, `start_date`, `appointment_order`)

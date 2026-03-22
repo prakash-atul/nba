@@ -173,8 +173,8 @@ class UserController
                 $user->setDesignation($data['designation']);
             }
 
-            if (isset($data['phone'])) {
-                $user->setPhone($data['phone']);
+            if (isset($data['phones'])) {
+                $user->setPhones($data['phones']);
             }
 
             // Note: Role changes are not allowed via self-profile update for security reasons
@@ -434,7 +434,7 @@ class UserController
                 $data['role'],
                 isset($data['department_id']) ? (int)$data['department_id'] : null,
                 $data['designation'] ?? null,
-                $data['phone'] ?? null,
+                $data['phones'] ?? [],
                 null,
                 null,
                 isset($data['school_id']) ? (int)$data['school_id'] : null
@@ -613,8 +613,8 @@ class UserController
                 $user->setDesignation($data['designation']);
             }
 
-            if (array_key_exists('phone', $data)) {
-                $user->setPhone($data['phone']);
+            if (array_key_exists('phones', $data)) {
+                $user->setPhones($data['phones']);
             }
 
             // Update user in database
@@ -745,6 +745,35 @@ class UserController
                 'message' => 'Failed to delete user',
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Get phone numbers for a user (Lazy loading endpoint)
+     */
+    public function getUserPhones($employeeId)
+    {
+        try {
+            // Check if user exists
+            $user = $this->userRepository->findByEmployeeId($employeeId);
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'User not found']);
+                return;
+            }
+
+            $phones = $this->userRepository->getUserPhones($employeeId);
+            
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Phones retrieved successfully',
+                'data' => $phones
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve phones', 'error' => $e->getMessage()]);
         }
     }
 }

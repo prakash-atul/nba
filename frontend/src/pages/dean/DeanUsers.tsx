@@ -26,7 +26,7 @@ export function DeanUsers() {
 					availableFilters={["role"]}
 					showRole={true}
 					showDepartment={true}
-					showPhone={false}
+					showPhone={true}
 					showDesignation={true}
 					showEmail={true}
 					showDeanStatus={false}

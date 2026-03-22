@@ -18,6 +18,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import type { Department, School } from "@/services/api";
+import { Minus, Plus } from "lucide-react";
 
 export interface CreateUserDialogProps {
 	open: boolean;
@@ -45,7 +46,7 @@ export function CreateUserDialog({
 		department_id: "",
 		school_id: "",
 		designation: "",
-		phone: "",
+		phones: [""] as string[],
 	});
 
 	const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,9 +67,11 @@ export function CreateUserDialog({
 			newErrors.password = "Password must be at least 6 characters";
 		}
 
-		if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
-			newErrors.phone = "Phone number must be exactly 10 digits";
-		}
+		formData.phones.forEach((phone, idx) => {
+			if (phone && !/^\d{10}$/.test(phone)) {
+				newErrors[`phone_${idx}`] = "Number must be 10 digits";
+			}
+		});
 
 		setErrors(newErrors);
 
@@ -110,7 +113,7 @@ export function CreateUserDialog({
 					? parseInt(formData.school_id)
 					: null,
 			designation: formData.designation || null,
-			phone: formData.phone || null,
+			phones: formData.phones.filter((p) => p.trim() !== ""),
 		});
 
 		setFormData({
@@ -122,11 +125,28 @@ export function CreateUserDialog({
 			department_id: "",
 			school_id: "",
 			designation: "",
-			phone: "",
+			phones: [""],
 		});
 		setErrors({});
 		onOpenChange(false);
 		debugLogger.info("CreateUserDialog", "Form reset and dialog closed");
+	};
+
+	const addPhoneField = () => {
+		setFormData({ ...formData, phones: [...formData.phones, ""] });
+	};
+
+	const removePhoneField = (index: number) => {
+		const newPhones = [...formData.phones];
+		newPhones.splice(index, 1);
+		if (newPhones.length === 0) newPhones.push("");
+		setFormData({ ...formData, phones: newPhones });
+	};
+
+	const updatePhoneField = (index: number, value: string) => {
+		const newPhones = [...formData.phones];
+		newPhones[index] = value.replace(/\D/g, "").slice(0, 10);
+		setFormData({ ...formData, phones: newPhones });
 	};
 
 	return (
@@ -376,33 +396,69 @@ export function CreateUserDialog({
 							/>
 						</div>
 
-						<div className="space-y-1.5">
-							<Label
-								htmlFor="phone"
-								className="text-sm font-medium"
-							>
-								Phone
-							</Label>
-							<Input
-								id="phone"
-								placeholder="1234567890"
-								value={formData.phone}
-								onChange={(e) =>
-									setFormData({
-										...formData,
-										phone: e.target.value
-											.replace(/\D/g, "")
-											.slice(0, 10),
-									})
-								}
-								disabled={isLoading}
-								className={errors.phone ? "border-red-500" : ""}
-							/>
-							{errors.phone && (
-								<p className="text-xs text-red-500">
-									{errors.phone}
-								</p>
-							)}
+						<div className="space-y-1.5 col-span-2 border-t pt-4 mt-2">
+							<div className="flex items-center justify-between mb-2">
+								<Label className="text-sm font-semibold">
+									Contact Numbers
+								</Label>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="h-7 text-xs gap-1"
+									onClick={addPhoneField}
+									disabled={isLoading}
+								>
+									<Plus className="h-3 w-3" />
+									Add Number
+								</Button>
+							</div>
+							<div className="grid grid-cols-2 gap-3">
+								{formData.phones.map((phone, idx) => (
+									<div key={idx} className="space-y-1">
+										<div className="flex gap-2">
+											<div className="relative flex-1">
+												<Input
+													placeholder="10-digit number"
+													value={phone}
+													onChange={(e) =>
+														updatePhoneField(
+															idx,
+															e.target.value,
+														)
+													}
+													disabled={isLoading}
+													className={
+														errors[`phone_${idx}`]
+															? "border-red-500 pr-8"
+															: "pr-8"
+													}
+												/>
+												<span className="absolute right-2 top-2.5 text-[10px] text-muted-foreground font-mono">
+													#{idx + 1}
+												</span>
+											</div>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												className="h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+												onClick={() =>
+													removePhoneField(idx)
+												}
+												disabled={isLoading}
+											>
+												<Minus className="h-4 w-4" />
+											</Button>
+										</div>
+										{errors[`phone_${idx}`] && (
+											<p className="text-[10px] text-red-500 ml-1">
+												{errors[`phone_${idx}`]}
+											</p>
+										)}
+									</div>
+								))}
+							</div>
 						</div>
 					</div>
 				</div>

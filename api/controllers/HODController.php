@@ -929,8 +929,13 @@ class HODController
             $email = isset($input['email']) ? $input['email'] : $existingUser->getEmail();
             $role = isset($input['role']) ? $input['role'] : $existingUser->getRole();
             $designation = isset($input['designation']) ? $input['designation'] : $existingUser->getDesignation();
-            $phone = isset($input['phone']) ? $input['phone'] : $existingUser->getPhone();
+            $phones = isset($input['phones']) ? $input['phones'] : $existingUser->getPhones();
             $password = $existingUser->getPassword();
+
+            // Handle legacy phone input
+            if (isset($input['phone']) && !isset($input['phones'])) {
+                $phones = [$input['phone']];
+            }
 
             // Validate role if provided
             if (isset($input['role']) && !in_array($input['role'], ['faculty', 'staff'])) {
@@ -968,7 +973,7 @@ class HODController
                 $role,
                 $departmentId,
                 $designation,
-                $phone
+                $phones
             );
 
             $this->userRepository->save($updatedUser);

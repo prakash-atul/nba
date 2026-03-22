@@ -48,6 +48,10 @@ export const adminApi = {
 		return apiDelete(`/admin/users/${employeeId}`);
 	},
 
+	async getUserPhones(employeeId: number): Promise<string[]> {
+		return apiGet<string[]>(`/users/${employeeId}/phones`);
+	},
+
 	// School Management
 	async getAllSchools(): Promise<School[]> {
 		return apiGet<School[]>("/admin/schools");

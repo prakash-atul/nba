@@ -140,11 +140,11 @@ export function UsersView() {
 			),
 		},
 		{
-			accessorKey: "phone",
-			header: "Phone",
+			accessorKey: "phones",
+			header: "Phones",
 			cell: ({ row }) => (
 				<div className="text-muted-foreground font-mono flex">
-					{row.getValue("phone") || "â€”"}
+					{(row.original.phones && row.original.phones.length > 0) ? (row.original.phones.map((p, i) => <Badge variant="secondary" key={i} className="mr-1 font-mono">{p}</Badge>)) : "—"}
 				</div>
 			),
 		},

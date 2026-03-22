@@ -92,10 +92,10 @@ export function createStudentColumns(
 
 	if (config.showPhone) {
 		columns.push({
-			accessorKey: "phone",
-			header: "Phone",
+			accessorKey: "phones",
+			header: "Phones",
 			cell: ({ row }) => (
-				<div className="text-sm">{row.getValue("phone") ?? "â€”"}</div>
+				<div className="text-sm">{((row.original.phones && row.original.phones.length > 0) || (row.original as any).phone) ? (((row.original.phones?.length ? row.original.phones : [(row.original as any).phone])).map((p, i) => <Badge variant="secondary" key={i} className="mr-1 font-mono">{p}</Badge>)) : "—"}</div>
 			),
 		});
 	}

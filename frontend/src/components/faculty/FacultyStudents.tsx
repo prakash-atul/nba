@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { facultyApi } from "@/services/api/faculty";
 import type { EnrolledStudent, UpdateStudentRequest } from "@/services/api";
 import { DataTable } from "@/features/shared/DataTable";
@@ -39,6 +39,7 @@ import {
 	RefreshCw,
 	Trash2,
 	X,
+	Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,11 +52,11 @@ interface FacultyStudentsProps {
 export function FacultyStudents({
 	hideHeader = false,
 }: FacultyStudentsProps = {}) {
-	// ── Data ──────────────────────────────────────────────────────────────────
+	// -- Data ------------------------------------------------------------------
 	const [allStudents, setAllStudents] = useState<EnrolledStudent[]>([]);
 	const [loading, setLoading] = useState(true);
 
-	// ── Filters ───────────────────────────────────────────────────────────────
+	// -- Filters ---------------------------------------------------------------
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [batchInput, setBatchInput] = useState("");
 	const [batchFilter, setBatchFilter] = useState("");
@@ -68,18 +69,18 @@ export function FacultyStudents({
 
 	const hasFilters = statusFilter !== "all" || batchFilter !== "";
 
-	// ── Edit state ────────────────────────────────────────────────────────────
+	// -- Edit state ------------------------------------------------------------
 	const [editTarget, setEditTarget] = useState<EnrolledStudent | null>(null);
 	const [editForm, setEditForm] = useState<UpdateStudentRequest>({});
 	const [editSaving, setEditSaving] = useState(false);
 
-	// ── Delete state ──────────────────────────────────────────────────────────
+	// -- Delete state ----------------------------------------------------------
 	const [deleteTarget, setDeleteTarget] = useState<EnrolledStudent | null>(
 		null,
 	);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 
-	// ── Load ──────────────────────────────────────────────────────────────────
+	// -- Load ------------------------------------------------------------------
 	const loadStudents = useCallback(async () => {
 		setLoading(true);
 		try {
@@ -96,7 +97,7 @@ export function FacultyStudents({
 		loadStudents();
 	}, [loadStudents]);
 
-	// ── Client-side filter ────────────────────────────────────────────────────
+	// -- Client-side filter ----------------------------------------------------
 	const filtered = useMemo(() => {
 		let result = allStudents;
 		if (statusFilter !== "all")
@@ -115,7 +116,7 @@ export function FacultyStudents({
 		setEditForm({
 			student_name: student.student_name,
 			email: student.email ?? "",
-			phone: student.phone ?? "",
+			phones: student.phones?.length ? student.phones : [],
 			student_status: student.student_status,
 			batch_year: student.batch_year,
 		});
@@ -129,9 +130,22 @@ export function FacultyStudents({
 
 	const handleEditSave = async () => {
 		if (!editTarget) return;
+
+		const validPhones = (editForm.phones || []).filter(
+			(p) => p.trim() !== "",
+		);
+		if (
+			validPhones.length > 0 &&
+			validPhones.some((p) => !/^\d{10}$/.test(p))
+		) {
+			toast.error("Phone number must be exactly 10 digits");
+			return;
+		}
+
 		setEditSaving(true);
 		try {
-			await facultyApi.updateStudent(editTarget.roll_no, editForm);
+			const dataToSave = { ...editForm, phones: validPhones, phone: validPhones.length > 0 ? validPhones[0] : null };
+			await facultyApi.updateStudent(editTarget.roll_no, dataToSave);
 			toast.success("Student updated successfully");
 			setEditTarget(null);
 			// Patch local state to avoid full reload
@@ -147,11 +161,9 @@ export function FacultyStudents({
 										| string
 										| null
 										| undefined) ?? s.email,
-								phone:
-									(editForm.phone as
-										| string
-										| null
-										| undefined) ?? s.phone,
+								phones: dataToSave.phones.length
+									? dataToSave.phones
+									: s.phones || [],
 								student_status:
 									editForm.student_status ?? s.student_status,
 								batch_year: editForm.batch_year ?? s.batch_year,
@@ -265,25 +277,39 @@ export function FacultyStudents({
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
 				),
-				cell: ({ row }) => row.original.batch_year ?? "—",
+				cell: ({ row }) => row.original.batch_year ?? "�",
 			},
 			{
 				accessorKey: "email",
 				header: "Email",
 				cell: ({ row }) => (
 					<Badge variant="outline" className="flex">
-						{row.original.email ?? "—"}
+						{row.original.email ?? "�"}
 					</Badge>
 				),
 			},
 			{
-				accessorKey: "phone",
-				header: "Phone",
-				cell: ({ row }) => (
-					<div className="text-muted-foreground font-mono flex">
-						{row.original.phone ?? "—"}
-					</div>
-				),
+				accessorKey: "phones",
+				header: "Phones",
+				cell: ({ row }) => {
+					const phones = row.original.phones?.length ? row.original.phones : (row.original as any).phone ? [(row.original as any).phone] : [];
+					if (!phones || phones.length === 0) {
+						return <div className="text-muted-foreground">�</div>;
+					}
+					return (
+						<div className="flex flex-wrap gap-1">
+							{phones.map((p, i) => (
+								<Badge
+									key={i}
+									variant="outline"
+									className="font-mono text-xs"
+								>
+									{p}
+								</Badge>
+							))}
+						</div>
+					);
+				},
 			},
 			{
 				accessorKey: "student_status",
@@ -315,7 +341,7 @@ export function FacultyStudents({
 								))
 							) : (
 								<span className="text-xs text-muted-foreground">
-									—
+									�
 								</span>
 							)}
 						</div>
@@ -351,7 +377,7 @@ export function FacultyStudents({
 		[],
 	);
 
-	// ── Render ──────────────────────────────────────────────────────────────────
+	// -- Render ------------------------------------------------------------------
 	return (
 		<div className="h-full overflow-y-auto">
 			<div className="px-6 pt-4 pb-8 space-y-6">
@@ -443,7 +469,7 @@ export function FacultyStudents({
 				</Card>
 			</div>
 
-			{/* ── Edit Dialog ── */}
+			{/* -- Edit Dialog -- */}
 			<Dialog
 				open={!!editTarget}
 				onOpenChange={(open) => !open && setEditTarget(null)}
@@ -451,7 +477,7 @@ export function FacultyStudents({
 				<DialogContent className="max-w-md">
 					<DialogHeader>
 						<DialogTitle>
-							Edit Student — {editTarget?.roll_no}
+							Edit Student � {editTarget?.roll_no}
 						</DialogTitle>
 					</DialogHeader>
 
@@ -483,16 +509,73 @@ export function FacultyStudents({
 								/>
 							</div>
 							<div className="space-y-1.5">
-								<Label>Phone</Label>
-								<Input
-									value={editForm.phone ?? ""}
-									onChange={(e) =>
+								<Label>Phone Numbers</Label>
+								{(editForm.phones?.length
+									? editForm.phones
+									: [""]
+								).map((phone, index, arr) => (
+									<div
+										key={index}
+										className="flex gap-2 mb-2"
+									>
+										<Input
+											type="tel"
+											maxLength={10}
+											pattern="\d{10}"
+											value={phone}
+											placeholder="10-digit phone number"
+											onChange={(e) => {
+												const val =
+													e.target.value.replace(
+														/\D/g,
+														"",
+													);
+												const newPhones = [...arr];
+												newPhones[index] = val;
+												setEditForm((f) => ({
+													...f,
+													phones: newPhones,
+												}));
+											}}
+										/>
+										{arr.length > 1 && (
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												className="shrink-0 text-destructive hover:bg-destructive/10"
+												onClick={() => {
+													const newPhones =
+														arr.filter(
+															(_, i) =>
+																i !== index,
+														);
+													setEditForm((f) => ({
+														...f,
+														phones: newPhones,
+													}));
+												}}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										)}
+									</div>
+								))}
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="mt-1 flex items-center gap-1 w-full border-dashed"
+									onClick={() => {
 										setEditForm((f) => ({
 											...f,
-											phone: e.target.value || null,
-										}))
-									}
-								/>
+											phones: [...(f.phones || []), ""],
+										}));
+									}}
+								>
+									<Plus className="h-4 w-4" />
+									Add Phone Number
+								</Button>
 							</div>
 						</div>
 						<div className="grid grid-cols-2 gap-4">
@@ -546,13 +629,13 @@ export function FacultyStudents({
 							Cancel
 						</Button>
 						<Button onClick={handleEditSave} disabled={editSaving}>
-							{editSaving ? "Saving…" : "Save Changes"}
+							{editSaving ? "Saving�" : "Save Changes"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 
-			{/* ── Delete Confirm ── */}
+			{/* -- Delete Confirm -- */}
 			<AlertDialog
 				open={!!deleteTarget}
 				onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -579,7 +662,7 @@ export function FacultyStudents({
 							onClick={handleDelete}
 							disabled={deleteLoading}
 						>
-							{deleteLoading ? "Removing…" : "Remove"}
+							{deleteLoading ? "Removing�" : "Remove"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

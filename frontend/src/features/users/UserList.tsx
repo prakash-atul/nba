@@ -15,7 +15,17 @@ import { DataTable } from "@/features/shared/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Plus, X, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import {
+	Users,
+	Plus,
+	X,
+	ArrowUpDown,
+	Pencil,
+	Trash2,
+	ChevronRight,
+	ChevronDown as ChevronDownIcon,
+	Phone,
+} from "lucide-react";
 import {
 	Select,
 	SelectContent,
@@ -28,6 +38,11 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { CreateUserDialog } from "./CreateUserDialog";
 import { EditUserDialog } from "./EditUserDialog";
 import { DeleteUserDialog } from "./DeleteUserDialog";
+import { UserPhonesRow } from "./UserPhonesRow";
+
+/**
+ * @file UserList.tsx
+ */
 
 export interface UserListProps {
 	// Data source
@@ -261,6 +276,24 @@ export function UserList({
 	const columns: ColumnDef<User | DeanUser>[] = useMemo(() => {
 		const cols: ColumnDef<User | DeanUser>[] = [
 			{
+				id: "expander",
+				header: () => <div className="w-8" />,
+				cell: ({ row }) => (
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-8 w-8 p-0"
+						onClick={() => row.toggleExpanded()}
+					>
+						{row.getIsExpanded() ? (
+							<ChevronDownIcon className="h-4 w-4" />
+						) : (
+							<ChevronRight className="h-4 w-4" />
+						)}
+					</Button>
+				),
+			},
+			{
 				accessorKey: "employee_id",
 				header: ({ column }) => (
 					<Button
@@ -349,12 +382,18 @@ export function UserList({
 
 		if (showPhone) {
 			cols.push({
-				accessorKey: "phone",
-				header: "Phone",
+				id: "phone_action",
+				header: "Phones",
 				cell: ({ row }) => (
-					<div className="text-muted-foreground font-mono flex">
-						{row.getValue("phone") || "—"}
-					</div>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-8 gap-2 font-mono text-xs"
+						onClick={() => row.toggleExpanded()}
+					>
+						<Phone className="h-3 w-3" />
+						View
+					</Button>
 				),
 			});
 		}
@@ -572,6 +611,11 @@ export function UserList({
 					columns={columns}
 					data={users}
 					refreshing={loading}
+					renderSubRow={(row) => (
+						<UserPhonesRow
+							employeeId={(row.original as any).employee_id}
+						/>
+					)}
 					{...(true && {
 						serverPagination: {
 							pageIndex,

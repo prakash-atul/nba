@@ -38,7 +38,8 @@ export interface User {
 	email: string;
 	role: string;
 	designation: string | null;
-	phone: string | null;
+        phones?: string[];
+        phone?: string | null;
 	department_id: number | null;
 	department_name?: string;
 	department_code?: string;
@@ -220,7 +221,7 @@ export interface Student {
 	batch_year: number;
 	student_status: string;
 	email: string | null;
-	phone: string | null;
+	phones: string[];
 	department_name: string;
 	department_code: string;
 
@@ -237,7 +238,8 @@ export interface EnrolledStudent extends Student {
 export interface UpdateStudentRequest {
 	student_name?: string;
 	email?: string | null;
-	phone?: string | null;
+	phones?: string[];
+        phone?: string | null;
 	student_status?: string;
 	batch_year?: number;
 }
@@ -339,7 +341,7 @@ export interface CreateUserRequest {
 	password: string;
 	role: "admin" | "faculty" | "hod" | "staff" | "dean";
 	designation?: string | null;
-	phone?: string | null;
+	phones: string[];
 	department_id?: number | null;
 	school_id?: number | null;
 }
@@ -433,7 +435,8 @@ export interface DepartmentFaculty {
 	username: string;
 	email: string;
 	designation: string | null;
-	phone: string | null;
+        phones?: string[];
+        phone?: string | null;
 	role: string;
 	department_id: number;
 	is_hod?: boolean;
@@ -473,6 +476,8 @@ export interface HODHistoryRecord {
 	username: string;
 	email: string;
 	designation: string | null;
+        phones?: string[];
+        phone?: string | null;
 	start_date: string;
 	end_date: string | null;
 	is_current: number;
@@ -488,7 +493,8 @@ export interface HODCreateUserRequest {
 	password: string;
 	role: "faculty" | "staff";
 	designation: string | null;
-	phone: string | null;
+        phones?: string[];
+        phone?: string | null;
 }
 
 export interface HODUpdateUserRequest {
@@ -497,7 +503,8 @@ export interface HODUpdateUserRequest {
 	password?: string;
 	role?: "faculty" | "staff";
 	designation?: string | null;
-	phone?: string | null;
+	phones?: string[];
+        phone?: string | null;
 }
 
 export interface AdminUpdateUserRequest {
@@ -635,7 +642,9 @@ export interface DeanUser {
 	username: string;
 	email: string;
 	designation: string | null;
-	phone: string | null;
+        phones?: string[];
+        phone?: string | null;
+
 	role: string;
 	department_id: number | null;
 	department_name: string | null;
@@ -676,7 +685,7 @@ export interface DeanStudent {
 	batch_year: number | null;
 	student_status: string;
 	email: string | null;
-	phone: string | null;
+	phones: string[];
 }
 
 export interface DeanTest {
