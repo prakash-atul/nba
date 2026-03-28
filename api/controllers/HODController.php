@@ -513,7 +513,9 @@ class HODController
                     $input['course_code'],
                     $input['name'],
                     intval($input['credit']),
-                    $departmentId
+                    $departmentId,
+                    $input['course_type'] ?? 'Theory',
+                    $input['course_level'] ?? 'Undergraduate'
                 );
                 $this->courseRepository->save($course);
             } else {
@@ -630,10 +632,12 @@ class HODController
             }
             if (isset($input['name'])) { $course->setCourseName($input['name']); $templateChanged = true; }
             if (isset($input['credit'])) { $course->setCredit(intval($input['credit'])); $templateChanged = true; }
-            
-            if ($templateChanged) {
-                $this->courseRepository->save($course);
-            }
+              if (isset($input['course_type'])) { $course->setCourseType($input['course_type']); $templateChanged = true; }
+              if (isset($input['course_level'])) { $course->setCourseLevel($input['course_level']); $templateChanged = true; }
+
+              if ($templateChanged) {
+                  $this->courseRepository->save($course);
+              }
 
             // 4. Update Offering Fields
             if (isset($input['year'])) $offering->setYear(intval($input['year']));

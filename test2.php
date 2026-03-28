@@ -1,0 +1,1 @@
+<?php require "api/config/DatabaseConfig.php"; $db = (new DatabaseConfig())->getConnection(); $stmt = $db->query("SELECT * FROM courses ORDER BY course_id DESC LIMIT 1"); print_r($stmt->fetch(PDO::FETCH_ASSOC));

@@ -36,7 +36,7 @@ export function CreateBaseCourseDialog({
 		course_name: "",
 		credit: "3",
 		course_type: "Theory",
-		course_level: "UG",
+		course_level: "Undergraduate",
 		is_active: true,
 	});
 
@@ -59,7 +59,7 @@ export function CreateBaseCourseDialog({
 			course_name: "",
 			credit: "3",
 			course_type: "Theory",
-			course_level: "UG",
+			course_level: "Undergraduate",
 			is_active: true,
 		});
 		onOpenChange(false);
@@ -179,10 +179,9 @@ export function CreateBaseCourseDialog({
 								</SelectTrigger>
 								<SelectContent>
 									{[
-										"UG",
-										"PG",
+										"Undergraduate",
+										"Postgraduate",
 										"UG & PG",
-										"PHD",
 									].map((l) => (
 										<SelectItem key={l} value={l}>
 											{l}

@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { CreateBaseCourseDialog } from "./CreateBaseCourseDialog";
 import { DeleteCourseDialog } from "./DeleteCourseDialog";
-import { EditCourseDialog } from "./EditCourseDialog";
+import { EditBaseCourseDialog } from "./EditBaseCourseDialog";
 
 export interface BaseCourseListProps {
 	fetchFn?: (
@@ -448,16 +448,9 @@ export function BaseCourseList({
 					)}
 
 					{permissions.canEdit && editingCourse && (
-						<EditCourseDialog
+						<EditBaseCourseDialog
 							open={!!editingCourse}
-							course={
-								{
-									...editingCourse,
-									course_id: editingCourse.course_id,
-									course_code: editingCourse.course_code,
-									course_name: editingCourse.course_name,
-								} as any
-							}
+							course={editingCourse}
 							onOpenChange={(open) =>
 								!open && setEditingCourse(null)
 							}

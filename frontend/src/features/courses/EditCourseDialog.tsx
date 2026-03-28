@@ -39,6 +39,8 @@ export function EditCourseDialog({
 		course_code: course?.course_code || "",
 		course_name: course?.course_name || "",
 		credit: (course?.credit || 3).toString(),
+		course_type: course?.course_type || "Theory",
+		course_level: course?.course_level || "Undergraduate",
 		year: (course?.year || new Date().getFullYear()).toString(),
 		semester: course?.semester || "Autumn",
 		faculty_id: (course?.faculty_id || "").toString(),
@@ -72,6 +74,8 @@ export function EditCourseDialog({
 				course_code: course.course_code || "",
 				course_name: course.course_name || "",
 				credit: (course.credit || 3).toString(),
+				course_type: course.course_type || "Theory",
+				course_level: course.course_level || "Undergraduate",
 				year: (course.year || new Date().getFullYear()).toString(),
 				semester: course.semester || "Autumn",
 				faculty_id: (course.faculty_id || "").toString(),
@@ -85,6 +89,8 @@ export function EditCourseDialog({
 				course_code: formData.course_code,
 				name: formData.course_name,
 				credit: parseInt(formData.credit),
+				course_type: formData.course_type,
+				course_level: formData.course_level,
 				year: parseInt(formData.year),
 				semester: formData.semester,
 				faculty_id: parseInt(formData.faculty_id),
@@ -160,6 +166,66 @@ export function EditCourseDialog({
 							disabled={isLoading}
 							placeholder="e.g., Biochemistry"
 						/>
+					</div>
+
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-1.5">
+							<Label>Course Type</Label>
+							<Select
+								value={formData.course_type}
+								onValueChange={(value) =>
+									setFormData((f) => ({
+										...f,
+										course_type: value,
+									}))
+								}
+								disabled={isLoading}
+							>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{[
+										"Theory",
+										"Lab",
+										"Project",
+										"Seminar",
+									].map((t) => (
+										<SelectItem key={t} value={t}>
+											{t}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="space-y-1.5">
+							<Label>Course Level</Label>
+							<Select
+								value={formData.course_level}
+								onValueChange={(value) =>
+									setFormData((f) => ({
+										...f,
+										course_level: value,
+									}))
+								}
+								disabled={isLoading}
+							>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{[
+										"Undergraduate",
+										"Postgraduate",
+										"UG & PG",
+									].map((l) => (
+										<SelectItem key={l} value={l}>
+											{l}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
 					</div>
 
 					<div className="grid grid-cols-3 gap-4">
