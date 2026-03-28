@@ -32,6 +32,7 @@ interface BulkMarksTableProps {
 		questionId: string,
 		value: string,
 	) => void;
+	validateMarks?: boolean;
 }
 
 export function BulkMarksTable({
@@ -40,6 +41,7 @@ export function BulkMarksTable({
 	marks,
 	dirtyRows,
 	onMarkChange,
+	validateMarks = true,
 }: BulkMarksTableProps) {
 	const rowTotal = (rollno: string) =>
 		questions.reduce((sum, q) => {
@@ -47,13 +49,16 @@ export function BulkMarksTable({
 			return isNaN(v) ? sum : sum + v;
 		}, 0);
 
-	const rowHasInvalid = (rollno: string) =>
-		questions.some((q) => {
+	const rowHasInvalid = (rollno: string) => {
+		if (!validateMarks) return false;
+		return questions.some((q) => {
 			const v = parseFloat(marks[rollno]?.[q.question_identifier] || "");
 			return !isNaN(v) && v > q.max_marks;
 		});
+	};
 
 	const isCellInvalid = (rollno: string, q: QuestionResponse) => {
+		if (!validateMarks) return false;
 		const v = parseFloat(marks[rollno]?.[q.question_identifier] || "");
 		return !isNaN(v) && v > q.max_marks;
 	};

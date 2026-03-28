@@ -12,6 +12,8 @@ import { MarksEntryHeader } from "./MarksEntryHeader";
 import { TestInfoCard } from "./TestInfoCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
@@ -65,6 +67,7 @@ export function MarksEntryByCO({
 	const [submitting, setSubmitting] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
+	const [validateMarks, setValidateMarks] = useState(true);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const ITEMS_PER_PAGE = 10;
 
@@ -148,6 +151,7 @@ export function MarksEntryByCO({
 	};
 
 	const isCellInvalid = (co: COKey, value: string): boolean => {
+		if (!validateMarks) return false;
 		if (value.trim() === "") return false;
 		const num = parseFloat(value);
 		if (isNaN(num)) return true;
@@ -598,6 +602,19 @@ export function MarksEntryByCO({
 				<div className="flex flex-col h-full">
 					{/* Sub-toolbar */}
 					<div className="shrink-0 border-b bg-background px-6 py-3 flex items-center justify-end gap-2 border-border">
+						<div className="flex items-center space-x-2 mr-2">
+							<Switch
+								id="validate-marks-co-embedded"
+								checked={validateMarks}
+								onCheckedChange={setValidateMarks}
+							/>
+							<Label
+								htmlFor="validate-marks-co-embedded"
+								className="whitespace-nowrap"
+							>
+								Validate Marks
+							</Label>
+						</div>
 						<div className="relative">
 							<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
 							<Input
@@ -714,6 +731,19 @@ export function MarksEntryByCO({
 					searchPlaceholder="Search by roll no or name..."
 					extraActions={
 						<>
+							<div className="flex items-center space-x-2 mr-2">
+								<Switch
+									id="validate-marks-co"
+									checked={validateMarks}
+									onCheckedChange={setValidateMarks}
+								/>
+								<Label
+									htmlFor="validate-marks-co"
+									className="whitespace-nowrap"
+								>
+									Validate Marks
+								</Label>
+							</div>
 							<input
 								type="file"
 								ref={fileInputRef}

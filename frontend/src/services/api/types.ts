@@ -38,8 +38,8 @@ export interface User {
 	email: string;
 	role: string;
 	designation: string | null;
-        phones?: string[];
-        phone?: string | null;
+	phones?: string[];
+	phone?: string | null;
 	department_id: number | null;
 	department_name?: string;
 	department_code?: string;
@@ -144,6 +144,7 @@ export interface SaveMarksByQuestionRequest {
 	test_id: number;
 	student_id: string;
 	marks: QuestionMarks[];
+	validate_marks?: boolean;
 }
 
 export interface SaveMarksByCORequest {
@@ -155,6 +156,7 @@ export interface SaveMarksByCORequest {
 	CO4?: number;
 	CO5?: number;
 	CO6?: number;
+	validate_marks?: boolean;
 }
 
 export interface COTotals {
@@ -199,6 +201,7 @@ export interface BulkMarksEntry {
 export interface BulkMarksSaveRequest {
 	test_id: number;
 	marks_entries: BulkMarksEntry[];
+	validate_marks?: boolean;
 }
 
 export interface BulkMarksSaveResponse {
@@ -239,7 +242,7 @@ export interface UpdateStudentRequest {
 	student_name?: string;
 	email?: string | null;
 	phones?: string[];
-        phone?: string | null;
+	phone?: string | null;
 	student_status?: string;
 	batch_year?: number;
 }
@@ -435,8 +438,8 @@ export interface DepartmentFaculty {
 	username: string;
 	email: string;
 	designation: string | null;
-        phones?: string[];
-        phone?: string | null;
+	phones?: string[];
+	phone?: string | null;
 	role: string;
 	department_id: number;
 	is_hod?: boolean;
@@ -476,8 +479,8 @@ export interface HODHistoryRecord {
 	username: string;
 	email: string;
 	designation: string | null;
-        phones?: string[];
-        phone?: string | null;
+	phones?: string[];
+	phone?: string | null;
 	start_date: string;
 	end_date: string | null;
 	is_current: number;
@@ -493,8 +496,8 @@ export interface HODCreateUserRequest {
 	password: string;
 	role: "faculty" | "staff";
 	designation: string | null;
-        phones?: string[];
-        phone?: string | null;
+	phones?: string[];
+	phone?: string | null;
 }
 
 export interface HODUpdateUserRequest {
@@ -504,7 +507,7 @@ export interface HODUpdateUserRequest {
 	role?: "faculty" | "staff";
 	designation?: string | null;
 	phones?: string[];
-        phone?: string | null;
+	phone?: string | null;
 }
 
 export interface AdminUpdateUserRequest {
@@ -642,8 +645,8 @@ export interface DeanUser {
 	username: string;
 	email: string;
 	designation: string | null;
-        phones?: string[];
-        phone?: string | null;
+	phones?: string[];
+	phone?: string | null;
 
 	role: string;
 	department_id: number | null;

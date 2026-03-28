@@ -110,6 +110,7 @@ class MarksController
             $testId = $data['test_id'];
             $studentId = $data['student_id'];
             $marksData = $data['marks'];
+            $validateMarks = isset($data['validate_marks']) ? (bool)$data['validate_marks'] : true;
 
             // Validate test exists
             $test = $this->testRepository->findById($testId);
@@ -153,7 +154,7 @@ class MarksController
                 $question = $questionMap[$identifier];
 
                 // Validate marks <= max_marks
-                if ($marks > $question->getMaxMarks()) {
+                if ($validateMarks && $marks > $question->getMaxMarks()) {
                     $this->sendError(
                         "Marks for question '$identifier' exceed maximum ({$question->getMaxMarks()})",
                         400
@@ -546,6 +547,7 @@ class MarksController
 
             $testId = $data['test_id'];
             $marksEntries = $data['marks_entries'];
+            $validateMarks = isset($data['validate_marks']) ? (bool)$data['validate_marks'] : true;
 
             // Validate test exists
             $test = $this->testRepository->findById($testId);
@@ -652,7 +654,7 @@ class MarksController
                         continue;
                     }
 
-                    if ($marksObtained > $question->getMaxMarks()) {
+                    if ($validateMarks && $marksObtained > $question->getMaxMarks()) {
                         $results['failed'][] = [
                             'index' => $index,
                             'entry' => $entry,
@@ -779,12 +781,13 @@ class MarksController
             }
 
             $marksObtained = $data['marks_obtained'];
+            $validateMarks = isset($data['validate_marks']) ? (bool)$data['validate_marks'] : true;
             if (!is_numeric($marksObtained) || $marksObtained < 0) {
                 $this->sendError("Marks must be a non-negative number", 400);
                 return;
             }
 
-            if ($marksObtained > $question->getMaxMarks()) {
+            if ($validateMarks && $marksObtained > $question->getMaxMarks()) {
                 $this->sendError("Marks obtained ($marksObtained) exceeds maximum marks ({$question->getMaxMarks()})", 400);
                 return;
             }

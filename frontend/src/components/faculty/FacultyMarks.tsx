@@ -23,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
 	Pagination,
 	PaginationContent,
@@ -68,6 +70,7 @@ export function FacultyMarks({ selectedCourse }: FacultyMarksProps) {
 	// ─── Search + pagination ────────────────────────────────────────
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
+	const [validateMarks, setValidateMarks] = useState(true);
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -297,6 +300,7 @@ export function FacultyMarks({ selectedCourse }: FacultyMarksProps) {
 			const result = await apiService.saveBulkMarks({
 				test_id: selectedTest.id,
 				marks_entries: bulkEntries,
+				validate_marks: validateMarks,
 			});
 			if (result.data.failure_count > 0) {
 				toast.warning(
@@ -594,6 +598,19 @@ export function FacultyMarks({ selectedCourse }: FacultyMarksProps) {
 						{/* Right-side actions (by-question only) */}
 						{viewMode === "by-question" && (
 							<div className="flex items-center gap-2">
+								<div className="flex items-center space-x-2 mr-2">
+									<Switch
+										id="validate-marks-question"
+										checked={validateMarks}
+										onCheckedChange={setValidateMarks}
+									/>
+									<Label
+										htmlFor="validate-marks-question"
+										className="whitespace-nowrap flex text-sm items-center h-full"
+									>
+										Validate Marks
+									</Label>
+								</div>
 								<div className="relative">
 									<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
 									<Input
@@ -687,6 +704,7 @@ export function FacultyMarks({ selectedCourse }: FacultyMarksProps) {
 									marks={marks}
 									dirtyRows={dirtyRows}
 									onMarkChange={handleMarkChange}
+									validateMarks={validateMarks}
 								/>
 							)}
 						</div>

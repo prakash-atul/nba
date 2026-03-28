@@ -13,6 +13,8 @@ import { MarksEntryHeader } from "./MarksEntryHeader";
 import { TestInfoCard } from "./TestInfoCard";
 import { BulkMarksTable } from "./BulkMarksTable";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface MarksEntryByQuestionProps {
 	test: Test;
@@ -37,6 +39,7 @@ export function MarksEntryByQuestion({
 	const [loading, setLoading] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [validateMarks, setValidateMarks] = useState(true);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -331,6 +334,7 @@ export function MarksEntryByQuestion({
 			const result = await apiService.saveBulkMarks({
 				test_id: test.id,
 				marks_entries: bulkEntries,
+				validate_marks: validateMarks,
 			});
 
 			if (result.data.failure_count > 0) {
@@ -382,6 +386,19 @@ export function MarksEntryByQuestion({
 				searchPlaceholder="Search by roll no or name..."
 				extraActions={
 					<>
+						<div className="flex items-center space-x-2 mr-2">
+							<Switch
+								id="validate-marks"
+								checked={validateMarks}
+								onCheckedChange={setValidateMarks}
+							/>
+							<Label
+								htmlFor="validate-marks"
+								className="whitespace-nowrap"
+							>
+								Validate Marks
+							</Label>
+						</div>
 						<input
 							type="file"
 							ref={fileInputRef}
@@ -411,6 +428,7 @@ export function MarksEntryByQuestion({
 						marks={marks}
 						dirtyRows={dirtyRows}
 						onMarkChange={handleMarkChange}
+						validateMarks={validateMarks}
 					/>
 				)}
 			</TestInfoCard>
