@@ -223,7 +223,7 @@ export function COAttainmentTable({
 													percentage,
 												)}`}
 											>
-												{level}
+												{level.toFixed(2)}
 											</TableCell>
 										);
 									})}
