@@ -39,7 +39,13 @@ export function FacultyHome() {
 		limit: 100,
 	});
 
-	const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+	const [selectedCourse, setSelectedCourseState] = useState<Course | null>(null);
+	const setSelectedCourse = (course: Course | null) => {
+		setSelectedCourseState(course);
+		if (course) {
+			localStorage.setItem("faculty_last_course", String(course.offering_id || course.course_id || ""));
+		}
+	};
 	const [stats, setStats] = useState<FacultyStats>({
 		totalCourses: 0,
 		totalAssessments: 0,
@@ -54,11 +60,18 @@ export function FacultyHome() {
 
 	useEffect(() => {
 		if (courses.length > 0 && !selectedCourse) {
-			const activeCourse =
-				courses.find((c) => c.is_active !== 0) || courses[0];
+			let activeCourse = courses.find((c) => c.is_active !== 0) || courses[0];
+			const savedCourseId = localStorage.getItem("faculty_last_course");
+			
+			if (savedCourseId) {
+				const foundCourse = courses.find(c => String(c.offering_id || c.course_id) === savedCourseId);
+				if (foundCourse) {
+					activeCourse = foundCourse;
+				}
+			}
 			setSelectedCourse(activeCourse);
 		}
-	}, [courses]);
+	}, [courses, selectedCourse]);
 
 	const loadStats = async () => {
 		setStatsLoading(true);
