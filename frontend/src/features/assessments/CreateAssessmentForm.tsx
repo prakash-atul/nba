@@ -34,13 +34,14 @@ interface CreateAssessmentFormProps {
 	contextStats?: ContextStats | null;
 }
 
-const TEST_TYPES = ["Test-1", "Mid-Term", "Test-2", "End-Term"];
+const TEST_TYPES = ["Test-1", "Mid-Term", "Test-2", "End-Term", "Other"];
 
 const TEST_MARKS: Record<string, number> = {
 	"Test-1": 10,
 	"Mid-Term": 30,
 	"Test-2": 10,
 	"End-Term": 50,
+	Other: 0,
 };
 
 export function CreateAssessmentForm({
@@ -60,10 +61,15 @@ export function CreateAssessmentForm({
 	const marksMatch = fullMarksNum > 0 && totalMarks === fullMarksNum;
 
 	const handleTestTypeChange = (testType: string) => {
-		setName(testType);
-		const fm = TEST_MARKS[testType];
-		setFullMarks(fm.toString());
-		setPassMarks((Math.round(fm * 0.34 * 2) / 2).toString());
+		setName(testType === "Other" ? "" : testType);
+		const fm = TEST_MARKS[testType] || 0;
+		if (testType !== "Other") {
+			setFullMarks(fm.toString());
+			setPassMarks((Math.round(fm * 0.34 * 2) / 2).toString());
+		} else {
+			setFullMarks("");
+			setPassMarks("");
+		}
 	};
 
 	const handleFullMarksChange = (val: string) => {
@@ -348,7 +354,11 @@ export function CreateAssessmentForm({
 												className="w-full justify-between"
 											>
 												<span className="text-sm">
-													{name || "Select type..."}
+													{TEST_TYPES.includes(name)
+														? name
+														: name
+															? "Other"
+															: "Select type..."}
 												</span>
 												<ChevronDown className="w-4 h-4 ml-2 text-muted-foreground" />
 											</Button>
@@ -367,6 +377,28 @@ export function CreateAssessmentForm({
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</div>
+
+								{(!TEST_TYPES.includes(name) ||
+									name === "Other") && (
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="customName"
+											className="text-xs font-semibold"
+										>
+											Custom Assessment Name
+										</Label>
+										<Input
+											id="customName"
+											type="text"
+											value={name === "Other" ? "" : name}
+											onChange={(e) =>
+												setName(e.target.value)
+											}
+											placeholder="e.g. Quiz 1"
+											required
+										/>
+									</div>
+								)}
 
 								<div className="space-y-1.5">
 									<Label
