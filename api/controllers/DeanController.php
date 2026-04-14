@@ -54,6 +54,7 @@ class DeanController
         $userData = $_REQUEST['authenticated_user'];
         
         if (!isset($userData['is_dean']) || $userData['is_dean'] !== true) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('DeanController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
             http_response_code(403);
             echo json_encode([
                 'success' => false,
@@ -116,6 +117,7 @@ class DeanController
                 'data' => $stats
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('DeanController', 'getStats prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -247,6 +249,7 @@ class DeanController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Students retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('DeanController', 'getAllStudents prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
         }
@@ -279,6 +282,7 @@ class DeanController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Tests retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('DeanController', 'getAllTests prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve tests', 'error' => $e->getMessage()]);
         }
@@ -348,6 +352,7 @@ class DeanController
                 'data' => $analytics
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('DeanController', 'getDepartmentAnalytics prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -390,6 +395,7 @@ class DeanController
             // Verify department belongs to Dean's school
             // Assuming Department model has getSchoolId()
             if ($department->getSchoolId() != $schoolId) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('DeanController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,

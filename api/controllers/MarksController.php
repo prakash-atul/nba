@@ -346,6 +346,7 @@ class MarksController
             http_response_code(200);
             echo json_encode($response);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('MarksController', 'getMarks prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -379,12 +380,14 @@ class MarksController
             // Get authenticated user
             $user = isset($_REQUEST['authenticated_user']) ? $_REQUEST['authenticated_user'] : null;
             if (!$user) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('MarksController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 $this->sendError("Unauthorized", 401);
                 return;
             }
 
             // Check if user is faculty/HOD for this course offering
             if (!$this->isOfferingAccessAllowed($user, $test->getOfferingId())) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('MarksController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 $this->sendError("You are not authorized to view marks for this test", 403);
                 return;
             }
@@ -489,6 +492,7 @@ class MarksController
             http_response_code(200);
             echo json_encode($response);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('MarksController', 'getTestMarks prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,

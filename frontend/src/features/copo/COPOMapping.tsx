@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import { debugLogger } from "@/lib/debugLogger";
 import { Button } from "@/components/ui/button";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
@@ -812,6 +813,10 @@ export function COPOMapping({
 	// Replace calculatePOAttainment function with a useMemo that computes all data at once
 	const poComputations = useMemo(() => {
 		if (!attainmentData) return null;
+		debugLogger.debug("COPO", "Starting calculation for tables", {
+			presentStudents: attainmentData.presentStudents,
+			thresholds: attainmentThresholds,
+		});
 
 		const cos = ["CO1", "CO2", "CO3", "CO4", "CO5", "CO6"];
 		const pos = [
@@ -966,6 +971,11 @@ export function COPOMapping({
 			overallPercentageCount > 0
 				? overallPercentageSum / overallPercentageCount
 				: 0;
+
+		debugLogger.info("COPO", "Calculations completed", {
+			overall3Point: data3Point.overall,
+			overallPercentage: dataPercentage.overall,
+		});
 
 		return {
 			data3Point,

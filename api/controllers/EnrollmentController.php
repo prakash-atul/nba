@@ -107,6 +107,7 @@ class EnrollmentController
 
             // Check if the authenticated user is authorized for this offering
             if (!$this->isOfferingAccessAllowed($offeringId, $userId)) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('EnrollmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -223,6 +224,7 @@ class EnrollmentController
 
             // Check if the authenticated user is authorized for this offering
             if (!$this->isOfferingAccessAllowed($offeringId, $userId)) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('EnrollmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -330,6 +332,7 @@ class EnrollmentController
 
             // Check if the authenticated user is authorized for this offering
             if (!$this->isOfferingAccessAllowed($offeringId, $userId)) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('EnrollmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,

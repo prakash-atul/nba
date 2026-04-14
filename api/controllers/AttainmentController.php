@@ -190,6 +190,7 @@ class AttainmentController
 
             echo json_encode($response);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AttainmentController', 'getConfig prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve configuration: ' . $e->getMessage()]);
         }
@@ -305,6 +306,7 @@ class AttainmentController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AttainmentController', 'saveConfig prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to save configuration: ' . $e->getMessage()]);
         }
@@ -342,6 +344,7 @@ class AttainmentController
                 'message' => 'Attainment configuration deleted successfully'
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AttainmentController', 'deleteConfig prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to delete configuration: ' . $e->getMessage()]);
         }

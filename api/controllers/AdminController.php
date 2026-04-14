@@ -46,6 +46,7 @@ class AdminController
 
             // Check if user is admin
             if ($userData['role'] !== 'admin') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AdminController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -69,6 +70,7 @@ class AdminController
                 'data' => $stats
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getStats prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -102,6 +104,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Courses retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllCourses prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve courses', 'error' => $e->getMessage()]);
         }
@@ -131,6 +134,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Departments retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllDepartments prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve departments', 'error' => $e->getMessage()]);
         }
@@ -160,6 +164,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Students retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllStudents prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
         }
@@ -189,6 +194,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Tests retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllTests prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve tests', 'error' => $e->getMessage()]);
         }
@@ -202,6 +208,7 @@ class AdminController
         $userData = $_REQUEST['authenticated_user'];
 
         if ($userData['role'] !== 'admin') {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AdminController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
             http_response_code(403);
             echo json_encode([
                 'success' => false,
@@ -222,6 +229,7 @@ class AdminController
             
             // Start of Selection
             if ($userData['role'] !== 'admin') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AdminController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -259,6 +267,7 @@ class AdminController
                 'data' => $schools
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllSchools prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -349,6 +358,7 @@ class AdminController
                 throw new Exception("Failed to create school");
             }
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'createSchool prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -422,6 +432,7 @@ class AdminController
                 ]);
             }
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'updateSchool prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -479,6 +490,7 @@ class AdminController
                 throw new Exception("Failed to delete school");
             }
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'deleteSchool prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,

@@ -1,4 +1,5 @@
 import { useLocation, useParams, Link } from "react-router-dom";
+import { debugLogger } from "@/lib/debugLogger";
 import { ArrowLeft } from "lucide-react";
 import { COPOMapping } from "@/features/copo/COPOMapping";
 
@@ -13,7 +14,14 @@ export function HODCourseCOPO() {
 		location.state?.item ||
 		location.state?.offering;
 
+	debugLogger.debug("HODCourseCOPO", "Rendering COPO Mapping", {
+		courseId,
+		hasState: !!location.state,
+		courseData,
+	});
+
 	if (!courseId) {
+		debugLogger.warn("HODCourseCOPO", "Invalid Course ID provided in URL");
 		return <div className="p-8">Invalid Course ID</div>;
 	}
 

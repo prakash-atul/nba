@@ -91,6 +91,7 @@ class AssessmentController
 
             // Faculty can access their courses (HODs/Deans are faculty with role check)
             if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -115,6 +116,7 @@ class AssessmentController
                 'data' => $offerings // Note: repositories already return processed arrays from findByFacultyId
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AssessmentController', 'getFacultyCourses prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -133,6 +135,7 @@ class AssessmentController
             $userData = $_REQUEST['authenticated_user'];
 
             if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -177,6 +180,7 @@ class AssessmentController
             // Verify access (faculty assignment or HOD department ownership)
             $access = $this->checkOfferingAccess($userData, $data['course_id']);
             if (!$access['allowed']) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -290,6 +294,7 @@ class AssessmentController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AssessmentController', 'createAssessment prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -308,6 +313,7 @@ class AssessmentController
             $userData = $_REQUEST['authenticated_user'];
 
             if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -351,7 +357,8 @@ class AssessmentController
 
             // Verify access (faculty assignment or HOD department ownership)
             $access = $this->checkOfferingAccess($userData, $offering->getOfferingId());
-            if (!$access['allowed']) {
+            if ($access['allowed'] === false) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -382,6 +389,7 @@ class AssessmentController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AssessmentController', 'getAssessment prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -400,6 +408,7 @@ class AssessmentController
             $userData = $_REQUEST['authenticated_user'];
 
             if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -492,6 +501,7 @@ class AssessmentController
             }
 
             if (!$accessAllowed) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 if (isset($GLOBALS['fileLogger'])) $GLOBALS['fileLogger']->error('AssessmentController', 'Access denied to course/offering (exhausted all candidates)', ['id' => $id, 'user' => $userData]);
                 http_response_code(403);
                 echo json_encode([

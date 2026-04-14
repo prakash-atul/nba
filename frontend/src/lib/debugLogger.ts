@@ -72,11 +72,23 @@ class DebugLogger {
 		const logMessage = `${icon[level]} [${timestamp}] ${module}: ${message}`;
 
 		if (level === "error") {
-			console.error(`%c${logMessage}`, colors[level], data);
+			if (data !== undefined) {
+				console.error(`%c${logMessage}`, colors[level], data);
+			} else {
+				console.error(`%c${logMessage}`, colors[level]);
+			}
 		} else if (level === "warn") {
-			console.warn(`%c${logMessage}`, colors[level], data);
+			if (data !== undefined) {
+				console.warn(`%c${logMessage}`, colors[level], data);
+			} else {
+				console.warn(`%c${logMessage}`, colors[level]);
+			}
 		} else {
-			console.log(`%c${logMessage}`, colors[level], data);
+			if (data !== undefined) {
+				console.log(`%c${logMessage}`, colors[level], data);
+			} else {
+				console.log(`%c${logMessage}`, colors[level]);
+			}
 		}
 	}
 

@@ -46,7 +46,8 @@ class UserController
             // Attempt authentication
             $result = $this->authService->authenticate($data['employeeIdOrEmail'], $data['password']);
 
-            if (isset($result['error'])) {
+            if ($result['error']) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('UserController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(401);
                 $message = 'Invalid credentials';
                 if ($result['error'] === 'user_not_found') {
@@ -71,6 +72,7 @@ class UserController
                 'data' => $result
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('UserController', 'login prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -97,6 +99,7 @@ class UserController
                 'data' => $userData
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('UserController', 'getProfile prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -200,6 +203,7 @@ class UserController
                 throw new Exception("Failed to update profile");
             }
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('UserController', 'updateProfile prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -227,6 +231,7 @@ class UserController
                 'message' => 'Logout successful'
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('UserController', 'logout prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -259,6 +264,7 @@ class UserController
                 'data' => $department ? $department->toArray() : null
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('UserController', 'getDepartmentByEmployeeId prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -277,6 +283,7 @@ class UserController
             $userData = $_REQUEST['authenticated_user'];
             
             if ($userData['role'] !== 'admin') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('UserController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Access denied. Admin privileges required.']);
                 return;
@@ -298,6 +305,7 @@ class UserController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Users retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('UserController', 'getAllUsers prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve users', 'error' => $e->getMessage()]);
         }
@@ -319,6 +327,7 @@ class UserController
                 'data' => $departments
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('UserController', 'getAllDepartments prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -344,6 +353,7 @@ class UserController
             
             // Check if user is admin
             if ($userData['role'] !== 'admin') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('UserController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 if ($fileLogger) $fileLogger->warn('UserController', 'CREATE USER: Access denied - not admin', [
                     'user_role' => $userData['role']
                 ]);
@@ -494,6 +504,7 @@ class UserController
 
             // Check if user is admin
             if ($userData['role'] !== 'admin') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('UserController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 if ($fileLogger) $fileLogger->warn('UserController', 'UPDATE USER: Access denied - not admin', [
                     'user_role' => $userData['role']
                 ]);

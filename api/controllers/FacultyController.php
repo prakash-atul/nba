@@ -46,6 +46,7 @@ class FacultyController
             // Validate user is logged in
             $userData = $_REQUEST['authenticated_user'] ?? null;
             if (!$userData || ($userData['role'] !== 'faculty' && $userData['role'] !== 'admin' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean')) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('FacultyController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
                 return;
@@ -80,6 +81,7 @@ class FacultyController
                 ]
             ]);
         } catch (\Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getLogs prompt', ['error' => $e->getMessage()]); }
             error_log("Error in FacultyController@getLogs: " . $e->getMessage());
             http_response_code(500);
             header("Content-Type: application/json");
@@ -158,6 +160,7 @@ class FacultyController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getStats prompt', ['error' => $e->getMessage()]); }
             error_log("Error getting faculty stats: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -216,6 +219,7 @@ class FacultyController
             
             echo json_encode(['success' => true, 'data' => $students]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getEnrolledStudents prompt', ['error' => $e->getMessage()]); }
             error_log("Error getting enrolled students: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -243,6 +247,7 @@ class FacultyController
                 $params = array_merge([$rollNo], $offeringIds);
                 $stmt->execute($params);
                 if ($stmt->fetchColumn() == 0) {
+                    if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('FacultyController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                     http_response_code(403);
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'message' => 'Student not found in your courses']);
@@ -294,6 +299,7 @@ class FacultyController
             }
             echo json_encode(['success' => true, 'message' => 'Student updated successfully']);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'updateStudent prompt', ['error' => $e->getMessage()]); }
             error_log("Error updating student: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -348,6 +354,7 @@ class FacultyController
                 'message' => "Student removed from $deleted course enrollment(s)"
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'removeStudentFromCourses prompt', ['error' => $e->getMessage()]); }
             error_log("Error removing student from courses: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -376,6 +383,7 @@ class FacultyController
             $test = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$test) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('FacultyController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -421,6 +429,7 @@ class FacultyController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'deleteTest prompt', ['error' => $e->getMessage()]); }
             error_log("Error deleting test: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -462,6 +471,7 @@ class FacultyController
                 'data' => $averages,
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getOfferingTestAverages prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve test averages', 'error' => $e->getMessage()]);
         }

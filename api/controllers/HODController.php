@@ -46,6 +46,9 @@ class HODController
         $userData = $_REQUEST['authenticated_user'];
         
         if (!isset($userData['role']) || $userData['role'] !== 'hod') {
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->warn('HODController', 'Non-HOD access attempt', ['user' => $userData]);
+            }
             http_response_code(403);
             echo json_encode([
                 'success' => false,
@@ -82,6 +85,9 @@ class HODController
                 'data' => $stats
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->error('HODController', 'Failed to retrieve stats', ['error' => $e->getMessage(), 'user' => $_REQUEST['authenticated_user']]);
+            }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -127,6 +133,9 @@ class HODController
                 ]
             ]);
         } catch (\Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->error('HODController', 'Error in getLogs', ['error' => $e->getMessage()]);
+            }
             error_log("Error in HODController@getLogs: " . $e->getMessage());
             http_response_code(500);
             header("Content-Type: application/json");
