@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout";
 import {
 	CourseList,
@@ -14,6 +14,7 @@ const currentYear = new Date().getFullYear();
 const currentSemester = new Date().getMonth() < 6 ? "Spring" : "Autumn";
 
 export function HODCourses() {
+	const navigate = useNavigate();
 	const { sidebarOpen, setSidebarOpen } = useOutletContext<{
 		sidebarOpen: boolean;
 		setSidebarOpen: (open: boolean) => void;
@@ -87,6 +88,14 @@ export function HODCourses() {
 							onCourseDelete={async (courseId) => {
 								await hodApi.deleteCourse(courseId);
 							}}
+							onViewCOPO={(course) =>
+								navigate(
+									`/hod/courses/${course.course_id}/copo`,
+									{
+										state: { courseData: course },
+									},
+								)
+							}
 							showYear={true}
 							showSemester={true}
 						/>
@@ -112,6 +121,14 @@ export function HODCourses() {
 							onCourseDelete={async (courseId) => {
 								await hodApi.deleteCourse(courseId);
 							}}
+							onViewCOPO={(course) =>
+								navigate(
+									`/hod/courses/${course.course_id}/copo`,
+									{
+										state: { courseData: course },
+									},
+								)
+							}
 							availableFilters={["year", "semester", "status"]}
 							showYear={true}
 							showSemester={true}

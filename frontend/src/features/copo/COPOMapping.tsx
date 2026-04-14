@@ -34,6 +34,7 @@ interface COPOMappingProps {
 	departmentName: string;
 	year: number;
 	semester: string;
+	readOnly?: boolean;
 }
 
 export function COPOMapping({
@@ -44,6 +45,7 @@ export function COPOMapping({
 	departmentName,
 	year,
 	semester,
+	readOnly = false,
 }: COPOMappingProps) {
 	const [loading, setLoading] = useState(true);
 	const [studentsData, setStudentsData] = useState<StudentMarks[]>([]);
@@ -995,41 +997,45 @@ export function COPOMapping({
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
-					<input
-						type="file"
-						ref={fileInputRef}
-						className="hidden"
-						accept=".csv"
-						onChange={handleFileUpload}
-					/>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => fileInputRef.current?.click()}
-						className="gap-2"
-					>
-						<Upload className="h-4 w-4" />
-						Import Matrix
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={saveMatrix}
-						disabled={saving}
-						className="gap-2"
-					>
-						<Save className="h-4 w-4" />
-						{saving ? "Saving..." : "Save Matrix"}
-					</Button>
-					<Button
-						onClick={() => setShowSettings(!showSettings)}
-						variant="outline"
-						size="sm"
-						className="flex items-center gap-2"
-					>
-						<Settings className="h-4 w-4" />
-						Attainment Settings
-					</Button>
+					{!readOnly && (
+						<>
+							<input
+								type="file"
+								ref={fileInputRef}
+								className="hidden"
+								accept=".csv"
+								onChange={handleFileUpload}
+							/>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => fileInputRef.current?.click()}
+								className="gap-2"
+							>
+								<Upload className="h-4 w-4" />
+								Import Matrix
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={saveMatrix}
+								disabled={saving}
+								className="gap-2"
+							>
+								<Save className="h-4 w-4" />
+								{saving ? "Saving..." : "Save Matrix"}
+							</Button>
+							<Button
+								onClick={() => setShowSettings(!showSettings)}
+								variant="outline"
+								size="sm"
+								className="flex items-center gap-2"
+							>
+								<Settings className="h-4 w-4" />
+								Attainment Settings
+							</Button>
+						</>
+					)}
 					<Button
 						onClick={handleExportAttainment}
 						variant="ghost"
@@ -1096,6 +1102,7 @@ export function COPOMapping({
 			{/* CO-PO-PSO Matrix Table */}
 			<COPOMatrixTable
 				copoMatrix={copoMatrix}
+				readOnly={readOnly}
 				courseInfo={{
 					university_name: "TEZPUR UNIVERSITY",
 					faculty_name: facultyName,

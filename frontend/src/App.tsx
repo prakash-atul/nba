@@ -13,6 +13,7 @@ import { HODHome } from "./pages/hod/HODHome";
 import { HODFaculty } from "./pages/hod/HODFaculty";
 import { HODStudents } from "./pages/hod/HODStudents";
 import { HODCourses } from "./pages/hod/HODCourses";
+import { HODCourseCOPO } from "./pages/hod/HODCourseCOPO";
 import { HODLogs } from "./pages/hod/HODLogs";
 import { FacultyHome } from "./pages/faculty/FacultyHome";
 import { FacultyAssessments } from "./pages/faculty/FacultyAssessments";
@@ -64,6 +65,10 @@ function App() {
 					<Route path="/hod/faculty" element={<HODFaculty />} />
 					<Route path="/hod/students" element={<HODStudents />} />
 					<Route path="/hod/courses" element={<HODCourses />} />
+					<Route
+						path="/hod/courses/:id/copo"
+						element={<HODCourseCOPO />}
+					/>
 					<Route path="/hod/logs" element={<HODLogs />} />
 					<Route path="/faculty" element={<FacultyHome />} />
 					<Route path="/faculty/logs" element={<FacultyLogs />} />

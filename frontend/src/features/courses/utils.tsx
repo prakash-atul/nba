@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpDown, Pencil, Trash2, Target } from "lucide-react";
 import type { AdminCourse } from "@/services/api";
 import type { VariantProps } from "class-variance-authority";
 import { badgeVariants } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ export interface CourseListColumnConfig {
 	canEdit?: boolean;
 	canDelete?: boolean;
 	expandable?: boolean;
+	canViewCOPO?: boolean;
 }
 
 /**
@@ -64,6 +65,7 @@ export function createCourseColumns(
 	config: CourseListColumnConfig,
 	onEdit?: (course: AdminCourse) => void,
 	onDelete?: (courseId: number | undefined) => void,
+	onViewCOPO?: (course: AdminCourse) => void,
 ): ColumnDef<AdminCourse>[] {
 	const columns: ColumnDef<AdminCourse>[] = [];
 
@@ -267,12 +269,23 @@ export function createCourseColumns(
 		});
 	}
 
-	if (config.canEdit || config.canDelete) {
+	if (config.canEdit || config.canDelete || config.canViewCOPO) {
 		columns.push({
 			id: "actions",
 			header: "Actions",
 			cell: ({ row }) => (
 				<div className="flex gap-2">
+					{config.canViewCOPO && onViewCOPO && (
+						<Button
+							variant="outline"
+							size="icon"
+							title="View CO-PO Mapping"
+							className="h-8 w-8 text-blue-600 hover:text-blue-700"
+							onClick={() => onViewCOPO(row.original)}
+						>
+							<Target className="h-4 w-4" />
+						</Button>
+					)}
 					{config.canEdit && onEdit && (
 						<Button
 							variant="outline"
@@ -283,7 +296,16 @@ export function createCourseColumns(
 							<Pencil className="h-4 w-4" />
 						</Button>
 					)}
-					{config.canDelete && onDelete && (<Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => onDelete(row.original.course_id)}><Trash2 className="h-4 w-4" /></Button>)}
+					{config.canDelete && onDelete && (
+						<Button
+							variant="destructive"
+							size="icon"
+							className="h-8 w-8"
+							onClick={() => onDelete(row.original.course_id)}
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
+					)}
 				</div>
 			),
 		});
@@ -307,4 +329,3 @@ export function createSortableHeader(label: string) {
 		</Button>
 	);
 }
-

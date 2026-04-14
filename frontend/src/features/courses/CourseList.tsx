@@ -38,6 +38,7 @@ export interface CourseListProps {
 		canCreate?: boolean;
 		canViewDepartment?: boolean;
 		allowDepartmentFilter?: boolean;
+		canViewCOPO?: boolean;
 	};
 
 	// UI customization
@@ -71,6 +72,7 @@ export interface CourseListProps {
 	onCourseDelete?: (courseId: number) => Promise<void>;
 	onCourseCreate?: (data: any) => Promise<void>;
 	onRefresh?: () => void;
+	onViewCOPO?: (course: AdminCourse) => void;
 
 	department_id?: number | null;
 }
@@ -101,6 +103,7 @@ export function CourseList({
 	onCourseDelete,
 	onCourseCreate,
 	onRefresh,
+	onViewCOPO,
 	department_id,
 }: CourseListProps) {
 	// Dialog state
@@ -155,9 +158,11 @@ export function CourseList({
 			const matchesSemester =
 				semesterFilter === "all" ||
 				(semesterFilter === "Autumn" &&
-					(String(course.semester).toLowerCase() === "autumn" || Number(course.semester) % 2 === 1)) ||
+					(String(course.semester).toLowerCase() === "autumn" ||
+						Number(course.semester) % 2 === 1)) ||
 				(semesterFilter === "Spring" &&
-					(String(course.semester).toLowerCase() === "spring" || Number(course.semester) % 2 === 0));
+					(String(course.semester).toLowerCase() === "spring" ||
+						Number(course.semester) % 2 === 0));
 			const matchesSearch =
 				!search ||
 				course.course_code
@@ -218,6 +223,7 @@ export function CourseList({
 		showAverageScore,
 		canEdit: permissions.canEdit,
 		canDelete: permissions.canDelete,
+		canViewCOPO: permissions.canViewCOPO || !!onViewCOPO,
 		expandable,
 	};
 
@@ -287,8 +293,9 @@ export function CourseList({
 					);
 					if (course) setDeleteTarget(course);
 				},
+				onViewCOPO,
 			),
-		[courses, columnConfig],
+		[courses, columnConfig, onViewCOPO],
 	);
 
 	if (error) {
@@ -500,4 +507,3 @@ export function CourseList({
 		</div>
 	);
 }
-

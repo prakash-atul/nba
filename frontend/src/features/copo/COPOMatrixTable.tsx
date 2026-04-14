@@ -32,6 +32,7 @@ interface COPOMatrixTableProps {
 	getLevelColor: (level: number) => string;
 	attainmentThresholds: { id: number; percentage: number }[];
 	coMaxMarks?: Record<string, number>; // Total max marks per CO
+	readOnly?: boolean;
 }
 
 export function COPOMatrixTable({
@@ -43,6 +44,7 @@ export function COPOMatrixTable({
 	getLevelColor,
 	attainmentThresholds,
 	coMaxMarks,
+	readOnly = false,
 }: COPOMatrixTableProps) {
 	// Helper to check if a CO is assessed
 	const isCOAssessed = (co: string): boolean => {
@@ -187,6 +189,7 @@ export function COPOMatrixTable({
 														max={
 															attainmentThresholds.length
 														}
+														disabled={readOnly}
 														value={
 															copoMatrix[
 																co as keyof COPOMatrixState
@@ -222,6 +225,7 @@ export function COPOMatrixTable({
 															max={
 																attainmentThresholds.length
 															}
+															disabled={readOnly}
 															value={
 																copoMatrix[
 																	co as keyof COPOMatrixState
