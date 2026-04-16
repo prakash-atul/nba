@@ -17,7 +17,18 @@ import {
 	useReactTable,
 	type Table as TableType,
 } from "@tanstack/react-table";
-import { ChevronDown, RefreshCw, X, Search, Loader2 } from "lucide-react";
+import {
+	ChevronDown,
+	RefreshCw,
+	X,
+	Search,
+	Loader2,
+	ChevronLeft,
+	ChevronRight,
+	ChevronsLeft,
+	ChevronsRight,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import {
 	Table,
@@ -106,6 +117,7 @@ export function DataTable<TData, TValue>({
 		// client-side (its default pageSize=10 would truncate server pages).
 		manualPagination: isServerMode,
 		enableRowSelection: true,
+		getRowCanExpand: () => true,
 		onRowSelectionChange: setRowSelection,
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
@@ -132,8 +144,8 @@ export function DataTable<TData, TValue>({
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center justify-between">
-				<div className="flex flex-1 items-center space-x-2">
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex flex-1 flex-wrap items-center gap-2">
 					{/* Server-side search input */}
 					{isServerMode && (
 						<div className="relative">
@@ -177,7 +189,7 @@ export function DataTable<TData, TValue>({
 						<Button
 							variant="ghost"
 							onClick={() => table.resetColumnFilters()}
-							className="h-9 px-2 lg:px-3"
+							className="h-9 px-2 lg:px-3 shrink-0"
 						>
 							Reset
 							<X className="ml-2 h-4 w-4" />
@@ -186,7 +198,7 @@ export function DataTable<TData, TValue>({
 				</div>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" className="ml-auto">
+						<Button variant="outline" className="ml-auto shrink-0">
 							{refreshing && (
 								<RefreshCw className="mr-2 h-4 w-4 animate-spin" />
 							)}
@@ -274,18 +286,57 @@ export function DataTable<TData, TValue>({
 											</TableCell>
 										))}
 									</TableRow>
-									{row.getIsExpanded() && renderSubRow && (
-										<TableRow className="bg-muted/30 hover:bg-muted/40">
-											<TableCell
-												colSpan={
-													row.getVisibleCells().length
-												}
-												className="p-0"
-											>
-												{renderSubRow(row)}
-											</TableCell>
-										</TableRow>
-									)}
+									<AnimatePresence initial={false}>
+										{row.getIsExpanded() &&
+											renderSubRow && (
+												<motion.tr
+													key={`sub-${row.id}`}
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													exit={{ opacity: 0 }}
+													transition={{
+														duration: 0.2,
+														ease: "easeInOut",
+													}}
+													data-slot="table-row"
+													className="bg-muted/10 hover:bg-muted/20 data-[state=selected]:bg-muted transition-colors border-b-0"
+												>
+													<TableCell
+														colSpan={
+															row.getVisibleCells()
+																.length
+														}
+														className="p-0 border-b-0"
+													>
+														<motion.div
+															initial={{
+																height: 0,
+																opacity: 0,
+															}}
+															animate={{
+																height: "auto",
+																opacity: 1,
+															}}
+															exit={{
+																height: 0,
+																opacity: 0,
+															}}
+															transition={{
+																duration: 0.2,
+																ease: "easeInOut",
+															}}
+															className="overflow-hidden"
+														>
+															<div className="p-4 border-t">
+																{renderSubRow(
+																	row,
+																)}
+															</div>
+														</motion.div>
+													</TableCell>
+												</motion.tr>
+											)}
+									</AnimatePresence>
 								</React.Fragment>
 							))
 						) : (
@@ -301,64 +352,160 @@ export function DataTable<TData, TValue>({
 					</TableBody>
 				</Table>
 			</div>
-			<div className="flex items-center justify-end space-x-2 py-4">
+			<div className="flex items-center justify-between px-2 py-4">
 				{isServerMode ? (
 					<>
-						<div className="flex-1 text-sm text-muted-foreground">
-							{serverTotal !== null && serverLimit !== null
-								? `${serverTotal.toLocaleString()} total rows · ${serverLimit} per page`
-								: ""}
+						<div className="flex-1 text-sm text-muted-foreground hidden sm:block">
+							{serverTotal !== null
+								? `${serverTotal.toLocaleString()} row(s) total.`
+								: null}
 						</div>
-						<div className="text-sm text-muted-foreground">
-							Page {serverPage}
-						</div>
-						<div className="space-x-2">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={sp!.onPrev}
-								disabled={!serverCanPrev}
-							>
-								Previous
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={sp!.onNext}
-								disabled={!serverCanNext}
-							>
-								Next
-							</Button>
+						<div className="flex items-center space-x-6 lg:space-x-8">
+							{serverTotal !== null && serverLimit !== null && (
+								<div className="flex items-center space-x-2 hidden sm:flex">
+									<p className="text-sm font-medium text-muted-foreground">
+										Rows per page
+									</p>
+									<div className="text-sm font-medium border rounded px-2 py-1 bg-muted/20">
+										{serverLimit}
+									</div>
+								</div>
+							)}
+							<div className="flex w-[100px] items-center justify-center text-sm font-medium">
+								Page {serverPage}{" "}
+								{serverTotal !== null && serverLimit !== null
+									? `of ${Math.ceil(serverTotal / serverLimit)}`
+									: ""}
+							</div>
+							<div className="flex items-center space-x-2">
+								<Button
+									variant="outline"
+									className="h-8 w-8 p-0"
+									onClick={sp!.onPrev}
+									disabled={!serverCanPrev}
+								>
+									<span className="sr-only">
+										Go to previous page
+									</span>
+									<ChevronLeft className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									className="h-8 w-8 p-0"
+									onClick={sp!.onNext}
+									disabled={!serverCanNext}
+								>
+									<span className="sr-only">
+										Go to next page
+									</span>
+									<ChevronRight className="h-4 w-4" />
+								</Button>
+							</div>
 						</div>
 					</>
 				) : (
 					<>
-						<div className="flex-1 text-sm text-muted-foreground">
-							{table.getFilteredSelectedRowModel().rows.length} of{" "}
-							{table.getFilteredRowModel().rows.length} row(s)
-							selected.
+						<div className="flex-1 text-sm text-muted-foreground hidden sm:block">
+							{table.getFilteredSelectedRowModel().rows.length > 0
+								? `${table.getFilteredSelectedRowModel().rows.length} of ${table.getFilteredRowModel().rows.length} row(s) selected.`
+								: `${table.getFilteredRowModel().rows.length} row(s) total.`}
 						</div>
-						<div className="text-sm text-muted-foreground">
-							Page {table.getState().pagination.pageIndex + 1} of{" "}
-							{table.getPageCount()}
-						</div>
-						<div className="space-x-2">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.previousPage()}
-								disabled={!table.getCanPreviousPage()}
-							>
-								Previous
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.nextPage()}
-								disabled={!table.getCanNextPage()}
-							>
-								Next
-							</Button>
+						<div className="flex items-center space-x-6 lg:space-x-8">
+							<div className="flex items-center space-x-2 hidden sm:flex">
+								<p className="text-sm font-medium text-muted-foreground">
+									Rows per page
+								</p>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											className="h-8 w-[70px] justify-between"
+										>
+											{
+												table.getState().pagination
+													.pageSize
+											}
+											<ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										{[10, 20, 30, 40, 50].map(
+											(pageSize) => (
+												<DropdownMenuCheckboxItem
+													key={pageSize}
+													checked={
+														table.getState()
+															.pagination
+															.pageSize ===
+														pageSize
+													}
+													onCheckedChange={() =>
+														table.setPageSize(
+															pageSize,
+														)
+													}
+												>
+													{pageSize}
+												</DropdownMenuCheckboxItem>
+											),
+										)}
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+							<div className="flex w-[100px] items-center justify-center text-sm font-medium">
+								Page {table.getState().pagination.pageIndex + 1}{" "}
+								of {table.getPageCount() || 1}
+							</div>
+							<div className="flex items-center space-x-2">
+								<Button
+									variant="outline"
+									className="hidden h-8 w-8 p-0 lg:flex"
+									onClick={() => table.setPageIndex(0)}
+									disabled={!table.getCanPreviousPage()}
+								>
+									<span className="sr-only">
+										Go to first page
+									</span>
+									<ChevronsLeft className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									className="h-8 w-8 p-0"
+									onClick={() => table.previousPage()}
+									disabled={!table.getCanPreviousPage()}
+								>
+									<span className="sr-only">
+										Go to previous page
+									</span>
+									<ChevronLeft className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									className="h-8 w-8 p-0"
+									onClick={() => table.nextPage()}
+									disabled={!table.getCanNextPage()}
+								>
+									<span className="sr-only">
+										Go to next page
+									</span>
+									<ChevronRight className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									className="hidden h-8 w-8 p-0 lg:flex"
+									onClick={() =>
+										table.setPageIndex(
+											table.getPageCount() - 1,
+										)
+									}
+									disabled={!table.getCanNextPage()}
+								>
+									<span className="sr-only">
+										Go to last page
+									</span>
+									<ChevronsRight className="h-4 w-4" />
+								</Button>
+							</div>
 						</div>
 					</>
 				)}

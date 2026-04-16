@@ -276,6 +276,7 @@ export async function apiGetPaginated<T>(
 		if (qs) url += "?" + qs;
 	}
 
+	debugLogger.debug("API", `GET paginated request: ${url}`);
 	const response = await fetch(url, {
 		headers: tokenManager.getAuthHeaders(),
 	});
@@ -285,8 +286,15 @@ export async function apiGetPaginated<T>(
 	const data = await response.json();
 
 	if (!response.ok) {
+		debugLogger.error("API", `GET paginated ${endpoint} failed`, {
+			status: response.status,
+			message: data.message,
+		});
 		throw new Error(data.message || "Request failed");
 	}
 
+	debugLogger.debug("API", `GET paginated ${endpoint} - Success`, {
+		data: data.data,
+	});
 	return data as import("./types").PaginatedResponse<T>;
 }

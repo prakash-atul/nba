@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import type {
 	Student,
@@ -7,6 +7,7 @@ import type {
 	UpdateStudentRequest,
 } from "@/services/api";
 import { DataTable } from "@/features/shared/DataTable";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +23,14 @@ import { EditStudentDialog } from "./EditStudentDialog";
 import { DeleteStudentDialog } from "./DeleteStudentDialog";
 import { createStudentColumns, type StudentListColumnConfig } from "./utils";
 import { toast } from "sonner";
+import { coursesApi } from "@/services/api/courses";
+import type { Course } from "@/services/api";
 
 const STATUS_OPTIONS = ["Active", "Inactive", "Graduated", "Dropped"];
+const BATCH_OPTIONS = Array.from(
+	{ length: 10 },
+	(_, i) => new Date().getFullYear() - 4 + i,
+);
 
 export interface StudentListProps {
 	// Data source
@@ -91,13 +98,31 @@ export function StudentList({
 	const [departmentFilter, setDepartmentFilter] = useState(
 		department_id?.toString() || "all",
 	);
-	const [courseFilter, setCourseFilter] = useState("");
+	const [courseFilter, setCourseFilter] = useState("all");
+
+	// Course list for select menu
+	const [courses, setCourses] = useState<Course[]>([]);
+	const [loadingCourses, setLoadingCourses] = useState(false);
+
+	useEffect(() => {
+		if (availableFilters.includes("course")) {
+			setLoadingCourses(true);
+			coursesApi
+				.getCourses()
+				.then((data) => setCourses(data))
+				.catch((err) =>
+					console.error("Failed to load courses for filter", err),
+				)
+				.finally(() => setLoadingCourses(false));
+		}
+	}, [availableFilters]);
 
 	// Data fetching
 	const {
 		data: serverStudents,
 		loading: serverLoading,
 		error,
+		pagination,
 		goNext,
 		goPrev,
 		canPrev,
@@ -240,8 +265,16 @@ export function StudentList({
 									{title}
 								</CardTitle>
 								<p className="text-muted-foreground mt-1">
-									Total: {students.length} student
-									{students.length !== 1 ? "s" : ""}
+									Total:{" "}
+									{paginationMode === "server"
+										? (pagination?.total ?? students.length)
+										: students.length}{" "}
+									student
+									{(paginationMode === "server"
+										? (pagination?.total ?? students.length)
+										: students.length) !== 1
+										? "s"
+										: ""}
 								</p>
 							</div>
 							{onRefresh && (
@@ -257,125 +290,7 @@ export function StudentList({
 					</CardHeader>
 				)}
 
-				<CardContent className="space-y-4">
-					{/* Filters */}
-					<div className="flex gap-4 flex-wrap items-end mt-2">
-						<div className="flex-1 min-w-[200px]">
-							<label className="text-sm font-medium">
-								Search
-							</label>
-							<Input
-								placeholder="Search by name or roll number..."
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-								disabled={isLoading}
-							/>
-						</div>
-
-						{availableFilters.includes("batch") && (
-							<div className="flex-1 min-w-[150px]">
-								<label className="text-sm font-medium">
-									Batch
-								</label>
-								<Input
-									placeholder="Filter by batch year..."
-									value={batchInput}
-									onChange={(e) =>
-										setBatchInput(e.target.value)
-									}
-									disabled={isLoading}
-									type="number"
-								/>
-							</div>
-						)}
-
-						{availableFilters.includes("status") && (
-							<div className="flex-1 min-w-[150px]">
-								<label className="text-sm font-medium">
-									Status
-								</label>
-								<Select
-									value={statusFilter}
-									onValueChange={setStatusFilter}
-									disabled={isLoading}
-								>
-									<SelectTrigger>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="all">
-											All Statuses
-										</SelectItem>
-										{STATUS_OPTIONS.map((s) => (
-											<SelectItem key={s} value={s}>
-												{s}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						)}
-
-						{availableFilters.includes("department") &&
-							permissions.allowDepartmentFilter && (
-								<div className="flex-1 min-w-[150px]">
-									<label className="text-sm font-medium">
-										Department Filter
-									</label>
-									<Input
-										placeholder="Dept ID..."
-										value={departmentFilter}
-										onChange={(e) =>
-											setDepartmentFilter(e.target.value)
-										}
-										disabled={isLoading}
-									/>
-								</div>
-							)}
-
-						{availableFilters.includes("course") && (
-							<div className="flex-1 min-w-[150px]">
-								<label className="text-sm font-medium">
-									Course Filter
-								</label>
-								<Input
-									placeholder="Course Code..."
-									value={courseFilter}
-									onChange={(e) => {
-										setCourseFilter(e.target.value);
-										setFilter(
-											"course_code",
-											e.target.value || undefined,
-										);
-									}}
-									disabled={isLoading}
-								/>
-							</div>
-						)}
-
-						{hasFilters && (
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => {
-									setSearch("");
-									setBatchInput("");
-									setStatusFilter("all");
-									setDepartmentFilter("all");
-									setCourseFilter("");
-									setFilter("department_id", undefined);
-									setFilter("batch_year", undefined);
-									setFilter("student_status", undefined);
-									setFilter("course_code", undefined);
-								}}
-								disabled={isLoading}
-							>
-								<X className="h-4 w-4 mr-1" />
-								Clear
-							</Button>
-						)}
-					</div>
-
+				<CardContent className="p-4 pt-0 md:p-6 md:pt-0">
 					<DataTable
 						columns={columns}
 						data={students}
@@ -388,10 +303,139 @@ export function StudentList({
 								onNext: goNext,
 								onPrev: goPrev,
 								canPrev: canPrev && pageIndex > 0,
-								pagination: null,
+								pagination: pagination,
 							},
 						})}
-					/>
+					>
+						{availableFilters.includes("batch") && (
+							<Select
+								value={batchInput || "all"}
+								onValueChange={(val) => {
+									const actualVal = val === "all" ? "" : val;
+									setBatchInput(actualVal);
+									setFilter(
+										"batch_year",
+										actualVal || undefined,
+									);
+								}}
+								disabled={isLoading}
+							>
+								<SelectTrigger className="h-9 w-[130px]">
+									<SelectValue placeholder="Batch Year" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Batches
+									</SelectItem>
+									{BATCH_OPTIONS.map((y) => (
+										<SelectItem
+											key={y}
+											value={y.toString()}
+										>
+											{y}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+
+						{availableFilters.includes("status") && (
+							<Select
+								value={statusFilter}
+								onValueChange={setStatusFilter}
+								disabled={isLoading}
+							>
+								<SelectTrigger className="h-9 w-[140px]">
+									<SelectValue placeholder="All Status" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Status
+									</SelectItem>
+									{STATUS_OPTIONS.map((s) => (
+										<SelectItem key={s} value={s}>
+											{s}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+
+						{availableFilters.includes("department") &&
+							permissions.allowDepartmentFilter && (
+								<Input
+									placeholder="Dept ID"
+									value={departmentFilter}
+									onChange={(e) =>
+										setDepartmentFilter(e.target.value)
+									}
+									disabled={isLoading}
+									className="h-9 w-[120px]"
+								/>
+							)}
+
+						{availableFilters.includes("course") && (
+							<Select
+								value={courseFilter || "all"}
+								onValueChange={(val) => {
+									const actualVal = val === "all" ? "" : val;
+									setCourseFilter(actualVal);
+									setFilter(
+										"course_code",
+										actualVal || undefined,
+									);
+								}}
+								disabled={isLoading || loadingCourses}
+							>
+								<SelectTrigger className="h-9 w-[180px]">
+									<SelectValue placeholder="Course Code" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Courses
+									</SelectItem>
+									{Array.from(
+										new Map(
+											courses.map((c) => [
+												c.course_id,
+												c,
+											]),
+										).values(),
+									).map((c) => (
+										<SelectItem
+											key={c.course_id}
+											value={c.course_code}
+										>
+											{c.course_code} - {c.course_name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+
+						{hasFilters && (
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-9 px-2 shrink-0"
+								onClick={() => {
+									setSearch("");
+									setBatchInput("");
+									setStatusFilter("all");
+									setDepartmentFilter("");
+									setCourseFilter("");
+									setFilter("department_id", undefined);
+									setFilter("batch_year", undefined);
+									setFilter("student_status", undefined);
+									setFilter("course_code", undefined);
+								}}
+								disabled={isLoading}
+							>
+								Reset
+								<X className="ml-2 h-4 w-4" />
+							</Button>
+						)}
+					</DataTable>
 				</CardContent>
 			</Card>
 

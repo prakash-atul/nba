@@ -229,7 +229,14 @@ class StudentRepository
             $sql = "
                 SELECT s.roll_no, s.student_name, s.department_id,
                        s.batch_year, s.student_status, s.email, s.phone,
-                       d.department_name, d.department_code
+                       d.department_name, d.department_code,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
                 LEFT JOIN departments d ON s.department_id = d.department_id
                 WHERE 1=1
@@ -326,7 +333,14 @@ class StudentRepository
             $sql = "
                 SELECT s.roll_no, s.student_name, s.department_id,
                        s.batch_year, s.student_status, s.email, s.phone,
-                       d.department_name, d.department_code
+                       d.department_name, d.department_code,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
                 JOIN departments d ON s.department_id = d.department_id
                 WHERE d.school_id = ?
@@ -428,7 +442,14 @@ class StudentRepository
         try {
             $sql = "
                 SELECT s.roll_no, s.student_name, s.department_id,
-                       s.batch_year, s.student_status, s.email, s.phone
+                       s.batch_year, s.student_status, s.email, s.phone,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
                 WHERE s.department_id = ?
             ";

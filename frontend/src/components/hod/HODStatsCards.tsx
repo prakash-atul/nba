@@ -1,6 +1,7 @@
 import { StatsGrid, type StatItem } from "@/features/shared";
 import { BookOpen, Users, GraduationCap, ClipboardList } from "lucide-react";
 import type { HODStats } from "@/services/api";
+import { debugLogger } from "@/lib/debugLogger";
 
 interface HODStatsCardsProps {
 	stats: HODStats;
@@ -8,6 +9,7 @@ interface HODStatsCardsProps {
 }
 
 export function HODStatsCards({ stats, isLoading }: HODStatsCardsProps) {
+	debugLogger.info("HODStatsCards", "Rendered", { stats, isLoading });
 	const statItems: StatItem[] = [
 		{
 			label: "Department Courses",

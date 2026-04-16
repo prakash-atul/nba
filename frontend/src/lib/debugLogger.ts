@@ -21,9 +21,9 @@ class DebugLogger {
 
 	constructor() {
 		// Enable debug mode if running in development
-		this.isEnabled = import.meta.env.DEV;
+		this.isEnabled = true; // Forced true for troubleshooting
 		console.log(
-			"🔍 Debug Logger initialized (enabled: " + this.isEnabled + ")",
+			"🔍 Debug Logger initialized (FORCE ENABLED for troubleshooting)",
 		);
 	}
 

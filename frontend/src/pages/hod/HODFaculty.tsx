@@ -2,12 +2,18 @@ import { useOutletContext } from "react-router-dom";
 import { FacultyManagement } from "@/components/hod";
 import { AppHeader } from "@/components/layout";
 import { apiService } from "@/services/api";
+import { debugLogger } from "@/lib/debugLogger";
+import { useEffect } from "react";
 
 export function HODFaculty() {
 	const { sidebarOpen, setSidebarOpen } = useOutletContext<{
 		sidebarOpen: boolean;
 		setSidebarOpen: (open: boolean) => void;
 	}>();
+
+	useEffect(() => {
+		debugLogger.info("HODFaculty", "Component mounted");
+	}, []);
 
 	return (
 		<div className="flex-1 flex flex-col min-w-0 overflow-hidden">

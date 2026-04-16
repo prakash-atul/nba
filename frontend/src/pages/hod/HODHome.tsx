@@ -13,6 +13,7 @@ import { createHODStats } from "@/features/shared/statsFactory";
 import { AppHeader } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Users, GraduationCap, History } from "lucide-react";
+import { debugLogger } from "@/lib/debugLogger";
 
 export function HODHome() {
 	const navigate = useNavigate();
@@ -29,15 +30,18 @@ export function HODHome() {
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
+		debugLogger.info("HODHome", "Component mounted");
 		loadStats();
 	}, []);
 
 	const loadStats = async () => {
+		debugLogger.info("HODHome", "loadStats starting");
 		setIsLoading(true);
 		try {
 			const statsData = await apiService.getHODStats();
 			setStats(statsData);
 		} catch (error) {
+			debugLogger.error("HODHome", "loadStats failed", error);
 			console.error("Failed to load HOD stats:", error);
 			toast.error("Failed to load statistics");
 		} finally {

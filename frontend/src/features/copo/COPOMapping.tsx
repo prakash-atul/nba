@@ -193,6 +193,7 @@ export function COPOMapping({
 
 	const loadMatrix = async () => {
 		try {
+			debugLogger.info("COPOMapping", "loadMatrix called");
 			const mappings = await apiService.getCoPoMatrix(courseId);
 			if (mappings && mappings.length > 0) {
 				const newMatrix = JSON.parse(JSON.stringify(copoMatrix)); // Deep clone
@@ -207,12 +208,18 @@ export function COPOMapping({
 				setCopoMatrix(newMatrix);
 			}
 		} catch (error) {
+			debugLogger.error(
+				"COPOMapping",
+				"Failed to load CO-PO matrix",
+				error,
+			);
 			console.error("Failed to load CO-PO matrix:", error);
 		}
 	};
 
 	const loadAttainmentConfig = async () => {
 		try {
+			debugLogger.info("COPOMapping", "loadAttainmentConfig called");
 			const config = await apiService.getAttainmentConfig(courseId);
 
 			// Update thresholds
@@ -232,6 +239,11 @@ export function COPOMapping({
 				);
 			}
 		} catch (error) {
+			debugLogger.error(
+				"COPOMapping",
+				"Failed to load attainment configuration",
+				error,
+			);
 			console.error("Failed to load attainment configuration:", error);
 			// Keep default values if loading fails
 			toast.info("Using default attainment configuration");
@@ -240,6 +252,7 @@ export function COPOMapping({
 
 	const loadCOPOData = async () => {
 		try {
+			debugLogger.info("COPOMapping", "loadCOPOData called");
 			setLoading(true);
 			const testsData = await apiService.getCourseTests(courseId);
 
@@ -412,6 +425,11 @@ export function COPOMapping({
 
 			setLoading(false);
 		} catch (error) {
+			debugLogger.error(
+				"COPOMapping",
+				"Failed to load CO-PO data",
+				error,
+			);
 			console.error("Failed to load CO-PO data:", error);
 			toast.error("Failed to load CO-PO data");
 			setLoading(false);

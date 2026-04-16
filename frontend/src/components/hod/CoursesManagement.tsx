@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { debugLogger } from "@/lib/debugLogger";
 import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
@@ -82,12 +83,20 @@ function OfferingTestAverages({ offeringId }: { offeringId: number }) {
 	const [error, setError] = useState<string | null>(null);
 
 	const load = useCallback(async () => {
+		debugLogger.info("OfferingTestAverages", "load starting", {
+			offeringId,
+		});
 		setLoading(true);
 		setError(null);
 		try {
 			const res = await hodApi.getOfferingTestAverages(offeringId);
+			debugLogger.info("OfferingTestAverages", "load success", {
+				offeringId,
+				count: res.length,
+			});
 			setAverages(res);
-		} catch {
+		} catch (error) {
+			debugLogger.error("OfferingTestAverages", "load failed", error);
 			setError("Failed to load averages");
 		} finally {
 			setLoading(false);
@@ -95,6 +104,7 @@ function OfferingTestAverages({ offeringId }: { offeringId: number }) {
 	}, [offeringId]);
 
 	useEffect(() => {
+		debugLogger.info("OfferingTestAverages", "Mounted");
 		load();
 	}, [load]);
 
@@ -173,6 +183,10 @@ function OfferingTestAverages({ offeringId }: { offeringId: number }) {
 }
 
 export function CoursesManagement() {
+	useEffect(() => {
+		debugLogger.info("CoursesManagement", "Mounted");
+	}, []);
+
 	// --- Base Courses Tab Data ---
 	const {
 		data: baseCourses,
@@ -211,7 +225,7 @@ export function CoursesManagement() {
 		setSearch: setCurrentSearch,
 	} = usePaginatedData<DepartmentCourse, { year: number; semester: string }>({
 		fetchFn: (params) => hodApi.getDepartmentCourses(params),
-		limit: 20,
+		limit: 10,
 		defaultSort: "c.course_code",
 		initialFilters: { year: currentYear, semester: currentSemester },
 	});
@@ -238,6 +252,33 @@ export function CoursesManagement() {
 		limit: 20,
 		defaultSort: "c.course_code",
 	});
+
+	useEffect(() => {
+		if (baseCourses && baseCourses.length > 0) {
+			debugLogger.info("CoursesManagement", "BaseCourses loaded", {
+				count: baseCourses.length,
+				first: baseCourses[0],
+			});
+		}
+	}, [baseCourses]);
+
+	useEffect(() => {
+		if (currentCourses && currentCourses.length > 0) {
+			debugLogger.info("CoursesManagement", "CurrentCourses loaded", {
+				count: currentCourses.length,
+				first: currentCourses[0],
+			});
+		}
+	}, [currentCourses]);
+
+	useEffect(() => {
+		if (allCourses && allCourses.length > 0) {
+			debugLogger.info("CoursesManagement", "AllCourses loaded", {
+				count: allCourses.length,
+				first: allCourses[0],
+			});
+		}
+	}, [allCourses]);
 
 	const { data: faculty, loading: isLoadingFaculty } =
 		usePaginatedData<DepartmentFaculty>({
@@ -843,6 +884,9 @@ export function CoursesManagement() {
 	];
 
 	const handleCreateCourse = async () => {
+		debugLogger.info("CoursesManagement", "handleCreateCourse starting", {
+			formData,
+		});
 		if (!formData.course_code || !formData.name || !formData.faculty_id) {
 			toast.error("Please fill in all required fields");
 			return;
@@ -857,6 +901,11 @@ export function CoursesManagement() {
 			refreshCurrent();
 			refreshAll();
 		} catch (error) {
+			debugLogger.error(
+				"CoursesManagement",
+				"handleCreateCourse failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -881,6 +930,11 @@ export function CoursesManagement() {
 	};
 
 	const handleUpdateBaseCourse = async () => {
+		debugLogger.info(
+			"CoursesManagement",
+			"handleUpdateBaseCourse starting",
+			{ selectedBaseCourse, editTemplateFormData },
+		);
 		if (!selectedBaseCourse) return;
 		if (
 			!editTemplateFormData.course_code ||
@@ -905,6 +959,11 @@ export function CoursesManagement() {
 				.then(setAllBaseCourses)
 				.catch(console.error);
 		} catch (error) {
+			debugLogger.error(
+				"CoursesManagement",
+				"handleUpdateBaseCourse failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -919,6 +978,11 @@ export function CoursesManagement() {
 		courseId: number,
 		courseName: string,
 	) => {
+		debugLogger.info(
+			"CoursesManagement",
+			"handleDeleteBaseCourse starting",
+			{ courseId, courseName },
+		);
 		try {
 			await hodApi.deleteBaseCourse(courseId);
 			toast.success(`Base course "${courseName}" deleted successfully`);
@@ -928,6 +992,11 @@ export function CoursesManagement() {
 				.then(setAllBaseCourses)
 				.catch(console.error);
 		} catch (error) {
+			debugLogger.error(
+				"CoursesManagement",
+				"handleDeleteBaseCourse failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -936,12 +1005,21 @@ export function CoursesManagement() {
 		}
 	};
 	const handleDeleteCourse = async (courseId: number, courseName: string) => {
+		debugLogger.info("CoursesManagement", "handleDeleteCourse starting", {
+			courseId,
+			courseName,
+		});
 		try {
 			await hodApi.deleteCourse(courseId);
 			toast.success(`Course "${courseName}" deleted successfully`);
 			refreshCurrent();
 			refreshAll();
 		} catch (error) {
+			debugLogger.error(
+				"CoursesManagement",
+				"handleDeleteCourse failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -964,6 +1042,10 @@ export function CoursesManagement() {
 	};
 
 	const handleUpdateCourse = async () => {
+		debugLogger.info("CoursesManagement", "handleUpdateCourse starting", {
+			selectedCourse,
+			editFormData,
+		});
 		if (!selectedCourse) return;
 
 		if (
@@ -987,6 +1069,11 @@ export function CoursesManagement() {
 			refreshCurrent();
 			refreshAll();
 		} catch (error) {
+			debugLogger.error(
+				"CoursesManagement",
+				"handleUpdateCourse failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message

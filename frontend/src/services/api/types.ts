@@ -227,6 +227,7 @@ export interface Student {
 	phones: string[];
 	department_name: string;
 	department_code: string;
+	enrolled_courses?: string; // comma-separated "code: name (year/sem)" entries
 
 	// Legacy support
 	rollno?: string;

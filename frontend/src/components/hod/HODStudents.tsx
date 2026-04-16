@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { hodApi } from "@/services/api/hod";
 import type { Student, UpdateStudentRequest } from "@/services/api";
+import { debugLogger } from "@/lib/debugLogger";
 import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -32,12 +33,18 @@ import {
 	X,
 	Trash2,
 	Plus,
+	ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import { FacultyStudents } from "@/components/faculty/FacultyStudents";
+import { motion, AnimatePresence } from "framer-motion";
 
 const STATUS_OPTIONS = ["Active", "Inactive", "Graduated", "Dropped"];
+const BATCH_OPTIONS = Array.from(
+	{ length: 10 },
+	(_, i) => new Date().getFullYear() - 4 + i,
+);
 
 type StudentFilters = {
 	student_status: string | undefined;
@@ -45,6 +52,10 @@ type StudentFilters = {
 };
 
 export function HODStudents() {
+	useEffect(() => {
+		debugLogger.info("HODStudents", "Mounted");
+	}, []);
+
 	const [activeTab, setActiveTab] = useState("department");
 	// Only mount FacultyStudents once the user first opens that tab
 	const [myCoursesVisited, setMyCoursesVisited] = useState(false);
@@ -71,6 +82,15 @@ export function HODStudents() {
 		fetchFn: hodApi.getDepartmentStudents,
 		limit: 20,
 	});
+
+	useEffect(() => {
+		if (students && students.length > 0) {
+			debugLogger.info("HODStudents", "Data loaded", {
+				count: students.length,
+				first: students[0],
+			});
+		}
+	}, [students]);
 
 	// Batch year debounce — skip first render to avoid triggering an extra fetch
 	const [batchInput, setBatchInput] = useState(
@@ -107,6 +127,10 @@ export function HODStudents() {
 	};
 
 	const handleEditSave = async () => {
+		debugLogger.info("HODStudents", "handleEditSave starting", {
+			editTarget,
+			editForm,
+		});
 		if (!editTarget) return;
 
 		const validPhones = (editForm.phones || []).filter(
@@ -125,12 +149,13 @@ export function HODStudents() {
 			await hodApi.updateStudent(editTarget.roll_no, {
 				...editForm,
 				phones: validPhones,
-								phone: validPhones.length > 0 ? validPhones[0] : null,
+				phone: validPhones.length > 0 ? validPhones[0] : null,
 			});
 			toast.success("Student updated successfully");
 			setEditTarget(null);
 			refresh();
-		} catch {
+		} catch (error) {
+			debugLogger.error("HODStudents", "handleEditSave failed", error);
 			toast.error("Failed to update student");
 		} finally {
 			setEditSaving(false);
@@ -225,7 +250,11 @@ export function HODStudents() {
 				accessorKey: "phones",
 				header: "Phones",
 				cell: ({ row }) => {
-					const phones = row.original.phones?.length ? row.original.phones : (row.original as any).phone ? [(row.original as any).phone] : [];
+					const phones = row.original.phones?.length
+						? row.original.phones
+						: (row.original as any).phone
+							? [(row.original as any).phone]
+							: [];
 					if (!phones || phones.length === 0) {
 						return (
 							<span className="text-sm text-muted-foreground">
@@ -258,6 +287,82 @@ export function HODStudents() {
 				),
 			},
 			{
+				accessorKey: "enrolled_courses",
+				header: "Enrolled In",
+				cell: ({ row }) => {
+					const courses = row.original.enrolled_courses
+						? row.original.enrolled_courses.split(", ")
+						: [];
+					const isExpanded = row.getIsExpanded();
+					const visibleCourses = isExpanded
+						? courses
+						: courses.slice(0, 2);
+					const hasMore = courses.length > 2;
+
+					return (
+						<div className="flex items-start justify-center gap-2 py-1">
+							<div className="flex flex-col items-center justify-center">
+								<AnimatePresence initial={false}>
+									{visibleCourses.length > 0 ? (
+										visibleCourses.map((course, idx) => (
+											<motion.div
+												key={`${course}-${idx}`}
+												initial={{
+													opacity: 0,
+													height: 0,
+													overflow: "hidden",
+												}}
+												animate={{
+													opacity: 1,
+													height: "auto",
+												}}
+												exit={{ opacity: 0, height: 0 }}
+												transition={{
+													duration: 0.2,
+													ease: "easeInOut",
+												}}
+											>
+												<div className="pb-1">
+													<Badge
+														variant="outline"
+														className="px-1.5 py-0 font-normal"
+													>
+														{course}
+													</Badge>
+												</div>
+											</motion.div>
+										))
+									) : (
+										<span className="text-xs text-muted-foreground pb-1">
+											—
+										</span>
+									)}
+								</AnimatePresence>
+							</div>
+							{hasMore && (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-5 w-5 p-0 mt-0.5 group hover:bg-primary/5 hover:text-primary transition-colors shrink-0"
+									onClick={row.getToggleExpandedHandler()}
+									title={
+										isExpanded
+											? "Show less"
+											: `Show ${courses.length - 2} more`
+									}
+								>
+									<ChevronDown
+										className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform duration-200 ${
+											isExpanded ? "rotate-180" : ""
+										}`}
+									/>
+								</Button>
+							)}
+						</div>
+					);
+				},
+			},
+			{
 				id: "actions",
 				header: "Actions",
 				cell: ({ row }) => (
@@ -278,7 +383,7 @@ export function HODStudents() {
 
 	// ── Render ────────────────────────────────────────────────────────────────
 	return (
-		<div className="h-full overflow-y-auto">
+		<div className="h-full">
 			<div className="px-6 pt-4 pb-8 space-y-6">
 				{/* Page header */}
 				<div className="flex items-center gap-4">
@@ -338,14 +443,34 @@ export function HODStudents() {
 									}}
 								>
 									{/* Batch Year */}
-									<Input
-										placeholder="Batch Year"
-										value={batchInput}
-										onChange={(e) =>
-											setBatchInput(e.target.value)
-										}
-										className="h-9 w-[120px]"
-									/>
+									<Select
+										value={batchInput || "all"}
+										onValueChange={(v) => {
+											const val = v === "all" ? "" : v;
+											setBatchInput(val);
+											setFilter(
+												"batch_year",
+												val || undefined,
+											);
+										}}
+									>
+										<SelectTrigger className="h-9 w-[130px]">
+											<SelectValue placeholder="Batch Year" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="all">
+												All Batches
+											</SelectItem>
+											{BATCH_OPTIONS.map((y) => (
+												<SelectItem
+													key={y}
+													value={y.toString()}
+												>
+													{y}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 
 									{/* Status */}
 									<Select
@@ -376,7 +501,7 @@ export function HODStudents() {
 									{hasFilters && (
 										<Button
 											variant="ghost"
-											className="h-9 px-2"
+											className="h-9 px-2 shrink-0"
 											onClick={resetFilters}
 										>
 											Reset

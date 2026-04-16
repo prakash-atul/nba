@@ -1,7 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge, badgeVariants } from "@/components/ui/badge";
-import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpDown, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Student } from "@/services/api";
 import type { VariantProps } from "class-variance-authority";
 
@@ -94,9 +95,29 @@ export function createStudentColumns(
 		columns.push({
 			accessorKey: "phones",
 			header: "Phones",
-			cell: ({ row }) => (
-				<div className="text-sm">{((row.original.phones && row.original.phones.length > 0) || (row.original as any).phone) ? (((row.original.phones?.length ? row.original.phones : [(row.original as any).phone])).map((p, i) => <Badge variant="secondary" key={i} className="mr-1 font-mono">{p}</Badge>)) : "�"}</div>
-			),
+			cell: ({ row }) => {
+				const phones = row.original.phones?.length
+					? row.original.phones
+					: (row.original as any).phone
+						? [(row.original as any).phone]
+						: [];
+				if (!phones || phones.length === 0) {
+					return <div className="text-muted-foreground">—</div>;
+				}
+				return (
+					<div className="flex flex-wrap gap-1">
+						{phones.map((p, i) => (
+							<Badge
+								key={i}
+								variant="secondary"
+								className="font-mono text-xs"
+							>
+								{p}
+							</Badge>
+						))}
+					</div>
+				);
+			},
 		});
 	}
 
@@ -124,27 +145,74 @@ export function createStudentColumns(
 	if (config.showEnrolledCourses) {
 		columns.push({
 			accessorKey: "enrolled_courses",
-			header: "Enrolled Courses",
+			header: "Enrolled In",
 			cell: ({ row }) => {
-				const courses = row.getValue("enrolled_courses") as
-					| { course_code: string }[]
-					| undefined;
+				const enrolled = row.original.enrolled_courses;
+				const courses = enrolled ? enrolled.split(", ") : [];
+				const isExpanded = row.getIsExpanded();
+				const visibleCourses = isExpanded
+					? courses
+					: courses.slice(0, 2);
+				const hasMore = courses.length > 2;
+
 				return (
-					<div className="flex gap-1 flex-wrap">
-						{courses && courses.length > 0 ? (
-							courses.slice(0, 2).map((c) => (
-								<Badge
-									key={c.course_code}
-									variant="secondary"
-									className="text-xs"
-								>
-									{c.course_code}
-								</Badge>
-							))
-						) : (
-							<span className="text-xs text-muted-foreground">
-								None
-							</span>
+					<div className="flex items-start justify-center gap-2 py-1">
+						<div className="flex flex-col items-center justify-center">
+							<AnimatePresence initial={false}>
+								{visibleCourses.length > 0 ? (
+									visibleCourses.map((course, idx) => (
+										<motion.div
+											key={`${course}-${idx}`}
+											initial={{
+												opacity: 0,
+												height: 0,
+												overflow: "hidden",
+											}}
+											animate={{
+												opacity: 1,
+												height: "auto",
+											}}
+											exit={{ opacity: 0, height: 0 }}
+											transition={{
+												duration: 0.2,
+												ease: "easeInOut",
+											}}
+										>
+											<div className="pb-1">
+												<Badge
+													variant="outline"
+													className="px-1.5 py-0 font-normal"
+												>
+													{course}
+												</Badge>
+											</div>
+										</motion.div>
+									))
+								) : (
+									<span className="text-xs text-muted-foreground pb-1">
+										—
+									</span>
+								)}
+							</AnimatePresence>
+						</div>
+						{hasMore && (
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-5 w-5 p-0 mt-0.5 group hover:bg-primary/5 hover:text-primary transition-colors shrink-0"
+								onClick={row.getToggleExpandedHandler()}
+								title={
+									isExpanded
+										? "Show less"
+										: `Show ${courses.length - 2} more`
+								}
+							>
+								<ChevronDown
+									className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform duration-200 ${
+										isExpanded ? "rotate-180" : ""
+									}`}
+								/>
+							</Button>
 						)}
 					</div>
 				);
@@ -166,10 +234,10 @@ export function createStudentColumns(
 			id: "actions",
 			header: "Actions",
 			cell: ({ row }) => (
-				<div className="flex gap-2">
+				<div className="flex items-center gap-1">
 					{config.canEdit && onEdit && (
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="icon"
 							className="h-8 w-8"
 							onClick={() => onEdit(row.original)}
@@ -179,9 +247,9 @@ export function createStudentColumns(
 					)}
 					{config.canDelete && onDelete && (
 						<Button
-							variant="destructive"
+							variant="ghost"
 							size="icon"
-							className="h-8 w-8"
+							className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
 							onClick={() => onDelete(row.original.roll_no)}
 						>
 							<Trash2 className="h-4 w-4" />

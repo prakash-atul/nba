@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { motion, AnimatePresence } from "framer-motion";
 import {
 	Dialog,
 	DialogContent,
@@ -40,10 +41,15 @@ import {
 	Trash2,
 	X,
 	Plus,
+	ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_OPTIONS = ["Active", "Inactive", "Graduated", "Dropped"];
+const BATCH_OPTIONS = Array.from(
+	{ length: 10 },
+	(_, i) => new Date().getFullYear() - 4 + i,
+);
 
 interface FacultyStudentsProps {
 	hideHeader?: boolean;
@@ -144,7 +150,11 @@ export function FacultyStudents({
 
 		setEditSaving(true);
 		try {
-			const dataToSave = { ...editForm, phones: validPhones, phone: validPhones.length > 0 ? validPhones[0] : null };
+			const dataToSave = {
+				...editForm,
+				phones: validPhones,
+				phone: validPhones.length > 0 ? validPhones[0] : null,
+			};
 			await facultyApi.updateStudent(editTarget.roll_no, dataToSave);
 			toast.success("Student updated successfully");
 			setEditTarget(null);
@@ -277,14 +287,14 @@ export function FacultyStudents({
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
 				),
-				cell: ({ row }) => row.original.batch_year ?? "—",
+				cell: ({ row }) => row.original.batch_year ?? "â€”",
 			},
 			{
 				accessorKey: "email",
 				header: "Email",
 				cell: ({ row }) => (
 					<Badge variant="outline" className="flex">
-						{row.original.email ?? "—"}
+						{row.original.email ?? "â€”"}
 					</Badge>
 				),
 			},
@@ -292,9 +302,13 @@ export function FacultyStudents({
 				accessorKey: "phones",
 				header: "Phones",
 				cell: ({ row }) => {
-					const phones = row.original.phones?.length ? row.original.phones : (row.original as any).phone ? [(row.original as any).phone] : [];
+					const phones = row.original.phones?.length
+						? row.original.phones
+						: (row.original as any).phone
+							? [(row.original as any).phone]
+							: [];
 					if (!phones || phones.length === 0) {
-						return <div className="text-muted-foreground">—</div>;
+						return <div className="text-muted-foreground">â€”</div>;
 					}
 					return (
 						<div className="flex flex-wrap gap-1">
@@ -327,22 +341,70 @@ export function FacultyStudents({
 					const courses = row.original.enrolled_courses
 						? row.original.enrolled_courses.split(", ")
 						: [];
+					const isExpanded = row.getIsExpanded();
+					const visibleCourses = isExpanded
+						? courses
+						: courses.slice(0, 2);
+					const hasMore = courses.length > 2;
+
 					return (
-						<div className="flex flex-col gap-1">
-							{courses.length > 0 ? (
-								courses.map((course, idx) => (
-									<Badge
-										key={idx}
-										variant="outline"
-										className="py-0 px-1.5"
-									>
-										{course}
-									</Badge>
-								))
-							) : (
-								<span className="text-xs text-muted-foreground">
-									—
-								</span>
+						<div className="flex items-start justify-center gap-2 py-1">
+							<div className="flex flex-col items-center justify-center">
+								<AnimatePresence initial={false}>
+									{visibleCourses.length > 0 ? (
+										visibleCourses.map((course, idx) => (
+											<motion.div
+												key={`${course}-${idx}`}
+												initial={{
+													opacity: 0,
+													height: 0,
+													overflow: "hidden",
+												}}
+												animate={{
+													opacity: 1,
+													height: "auto",
+												}}
+												exit={{ opacity: 0, height: 0 }}
+												transition={{
+													duration: 0.2,
+													ease: "easeInOut",
+												}}
+											>
+												<div className="pb-1">
+													<Badge
+														variant="outline"
+														className="px-1.5 py-0 font-normal"
+													>
+														{course}
+													</Badge>
+												</div>
+											</motion.div>
+										))
+									) : (
+										<span className="text-xs text-muted-foreground pb-1">
+											â€”
+										</span>
+									)}
+								</AnimatePresence>
+							</div>
+							{hasMore && (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-5 w-5 p-0 mt-0.5 group hover:bg-primary/5 hover:text-primary transition-colors shrink-0"
+									onClick={row.getToggleExpandedHandler()}
+									title={
+										isExpanded
+											? "Show less"
+											: `Show ${courses.length - 2} more`
+									}
+								>
+									<ChevronDown
+										className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform duration-200 ${
+											isExpanded ? "rotate-180" : ""
+										}`}
+									/>
+								</Button>
 							)}
 						</div>
 					);
@@ -379,7 +441,7 @@ export function FacultyStudents({
 
 	// -- Render ------------------------------------------------------------------
 	return (
-		<div className="h-full overflow-y-auto">
+		<div className="h-full">
 			<div className="px-6 pt-4 pb-8 space-y-6">
 				{/* Page header */}
 				{!hideHeader && (
@@ -426,12 +488,30 @@ export function FacultyStudents({
 							refreshing={loading}
 						>
 							{/* Batch Year */}
-							<Input
-								placeholder="Batch Year"
-								value={batchInput}
-								onChange={(e) => setBatchInput(e.target.value)}
-								className="h-9 w-[120px]"
-							/>
+							<Select
+								value={batchInput || "all"}
+								onValueChange={(val) => {
+									const actualVal = val === "all" ? "" : val;
+									setBatchInput(actualVal);
+								}}
+							>
+								<SelectTrigger className="h-9 w-[130px]">
+									<SelectValue placeholder="Batch Year" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">
+										All Batches
+									</SelectItem>
+									{BATCH_OPTIONS.map((y) => (
+										<SelectItem
+											key={y}
+											value={y.toString()}
+										>
+											{y}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 
 							{/* Status */}
 							<Select
@@ -457,7 +537,7 @@ export function FacultyStudents({
 							{hasFilters && (
 								<Button
 									variant="ghost"
-									className="h-9 px-2"
+									className="h-9 px-2 shrink-0"
 									onClick={resetFilters}
 								>
 									Reset
@@ -477,7 +557,7 @@ export function FacultyStudents({
 				<DialogContent className="max-w-md">
 					<DialogHeader>
 						<DialogTitle>
-							Edit Student — {editTarget?.roll_no}
+							Edit Student â€” {editTarget?.roll_no}
 						</DialogTitle>
 					</DialogHeader>
 
@@ -629,7 +709,7 @@ export function FacultyStudents({
 							Cancel
 						</Button>
 						<Button onClick={handleEditSave} disabled={editSaving}>
-							{editSaving ? "Saving…" : "Save Changes"}
+							{editSaving ? "Savingï¿½" : "Save Changes"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -662,7 +742,7 @@ export function FacultyStudents({
 							onClick={handleDelete}
 							disabled={deleteLoading}
 						>
-							{deleteLoading ? "Removing…" : "Remove"}
+							{deleteLoading ? "Removingï¿½" : "Remove"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

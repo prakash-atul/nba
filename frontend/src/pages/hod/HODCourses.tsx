@@ -9,6 +9,7 @@ import {
 import { hodApi } from "@/services/api/hod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { debugLogger } from "@/lib/debugLogger";
 
 const currentYear = new Date().getFullYear();
 const currentSemester = new Date().getMonth() < 6 ? "Spring" : "Autumn";
@@ -26,6 +27,10 @@ export function HODCourses() {
 
 	const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
 	const [initialOfferData, setInitialOfferData] = useState<any>(null);
+
+	useState(() => {
+		debugLogger.info("HODCourses", "Component mounted");
+	});
 
 	const handleOfferCourse = useCallback((course: any) => {
 		setInitialOfferData({

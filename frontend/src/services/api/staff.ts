@@ -7,12 +7,14 @@ import type {
 	PaginationParams,
 } from "./types";
 import { apiGet, apiPost, apiPut, apiDelete, apiGetPaginated } from "./base";
+import { debugLogger } from "@/lib/debugLogger";
 
 export const staffApi = {
 	/**
 	 * Get staff dashboard statistics
 	 */
 	async getStats(): Promise<StaffStats> {
+		debugLogger.info("staffApi", "getStats called");
 		return apiGet<StaffStats>("/staff/stats");
 	},
 
@@ -44,6 +46,7 @@ export const staffApi = {
 		enrollment_count: number;
 		enrollments: Enrollment[];
 	}> {
+		debugLogger.info("staffApi", "getDepartmentCourses called");
 		return apiGet<{
 			course_id: number;
 			course_code: string;
@@ -80,6 +83,7 @@ export const staffApi = {
 	 * Remove a student from a course
 	 */
 	async removeEnrollment(courseId: number, rollno: string): Promise<void> {
+		debugLogger.info("staffApi", "bulkEnrollStudents called");
 		return apiDelete(`/staff/courses/${courseId}/enrollments/${rollno}`);
 	},
 
@@ -115,6 +119,7 @@ export const staffApi = {
 		co_threshold?: number;
 		passing_threshold?: number;
 	}): Promise<StaffCourse> {
+		debugLogger.info("staffApi", "getDepartmentFaculty called");
 		return apiPost<
 			{
 				course_code: string;
@@ -144,6 +149,7 @@ export const staffApi = {
 			semester?: string;
 		},
 	): Promise<StaffCourse> {
+		debugLogger.info("staffApi", "updateCourse called");
 		return apiPut<
 			{
 				course_code?: string;
@@ -161,6 +167,7 @@ export const staffApi = {
 	 * Delete a course
 	 */
 	async deleteCourse(courseId: number): Promise<void> {
+		debugLogger.info("staffApi", "deleteCourse called");
 		return apiDelete(`/staff/courses/${courseId}`);
 	},
 };

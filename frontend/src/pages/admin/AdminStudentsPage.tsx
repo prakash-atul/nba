@@ -11,6 +11,7 @@ export function AdminStudentsPage() {
 			}}
 			title="All Students"
 			showPhone={false}
+			showEnrolledCourses={true}
 			availableFilters={["department", "batch", "status", "course"]}
 		/>
 	);

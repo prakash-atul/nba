@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiPostFull } from "./base";
+import { debugLogger } from "@/lib/debugLogger";
 import type {
   Course,
   Test,
@@ -15,6 +16,7 @@ export const marksApi = {
   async saveMarksByQuestion(
     marksData: SaveMarksByQuestionRequest,
   ): Promise<{ student_id: string; test_id: number; co_totals: COTotals }> {
+		debugLogger.info("marksApi", "saveMarksByQuestion called");
     return apiPost<
       SaveMarksByQuestionRequest,
       { student_id: string; test_id: number; co_totals: COTotals }
@@ -22,6 +24,7 @@ export const marksApi = {
   },
 
   async saveMarksByCO(marksData: SaveMarksByCORequest): Promise<MarksRecord> {
+		debugLogger.info("marksApi", "saveMarksByCO called");
     return apiPost<SaveMarksByCORequest, MarksRecord>(
       "/marks/by-co",
       marksData,
@@ -31,6 +34,7 @@ export const marksApi = {
   async saveBulkMarks(
     bulkMarksData: BulkMarksSaveRequest,
   ): Promise<BulkMarksSaveResponse> {
+		debugLogger.info("marksApi", "saveBulkMarks called");
     return apiPostFull<BulkMarksSaveRequest, BulkMarksSaveResponse["data"]>(
       "/marks/bulk",
       bulkMarksData,
@@ -41,6 +45,7 @@ export const marksApi = {
     testId: number,
     studentId: string,
   ): Promise<StudentMarks> {
+		debugLogger.info("marksApi", "getStudentMarks called");
     return apiGet<StudentMarks>(
       `/marks?test_id=${testId}&student_id=${studentId}`,
     );

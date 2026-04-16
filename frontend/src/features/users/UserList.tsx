@@ -107,6 +107,7 @@ export function UserList({
 	const {
 		data: users,
 		loading,
+		pagination,
 		goNext,
 		goPrev,
 		canPrev,
@@ -624,7 +625,7 @@ export function UserList({
 							onNext: goNext,
 							onPrev: goPrev,
 							canPrev: canPrev && pageIndex > 0,
-							pagination: null,
+							pagination: pagination,
 						},
 					})}
 				/>

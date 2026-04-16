@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { debugLogger } from "@/lib/debugLogger";
 import {
 	Dialog,
 	DialogContent,
@@ -54,6 +55,10 @@ import { UserPhonesRow } from "@/features/users";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export function FacultyManagement() {
+	useEffect(() => {
+		debugLogger.info("FacultyManagement", "Mounted");
+	}, []);
+
 	const {
 		data: faculty,
 		loading: isLoading,
@@ -72,6 +77,15 @@ export function FacultyManagement() {
 		limit: 20,
 		defaultSort: "u.username",
 	});
+
+	useEffect(() => {
+		if (faculty && faculty.length > 0) {
+			debugLogger.info("FacultyManagement", "Data loaded", {
+				count: faculty.length,
+				first: faculty[0],
+			});
+		}
+	}, [faculty]);
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,6 +125,9 @@ export function FacultyManagement() {
 	};
 
 	const handleCreateUser = async () => {
+		debugLogger.info("FacultyManagement", "handleCreateUser starting", {
+			formData,
+		});
 		if (
 			!formData.employee_id ||
 			!formData.username ||
@@ -146,6 +163,11 @@ export function FacultyManagement() {
 			resetForm();
 			onRefresh();
 		} catch (error) {
+			debugLogger.error(
+				"FacultyManagement",
+				"handleCreateUser failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -157,6 +179,10 @@ export function FacultyManagement() {
 	};
 
 	const handleEditUser = async () => {
+		debugLogger.info("FacultyManagement", "handleEditUser starting", {
+			selectedUser,
+			editFormData,
+		});
 		if (!selectedUser) return;
 
 		if (!editFormData.username || !editFormData.email) {
@@ -197,6 +223,11 @@ export function FacultyManagement() {
 			setSelectedUser(null);
 			onRefresh();
 		} catch (error) {
+			debugLogger.error(
+				"FacultyManagement",
+				"handleEditUser failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -212,6 +243,11 @@ export function FacultyManagement() {
 		username: string,
 		role: string,
 	) => {
+		debugLogger.info("FacultyManagement", "handleDeleteUser starting", {
+			employeeId,
+			username,
+			role,
+		});
 		try {
 			await hodApi.deleteUser(employeeId);
 			toast.success(
@@ -221,6 +257,11 @@ export function FacultyManagement() {
 			);
 			onRefresh();
 		} catch (error) {
+			debugLogger.error(
+				"FacultyManagement",
+				"handleDeleteUser failed",
+				error,
+			);
 			toast.error(
 				error instanceof Error
 					? error.message
