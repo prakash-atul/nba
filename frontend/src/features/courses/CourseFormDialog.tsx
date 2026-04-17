@@ -16,41 +16,44 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { hodApi } from "@/services/api/hod";
 import type { DepartmentFaculty, BaseCourse } from "@/services/api/types";
 
-export interface CreateCourseDialogProps {
+export interface CourseFormDialogProps {
+	mode: "create" | "edit";
+	courseType: "base" | "offering";
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSave: (data: any) => Promise<void>;
 	isLoading?: boolean;
 	initialData?: any;
-	mode?: "base" | "offering";
 }
 
-export function CreateCourseDialog({
+export function CourseFormDialog({
+	mode,
+	courseType,
 	open,
 	onOpenChange,
 	onSave,
 	isLoading = false,
 	initialData,
-	mode = "offering",
-}: CreateCourseDialogProps) {
+}: CourseFormDialogProps) {
 	const defaultFormData = {
 		course_code: "",
 		course_name: "",
 		credit: "3",
 		course_type: "Theory",
 		course_level: "Undergraduate",
-		year: new Date().getFullYear().toString(),
-		semester: "Autumn",
-		faculty_id: "",
-		co_threshold: "40",
-		passing_threshold: "60",
+		is_active: true, // Base specific
+		year: new Date().getFullYear().toString(), // Offering specific
+		semester: "Autumn", // Offering specific
+		faculty_id: "", // Offering specific
+		co_threshold: "40", // Offering specific
+		passing_threshold: "60", // Offering specific
 	};
 
 	const [formData, setFormData] = useState(defaultFormData);
-
 	const [faculties, setFaculties] = useState<DepartmentFaculty[]>([]);
 	const [isFetchingFaculties, setIsFetchingFaculties] = useState(false);
 	const [baseCourses, setBaseCourses] = useState<BaseCourse[]>([]);
@@ -61,10 +64,48 @@ export function CreateCourseDialog({
 
 	useEffect(() => {
 		if (open) {
-			if (initialData) {
-				setFormData({ ...defaultFormData, ...initialData });
+			if (initialData && mode === "edit") {
+				setFormData({
+					course_code: initialData.course_code || "",
+					course_name:
+						initialData.course_name || initialData.name || "",
+					credit: (initialData.credit || 3).toString(),
+					course_type: initialData.course_type || "Theory",
+					course_level: initialData.course_level || "Undergraduate",
+					is_active:
+						initialData.is_active === undefined
+							? true
+							: initialData.is_active === 1,
+					year: (
+						initialData.year || new Date().getFullYear()
+					).toString(),
+					semester: initialData.semester || "Autumn",
+					faculty_id: (initialData.faculty_id || "").toString(),
+					co_threshold: (initialData.co_threshold || 40).toString(),
+					passing_threshold: (
+						initialData.passing_threshold || 60
+					).toString(),
+				});
 				if (initialData.base_course_id) {
 					setSelectedBaseCourseid(initialData.base_course_id);
+				}
+			} else if (
+				initialData &&
+				mode === "create" &&
+				courseType === "offering"
+			) {
+				// prefill from base course when offering
+				setFormData({
+					...defaultFormData,
+					course_code: initialData.course_code || "",
+					course_name:
+						initialData.course_name || initialData.name || "",
+					credit: (initialData.credit || 3).toString(),
+					course_type: initialData.course_type || "Theory",
+					course_level: initialData.course_level || "Undergraduate",
+				});
+				if (initialData.course_id) {
+					setSelectedBaseCourseid(initialData.course_id);
 				}
 			} else {
 				setFormData(defaultFormData);
@@ -72,136 +113,164 @@ export function CreateCourseDialog({
 			}
 
 			const fetchData = async () => {
-				setIsFetchingFaculties(true);
-				setIsFetchingCourses(true);
-				try {
-					const [facultyResp, courseResp] = await Promise.all([
-						hodApi.getDepartmentFaculty({ limit: 100 }),
-						hodApi.getBaseCourses({ limit: 200 }),
-					]);
-					setFaculties(facultyResp.data);
-					setBaseCourses(courseResp.data || []);
-				} catch (error) {
-					console.error("Failed to fetch data:", error);
-				} finally {
-					setIsFetchingFaculties(false);
-					setIsFetchingCourses(false);
+				if (courseType === "offering") {
+					setIsFetchingFaculties(true);
+					try {
+						const facultyResp = await hodApi.getDepartmentFaculty({
+							limit: 100,
+						});
+						setFaculties(facultyResp.data);
+					} catch (error) {
+						console.error("Failed to fetch faculties:", error);
+					} finally {
+						setIsFetchingFaculties(false);
+					}
+
+					if (mode === "create") {
+						setIsFetchingCourses(true);
+						try {
+							const courseResp = await hodApi.getBaseCourses({
+								limit: 200,
+							});
+							setBaseCourses(courseResp.data || []);
+						} catch (error) {
+							console.error(
+								"Failed to fetch base courses:",
+								error,
+							);
+						} finally {
+							setIsFetchingCourses(false);
+						}
+					}
 				}
 			};
 			fetchData();
-			return () => {
-				setSelectedBaseCourseid(null);
-			};
 		}
-	}, [open]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open, initialData, mode, courseType]);
 
 	const handleSave = async () => {
-		if (
-			!formData.course_code ||
-			!formData.course_name ||
-			(mode === "offering" && !formData.faculty_id)
-		) {
-			return;
+		if (!formData.course_code || !formData.course_name) return;
+		if (courseType === "offering" && !formData.faculty_id) return;
+
+		let savePayload: any = {
+			course_code: formData.course_code,
+			credit: parseInt(formData.credit),
+		};
+
+		if (courseType === "base") {
+			savePayload.course_name = formData.course_name;
+			savePayload.course_type = formData.course_type;
+			savePayload.course_level = formData.course_level;
+			savePayload.is_active = formData.is_active ? 1 : 0;
+		} else {
+			savePayload.name = formData.course_name;
+			savePayload.course_type = formData.course_type;
+			savePayload.course_level = formData.course_level;
+			savePayload.year = parseInt(formData.year);
+			savePayload.semester = formData.semester;
+			savePayload.faculty_id = parseInt(formData.faculty_id);
+			savePayload.co_threshold = parseFloat(formData.co_threshold);
+			savePayload.passing_threshold = parseFloat(
+				formData.passing_threshold,
+			);
 		}
 
-		await onSave({
-			course_code: formData.course_code,
-			name: formData.course_name,
-			credit: parseInt(formData.credit),
-			...(mode === "offering"
-				? {
-						course_type: formData.course_type,
-						course_level: formData.course_level,
-						year: parseInt(formData.year),
-						semester: formData.semester,
-						faculty_id: parseInt(formData.faculty_id),
-						co_threshold: parseFloat(formData.co_threshold),
-						passing_threshold: parseFloat(
-							formData.passing_threshold,
-						),
-					}
-				: {}),
-		});
-
-		setFormData(defaultFormData);
-		onOpenChange(false);
+		await onSave(savePayload);
+		if (mode === "create") {
+			setFormData(defaultFormData);
+		}
 	};
+
+	const title =
+		mode === "create"
+			? courseType === "base"
+				? "Add New Course Template"
+				: "Offer Course"
+			: courseType === "base"
+				? `Edit Course Template — ${initialData?.course_code}`
+				: `Edit Course — ${initialData?.course_code}`;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>
-						{initialData ? "Offer Course" : "Create New Course"}
-					</DialogTitle>
+					<DialogTitle>{title}</DialogTitle>
 				</DialogHeader>
 
 				<div className="space-y-4 py-2">
-					<div className="space-y-1.5">
-						<div className="flex items-center justify-between">
-							<Label>Select from Course Catalog</Label>
-							{selectedBaseCourseid && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => {
-										setSelectedBaseCourseid(null);
+					{mode === "create" && courseType === "offering" && (
+						<div className="space-y-1.5">
+							<div className="flex items-center justify-between">
+								<Label>Select from Course Catalog</Label>
+								{selectedBaseCourseid && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => {
+											setSelectedBaseCourseid(null);
+											setFormData((f) => ({
+												...f,
+												course_code: "",
+												course_name: "",
+												credit: "3",
+											}));
+										}}
+										disabled={isLoading}
+										className="text-xs"
+									>
+										Clear Selection
+									</Button>
+								)}
+							</div>
+							<Select
+								value={
+									selectedBaseCourseid
+										? selectedBaseCourseid.toString()
+										: undefined
+								}
+								onValueChange={(value) => {
+									const selected = baseCourses.find(
+										(c) => c.course_id === parseInt(value),
+									);
+									if (selected) {
+										setSelectedBaseCourseid(
+											selected.course_id,
+										);
 										setFormData((f) => ({
 											...f,
-											course_code: "",
-											course_name: "",
-											credit: "3",
+											course_code: selected.course_code,
+											course_name: selected.course_name,
+											credit: selected.credit.toString(),
 										}));
-									}}
-									disabled={isLoading}
-									className="text-xs"
-								>
-									Clear Selection
-								</Button>
+									}
+								}}
+								disabled={isLoading || isFetchingCourses}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue placeholder="Browse available courses..." />
+								</SelectTrigger>
+								<SelectContent>
+									{baseCourses.map((course) => (
+										<SelectItem
+											key={course.course_id}
+											value={course.course_id.toString()}
+										>
+											{course.course_code} -{" "}
+											{course.course_name} (
+											{course.credit} cr.)
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{selectedBaseCourseid === null && (
+								<p className="text-[10px] text-muted-foreground mt-1">
+									Or enter course details manually below
+								</p>
 							)}
 						</div>
-						<Select
-							value={
-								selectedBaseCourseid
-									? selectedBaseCourseid.toString()
-									: undefined
-							}
-							onValueChange={(value) => {
-								const selected = baseCourses.find(
-									(c) => c.course_id === parseInt(value),
-								);
-								if (selected) {
-									setSelectedBaseCourseid(selected.course_id);
-									setFormData((f) => ({
-										...f,
-										course_code: selected.course_code,
-										course_name: selected.course_name,
-										credit: selected.credit.toString(),
-									}));
-								}
-							}}
-							disabled={isLoading || isFetchingCourses}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Browse available courses..." />
-							</SelectTrigger>
-							<SelectContent>
-								{baseCourses.map((course) => (
-									<SelectItem
-										key={course.course_id}
-										value={course.course_id.toString()}
-									>
-										{course.course_code} -{" "}
-										{course.course_name} ({course.credit}{" "}
-										cr.)
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<p className="text-[10px] text-muted-foreground">
-							Or enter course details manually below
-						</p>
-					</div>
+					)}
+
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-1.5">
 							<Label>Course Code *</Label>
@@ -214,7 +283,10 @@ export function CreateCourseDialog({
 									}))
 								}
 								disabled={
-									isLoading || selectedBaseCourseid !== null
+									isLoading ||
+									(mode === "create" &&
+										courseType === "offering" &&
+										selectedBaseCourseid !== null)
 								}
 								placeholder="e.g., BT101"
 							/>
@@ -230,7 +302,10 @@ export function CreateCourseDialog({
 									}))
 								}
 								disabled={
-									isLoading || selectedBaseCourseid !== null
+									isLoading ||
+									(mode === "create" &&
+										courseType === "offering" &&
+										selectedBaseCourseid !== null)
 								}
 							>
 								<SelectTrigger>
@@ -249,6 +324,7 @@ export function CreateCourseDialog({
 							</Select>
 						</div>
 					</div>
+
 					<div className="space-y-1.5">
 						<Label>Course Name *</Label>
 						<Input
@@ -260,12 +336,20 @@ export function CreateCourseDialog({
 								}))
 							}
 							disabled={
-								isLoading || selectedBaseCourseid !== null
+								isLoading ||
+								(mode === "create" &&
+									courseType === "offering" &&
+									selectedBaseCourseid !== null)
 							}
 							placeholder="e.g., Biochemistry"
 						/>
 					</div>
-					{selectedBaseCourseid === null && (
+
+					{(mode === "edit" ||
+						courseType === "base" ||
+						(mode === "create" &&
+							courseType === "offering" &&
+							selectedBaseCourseid === null)) && (
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-1.5">
 								<Label>Course Type</Label>
@@ -326,9 +410,29 @@ export function CreateCourseDialog({
 							</div>
 						</div>
 					)}
-					{mode === "offering" && (
+
+					{courseType === "base" && (
+						<div className="flex items-center space-x-2 pt-2">
+							<Checkbox
+								id="is_active"
+								checked={formData.is_active}
+								onCheckedChange={(checked: boolean) =>
+									setFormData((f) => ({
+										...f,
+										is_active: checked,
+									}))
+								}
+								disabled={isLoading}
+							/>
+							<Label htmlFor="is_active">
+								Active (Template visible for new offerings)
+							</Label>
+						</div>
+					)}
+
+					{courseType === "offering" && (
 						<>
-							<div className="grid grid-cols-3 gap-4">
+							<div className="grid grid-cols-3 gap-4 border-t pt-4">
 								<div className="space-y-1.5">
 									<Label>Year</Label>
 									<Input
@@ -400,6 +504,7 @@ export function CreateCourseDialog({
 									</Select>
 								</div>
 							</div>
+
 							<div className="grid grid-cols-2 gap-4">
 								<div className="space-y-1.5">
 									<Label>CO Attainment Threshold (%)</Label>
@@ -413,13 +518,7 @@ export function CreateCourseDialog({
 											}))
 										}
 										disabled={isLoading}
-										min="0"
-										max="100"
 									/>
-									<p className="text-[10px] text-muted-foreground">
-										Target percentage of students achieving
-										target marks
-									</p>
 								</div>
 								<div className="space-y-1.5">
 									<Label>Passing Threshold (%)</Label>
@@ -434,17 +533,11 @@ export function CreateCourseDialog({
 											}))
 										}
 										disabled={isLoading}
-										min="0"
-										max="100"
 									/>
-									<p className="text-[10px] text-muted-foreground">
-										Target marks percentage for a student to
-										"pass" a CO
-									</p>
 								</div>
-							</div>{" "}
+							</div>
 						</>
-					)}{" "}
+					)}
 				</div>
 
 				<DialogFooter>
@@ -461,10 +554,10 @@ export function CreateCourseDialog({
 							isLoading ||
 							!formData.course_code ||
 							!formData.course_name ||
-							(mode === "offering" && !formData.faculty_id)
+							(courseType === "offering" && !formData.faculty_id)
 						}
 					>
-						{isLoading ? "Creating..." : "Create Course"}
+						{isLoading ? "Saving..." : "Save Changes"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

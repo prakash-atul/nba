@@ -1,12 +1,8 @@
-import { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import { MatrixView } from "./MatrixView";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { debugLogger } from "@/lib/debugLogger";
-import { Button } from "@/components/ui/button";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
-import { Settings, Upload, Save } from "lucide-react";
-import { AttainmentSettingsPanel } from "./AttainmentSettingsPanel";
-import { AttainmentCriteriaCard } from "./AttainmentCriteriaCard";
-import { PassingMarksCard } from "./PassingMarksCard";
 import { exportAttainmentExcel } from "@/lib/excel/attainmentExcel";
 import type {
 	StudentMarks,
@@ -21,11 +17,6 @@ import {
 } from "./utils";
 
 // Import the table components (to be created)
-import { StudentMarksTable } from "./StudentMarksTable";
-import { COAttainmentTable } from "./COAttainmentTable";
-import { COPOMatrixTable } from "./COPOMatrixTable";
-import { POComputation3PointTable } from "./POComputation3PointTable";
-import { POComputationPercentageTable } from "./POComputationPercentageTable";
 
 interface COPOMappingProps {
 	courseCode: string;
@@ -181,7 +172,6 @@ export function COPOMapping({
 	});
 
 	const [saving, setSaving] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	// Load COPO data
 	useEffect(() => {
@@ -463,63 +453,33 @@ export function COPOMapping({
 		}
 	};
 
-	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		if (!file) return;
-
-		const reader = new FileReader();
-		reader.onload = (e) => {
-			const text = e.target?.result as string;
-			processCSV(text);
-		};
-		reader.readAsText(file);
-
-		// Reset input
-		if (fileInputRef.current) {
-			fileInputRef.current.value = "";
-		}
-	};
-
-	const processCSV = (text: string) => {
-		const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
-		if (lines.length < 2) {
-			toast.error("CSV file contains no data rows");
-			return;
-		}
-
-		// Parse header to find column indices
-		const headers = lines[0].split(",").map((h) => h.trim().toUpperCase());
-		const poMap: Record<string, number> = {};
-
-		// Map headers to PO keys
-		headers.forEach((header, index) => {
-			if (header.startsWith("PO") || header.startsWith("PSO")) {
-				poMap[header] = index;
-			}
-		});
-
+	const handleCSVDataParsed = (data: any[]) => {
 		const newMatrix = JSON.parse(JSON.stringify(copoMatrix)); // Deep clone
 		let updateCount = 0;
 
-		lines.slice(1).forEach((line) => {
-			const values = line.split(",").map((v) => v.trim());
-			if (values.length === 0) return;
+		data.forEach((row) => {
+			let coName = "";
+			for (const key in row) {
+				const val = row[key]?.toString().trim().toUpperCase();
+				if (val && /^CO[1-6]$/i.test(val)) {
+					coName = val;
+					break;
+				}
+			}
 
-			// First column should be CO Name (CO1, CO2 etc)
-			const coName = values[0].toUpperCase();
-			if (newMatrix[coName]) {
-				// Iterate through found PO columns
-				Object.entries(poMap).forEach(([po, index]) => {
-					if (index < values.length) {
-						const val = parseInt(values[index]) || 0;
-						if (val >= 0 && val <= 3) {
-							if (newMatrix[coName][po] !== undefined) {
-								newMatrix[coName][po] = val;
-								updateCount++;
-							}
+			if (!coName || !newMatrix[coName]) return;
+
+			for (const key in row) {
+				const upperKey = key.trim().toUpperCase();
+				if (upperKey.startsWith("PO") || upperKey.startsWith("PSO")) {
+					const val = parseInt(row[key]) || 0;
+					if (val >= 0 && val <= 3) {
+						if (newMatrix[coName][upperKey] !== undefined) {
+							newMatrix[coName][upperKey] = val;
+							updateCount++;
 						}
 					}
-				});
+				}
 			}
 		});
 
@@ -1013,160 +973,42 @@ export function COPOMapping({
 	};
 
 	return (
-		<div className="space-y-6 pb-8">
-			{/* Header Section */}
-			<div className="flex justify-between items-center">
-				<div>
-					<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-						CO-PO Mapping
-					</h2>
-					<p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-						Course: {courseCode} - {courseName}
-					</p>
-				</div>
-				<div className="flex items-center gap-2">
-					{!readOnly && (
-						<>
-							<input
-								type="file"
-								ref={fileInputRef}
-								className="hidden"
-								accept=".csv"
-								onChange={handleFileUpload}
-							/>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => fileInputRef.current?.click()}
-								className="gap-2"
-							>
-								<Upload className="h-4 w-4" />
-								Import Matrix
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={saveMatrix}
-								disabled={saving}
-								className="gap-2"
-							>
-								<Save className="h-4 w-4" />
-								{saving ? "Saving..." : "Save Matrix"}
-							</Button>
-							<Button
-								onClick={() => setShowSettings(!showSettings)}
-								variant="outline"
-								size="sm"
-								className="flex items-center gap-2"
-							>
-								<Settings className="h-4 w-4" />
-								Attainment Settings
-							</Button>
-						</>
-					)}
-					<Button
-						onClick={handleExportAttainment}
-						variant="ghost"
-						size="sm"
-						className="flex items-center gap-2"
-					>
-						Export Attainment Excel
-					</Button>
-				</div>
-			</div>
-
-			{/* Settings Panel */}
-			<AttainmentSettingsPanel
-				showSettings={showSettings}
-				coThreshold={coThreshold}
-				setCoThreshold={setCoThreshold}
-				passingThreshold={passingThreshold}
-				setPassingThreshold={setPassingThreshold}
-				attainmentThresholds={attainmentThresholds}
-				addThreshold={addThreshold}
-				updateThreshold={updateThreshold}
-				removeThreshold={removeThreshold}
-				saveSettings={saveSettings}
-			/>
-
-			{/* Attainment Criteria Card */}
-			<AttainmentCriteriaCard
-				attainmentCriteria={attainmentCriteria}
-				getLevelColor={getLevelColorFn}
-			/>
-
-			{/* Passing Marks Card */}
-			<PassingMarksCard
-				coThreshold={coThreshold}
-				passingThreshold={passingThreshold}
-			/>
-
-			{/* Student Marks Table */}
-			<StudentMarksTable
-				studentsData={studentsData}
-				maxMarks={maxMarks}
-				facultyName={facultyName}
-				departmentName={departmentName}
-				courseName={courseName}
-				courseCode={courseCode}
-				year={year}
-				semester={semester}
-				loading={loading}
-				getPercentageColor={getPercentageColorFn}
-				coMaxMarks={coMaxMarks}
-			/>
-
-			{/* CO Attainment Tables */}
-			{attainmentData && (
-				<COAttainmentTable
-					attainmentData={attainmentData}
-					getAttainmentLevel={getLevel}
-					getPercentageColor={getPercentageColorFn}
-					coThreshold={coThreshold}
-					coMaxMarks={coMaxMarks}
-				/>
-			)}
-
-			{/* CO-PO-PSO Matrix Table */}
-			<COPOMatrixTable
-				copoMatrix={copoMatrix}
-				readOnly={readOnly}
-				courseInfo={{
-					university_name: "TEZPUR UNIVERSITY",
-					faculty_name: facultyName,
-					branch: departmentName,
-					programme_name: "B. Tech",
-					year: year.toString(),
-					semester: semester,
-					course_name: courseName,
-					course_code: courseCode,
-					session: `${new Date().getFullYear()}-${(
-						new Date().getFullYear() + 1
-					)
-						.toString()
-						.slice(-2)}`,
-				}}
-				updateCOPOMapping={updateCOPOMapping}
-				calculatePOAttainment={calculatePOAttainment}
-				getPercentageColor={getPercentageColorFn}
-				attainmentData={attainmentData}
-				getAttainmentLevel={getLevel}
-				getLevelColor={getLevelColorFn}
-				attainmentThresholds={attainmentThresholds}
-				coMaxMarks={coMaxMarks}
-			/>
-
-			{/* Detailed PO Computation Tables */}
-			{poComputations && (
-				<>
-					<POComputation3PointTable
-						data={poComputations.data3Point}
-					/>
-					<POComputationPercentageTable
-						data={poComputations.dataPercentage}
-					/>
-				</>
-			)}
-		</div>
+		<MatrixView
+			courseCode={courseCode}
+			courseName={courseName}
+			facultyName={facultyName}
+			departmentName={departmentName}
+			year={year}
+			semester={semester}
+			readOnly={readOnly}
+			saving={saving}
+			showSettings={showSettings}
+			setShowSettings={setShowSettings}
+			coThreshold={coThreshold}
+			setCoThreshold={setCoThreshold}
+			passingThreshold={passingThreshold}
+			setPassingThreshold={setPassingThreshold}
+			attainmentThresholds={attainmentThresholds}
+			addThreshold={addThreshold}
+			updateThreshold={updateThreshold}
+			removeThreshold={removeThreshold}
+			saveSettings={saveSettings}
+			attainmentCriteria={attainmentCriteria}
+			getLevelColorFn={getLevelColorFn}
+			studentsData={studentsData}
+			maxMarks={maxMarks}
+			loading={loading}
+			getPercentageColorFn={getPercentageColorFn}
+			coMaxMarks={coMaxMarks}
+			attainmentData={attainmentData}
+			getLevel={getLevel}
+			copoMatrix={copoMatrix}
+			updateCOPOMapping={updateCOPOMapping}
+			calculatePOAttainment={calculatePOAttainment}
+			poComputations={poComputations}
+			handleCSVDataParsed={handleCSVDataParsed}
+			saveMatrix={saveMatrix}
+			handleExportAttainment={handleExportAttainment}
+		/>
 	);
 }

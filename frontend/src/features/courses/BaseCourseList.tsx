@@ -21,9 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2 } from "lucide-react";
-import { CreateBaseCourseDialog } from "./CreateBaseCourseDialog";
+import { CourseFormDialog } from "./CourseFormDialog";
 import { DeleteCourseDialog } from "./DeleteCourseDialog";
-import { EditBaseCourseDialog } from "./EditBaseCourseDialog";
 import { sortableHeader } from "../shared/tableUtils";
 
 export interface BaseCourseListProps {
@@ -418,7 +417,9 @@ export function BaseCourseList({
 					</Card>
 
 					{permissions.canCreate && (
-						<CreateBaseCourseDialog
+						<CourseFormDialog
+							mode="create"
+							courseType="base"
 							open={isCreateDialogOpen}
 							onOpenChange={setIsCreateDialogOpen}
 							onSave={handleCreate}
@@ -427,13 +428,17 @@ export function BaseCourseList({
 					)}
 
 					{permissions.canEdit && editingCourse && (
-						<EditBaseCourseDialog
+						<CourseFormDialog
+							mode="edit"
+							courseType="base"
 							open={!!editingCourse}
-							course={editingCourse}
+							initialData={editingCourse}
 							onOpenChange={(open) =>
 								!open && setEditingCourse(null)
 							}
-							onSave={handleUpdate}
+							onSave={(data) =>
+								handleUpdate(editingCourse.course_id, data)
+							}
 							isLoading={saving}
 						/>
 					)}

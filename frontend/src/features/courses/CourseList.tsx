@@ -19,8 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { EditCourseDialog } from "./EditCourseDialog";
-import { CreateCourseDialog } from "./CreateCourseDialog";
+import { CourseFormDialog } from "./CourseFormDialog";
 import { DeleteCourseDialog } from "./DeleteCourseDialog";
 import { createCourseColumns, type CourseListColumnConfig } from "./utils";
 
@@ -493,15 +492,18 @@ export function CourseList({
 			</Card>
 
 			{/* Dialogs */}
-			<EditCourseDialog
+			<CourseFormDialog
+				mode="edit"
+				courseType={mode}
 				open={!!editTarget}
-				course={editTarget}
+				initialData={editTarget}
 				onOpenChange={(open) => !open && setEditTarget(null)}
-				onSave={handleEditSave as any}
+				onSave={(data) => handleEditSave(editTarget?.course_id, data)}
 				isLoading={editSaving}
-				mode={mode}
 			/>
-			<CreateCourseDialog
+			<CourseFormDialog
+				mode="create"
+				courseType={mode}
 				open={createOpen}
 				onOpenChange={setCreateOpen}
 				onSave={handleCreate}

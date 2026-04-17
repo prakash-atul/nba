@@ -4,7 +4,7 @@ import { AppHeader } from "@/components/layout";
 import {
 	CourseList,
 	BaseCourseList,
-	CreateCourseDialog,
+	CourseFormDialog,
 } from "@/features/courses";
 import { hodApi } from "@/services/api/hod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -165,7 +165,9 @@ export function HODCourses() {
 				</Tabs>
 			</div>
 
-			<CreateCourseDialog
+			<CourseFormDialog
+				mode="create"
+				courseType="offering"
 				open={isOfferDialogOpen}
 				onOpenChange={setIsOfferDialogOpen}
 				initialData={initialOfferData}

@@ -51,8 +51,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CreateUserDialog } from "./CreateUserDialog";
-import { EditUserDialog } from "./EditUserDialog";
+import { UserFormDialog } from "./UserFormDialog";
 import { DeleteUserDialog } from "./DeleteUserDialog";
 import { UserPhonesRow } from "./UserPhonesRow";
 import { sortableHeader } from "../shared/tableUtils";
@@ -567,7 +566,8 @@ export function UserList({
 				/>
 
 				{/* Dialogs */}
-				<CreateUserDialog
+				<UserFormDialog
+					mode="create"
 					open={createDialogOpen}
 					onOpenChange={setCreateDialogOpen}
 					onSave={handleCreateUser}
@@ -575,11 +575,16 @@ export function UserList({
 					schools={schools}
 					isLoading={isLoading}
 				/>
-				<EditUserDialog
+				<UserFormDialog
+					mode="edit"
 					open={editDialogOpen}
 					onOpenChange={setEditDialogOpen}
-					user={selectedUser}
-					onSave={handleEditUser}
+					initialData={selectedUser}
+					onSave={(data) =>
+						selectedUser
+							? handleEditUser(selectedUser.employee_id, data)
+							: Promise.resolve()
+					}
 					departments={departments}
 					schools={schools}
 					isLoading={isLoading}
