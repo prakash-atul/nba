@@ -3,10 +3,11 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout";
 import { StatsGrid, QuickAccessGrid } from "@/features/shared";
 import { createStaffStats } from "@/features/shared/statsFactory";
+import { createStaffQuickAccess } from "@/features/shared/quickAccessFactory";
 import { staffApi } from "@/services/api";
 import type { StaffStats } from "@/services/api";
 import { toast } from "sonner";
-import { Loader2, BookOpen, Users, BarChart3 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export function StaffHome() {
 	const { sidebarOpen, setSidebarOpen } = useOutletContext<{
@@ -63,28 +64,7 @@ export function StaffHome() {
 						)}
 						<div className="grid gap-4 md:grid-cols-1">
 							<QuickAccessGrid
-								items={[
-									{
-										id: "enrollments",
-										title: "View Enrollments",
-										description:
-											"Manage student enrollments",
-										icon: Users,
-									},
-									{
-										id: "courses",
-										title: "View Courses",
-										description: "Browse available courses",
-										icon: BookOpen,
-									},
-									{
-										id: "reports",
-										title: "View Reports",
-										description:
-											"Check enrollment statistics",
-										icon: BarChart3,
-									},
-								]}
+								items={createStaffQuickAccess()}
 								onItemClick={handleItemClick}
 							/>
 						</div>

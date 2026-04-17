@@ -7,12 +7,11 @@ import { toast } from "sonner";
 import {
 	StatsGrid,
 	QuickAccessGrid,
-	type QuickAccessItem,
 } from "@/features/shared";
 import { createHODStats } from "@/features/shared/statsFactory";
+import { createHODQuickAccess } from "@/features/shared/quickAccessFactory";
 import { AppHeader } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, GraduationCap, History } from "lucide-react";
 import { debugLogger } from "@/lib/debugLogger";
 
 export function HODHome() {
@@ -92,49 +91,13 @@ export function HODHome() {
 				) : (
 					<>
 						<StatsGrid
-							stats={createHODStats({
-								departmentCourses: stats.totalCourses,
-								facultyMembers: stats.totalFaculty,
-								students: stats.totalStudents,
-								assessments: stats.totalAssessments,
-							})}
+							stats={createHODStats(stats)}
 							isLoading={isLoading}
 							variant="solid"
 							columns={4}
 						/>
 						<QuickAccessGrid
-							items={
-								[
-									{
-										id: "courses",
-										title: "Manage Courses",
-										description:
-											"Add, edit, or remove department courses",
-										icon: BookOpen,
-									},
-									{
-										id: "faculty",
-										title: "Faculty & Staff",
-										description:
-											"Manage department members",
-										icon: Users,
-									},
-									{
-										id: "students",
-										title: "Students",
-										description:
-											"View and manage department students",
-										icon: GraduationCap,
-									},
-									{
-										id: "logs",
-										title: "Audit Logs",
-										description:
-											"View recent activity logs in your department",
-										icon: History,
-									},
-								] as QuickAccessItem[]
-							}
+							items={createHODQuickAccess()}
 							onItemClick={(nav) => navigate(`/hod/${nav}`)}
 							variant="elevated"
 							columns={4}

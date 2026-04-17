@@ -7,9 +7,10 @@ import { RefreshCw } from "lucide-react";
 import {
 	StatsGrid,
 	QuickAccessGrid,
-	type QuickAccessItem,
+	
 } from "@/features/shared";
 import { createFacultyStats } from "@/features/shared/statsFactory";
+import { createFacultyQuickAccess } from "@/features/shared/quickAccessFactory";
 import { FacultyOverview } from "@/components/faculty";
 import { AppHeader } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, History } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export function FacultyHome() {
 	const navigate = useNavigate();
@@ -166,45 +167,13 @@ export function FacultyHome() {
 				</div>
 
 				<StatsGrid
-					stats={createFacultyStats({
-						myCourses: stats.totalCourses,
-						assessmentsCreated: stats.totalAssessments,
-						totalStudents: stats.totalStudents,
-						avgAttainment: stats.averageAttainment,
-					})}
+					stats={createFacultyStats(stats)}
 					isLoading={statsLoading}
 					variant="solid"
 					columns={4}
 				/>
 				<QuickAccessGrid
-					items={
-						[
-							{
-								id: "assessments",
-								title: "Assessments",
-								description: "Create and manage assessments",
-								icon: RefreshCw,
-							},
-							{
-								id: "marks",
-								title: "Marking",
-								description: "Enter and review student marks",
-								icon: RefreshCw,
-							},
-							{
-								id: "copo",
-								title: "CO-PO Mapping",
-								description: "View and manage course outcomes",
-								icon: RefreshCw,
-							},
-							{
-								id: "logs",
-								title: "Audit Logs",
-								description: "View your activity logs",
-								icon: History,
-							},
-						] as QuickAccessItem[]
-					}
+					items={createFacultyQuickAccess()}
 					onItemClick={(nav) => navigate(`/faculty/${nav}`)}
 					variant="elevated"
 					columns={4}

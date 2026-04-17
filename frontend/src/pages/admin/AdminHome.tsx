@@ -7,12 +7,11 @@ import { toast } from "sonner";
 import {
 	StatsGrid,
 	QuickAccessGrid,
-	type QuickAccessItem,
+createAdminQuickAccess,
 } from "@/features/shared";
 import { createAdminStats } from "@/features/shared/statsFactory";
 import { AppHeader } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, GraduationCap } from "lucide-react";
 
 export function AdminHome() {
 	const navigate = useNavigate();
@@ -97,34 +96,7 @@ export function AdminHome() {
 							columns={4}
 						/>
 						<QuickAccessGrid
-							items={
-								[
-									{
-										id: "users",
-										title: "Manage Users",
-										description:
-											"View, add, or remove system users",
-										icon: Users,
-										value: `${stats.totalUsers} Users`,
-									},
-									{
-										id: "courses",
-										title: "View Courses",
-										description:
-											"Browse all courses in the system",
-										icon: BookOpen,
-										value: `${stats.totalCourses} Courses`,
-									},
-									{
-										id: "students",
-										title: "View Students",
-										description:
-											"Browse all registered students",
-										icon: GraduationCap,
-										value: `${stats.totalStudents} Students`,
-									},
-								] as QuickAccessItem[]
-							}
+							items={createAdminQuickAccess(stats)}
 							onItemClick={(nav) => navigate(`/dashboard/${nav}`)}
 						/>
 					</>
