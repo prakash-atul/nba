@@ -2,8 +2,7 @@ import type { ReactNode } from "react";
 import { DataTable } from "./DataTable";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown } from "lucide-react";
+import { sortableHeader } from "./tableUtils";
 
 export interface BaseUserType {
         id?: string | number;
@@ -18,15 +17,7 @@ export function getBaseUserColumns<T extends BaseUserType>(): ColumnDef<T>[] {
         return [
                 {
                         accessorKey: "employee_id",
-                        header: ({ column }) => (
-                                <Button
-                                        variant="ghost"
-                                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                                >
-                                        Employee ID
-                                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                                </Button>
-                        ),
+                        header: sortableHeader("Employee ID"),
                         cell: ({ row }) => (
                                 <Badge variant="outline" className="font-mono">
                                         {row.getValue("employee_id") || "N/A"}
@@ -35,30 +26,12 @@ export function getBaseUserColumns<T extends BaseUserType>(): ColumnDef<T>[] {
                 },
                 {
                         accessorKey: "username",
-                        header: ({ column }) => (
-                                <Button
-                                        variant="ghost"
-                                        className="mr-auto"
-                                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                                >
-                                        Name
-                                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                                </Button>
-                        ),
+                        header: sortableHeader("Name"),
                         cell: ({ row }) => <div className="flex">{row.getValue("username")}</div>,
                 },
                 {
                         accessorKey: "email",
-                        header: ({ column }) => (
-                                <Button
-                                        variant="ghost"
-                                        className="mr-auto"
-                                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                                >
-                                        Email
-                                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                                </Button>
-                        ),
+                        header: sortableHeader("Email"),
                 },
         ];
 }

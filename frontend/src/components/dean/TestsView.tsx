@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TestList, getBaseTestColumns } from "@/features/shared";
-import { ArrowUpDown, ClipboardList, X } from "lucide-react";
+import { ClipboardList, X } from "lucide-react";
 import type { DeanTest, DeanDepartment } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { deanApi } from "@/services/api/dean";
@@ -15,6 +15,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { formatOrdinal } from "@/lib/utils";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 const columns: ColumnDef<DeanTest>[] = [
 		...getBaseTestColumns<DeanTest>(),
@@ -41,18 +42,7 @@ const columns: ColumnDef<DeanTest>[] = [
 		},
 		{
 			accessorKey: "faculty_name",
-		header: ({ column }) => (
-			<Button
-				variant="ghost"
-				className="mr-auto"
-				onClick={() =>
-					column.toggleSorting(column.getIsSorted() === "asc")
-				}
-			>
-				Faculty
-				<ArrowUpDown className="ml-2 h-4 w-4" />
-			</Button>
-		),
+		header: sortableHeader("Faculty"),
 		cell: ({ row }) => (
 			<div className="text-muted-foreground flex">
 				{(row.getValue("faculty_name") as string) || "—"}
@@ -90,19 +80,7 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "semester",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Sem
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Sem"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge variant="secondary" className="font-medium">
@@ -113,19 +91,7 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "full_marks",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Full Marks
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Full Marks"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -139,19 +105,7 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "pass_marks",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Pass Marks
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Pass Marks"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge

@@ -1,7 +1,6 @@
 import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-	ArrowUpDown,
 	Building2,
 	Users,
 	BookOpen,
@@ -9,7 +8,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { DeanDepartment } from "@/services/api";
 import { deanApi } from "@/services/api/dean";
 import { usePaginatedData } from "@/lib/usePaginatedData";
@@ -21,6 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 export function DepartmentsView() {
 	const {
@@ -43,19 +42,7 @@ export function DepartmentsView() {
 	const columns: ColumnDef<DeanDepartment>[] = [
 		{
 			accessorKey: "department_code",
-			header: ({ column }) => {
-				return (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Code
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
-			},
+			header: sortableHeader("Code"),
 			cell: ({ row }) => (
 				<Badge variant="outline">
 					{row.getValue("department_code")}
@@ -64,19 +51,7 @@ export function DepartmentsView() {
 		},
 		{
 			accessorKey: "department_name",
-			header: ({ column }) => {
-				return (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Department Name
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
-			},
+			header: sortableHeader("Department Name"),
 			cell: ({ row }) => (
 				<div className="font-medium">
 					{row.getValue("department_name")}
@@ -99,23 +74,7 @@ export function DepartmentsView() {
 		},
 		{
 			accessorKey: "faculty_count",
-			header: ({ column }) => {
-				return (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							onClick={() =>
-								column.toggleSorting(
-									column.getIsSorted() === "asc",
-								)
-							}
-						>
-							Faculty
-							<ArrowUpDown className="ml-2 h-4 w-4" />
-						</Button>
-					</div>
-				);
-			},
+			header: sortableHeader("Faculty"),
 			cell: ({ row }) => (
 				<div className="text-center">
 					<Badge
@@ -129,23 +88,7 @@ export function DepartmentsView() {
 		},
 		{
 			accessorKey: "staff_count",
-			header: ({ column }) => {
-				return (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							onClick={() =>
-								column.toggleSorting(
-									column.getIsSorted() === "asc",
-								)
-							}
-						>
-							Staff
-							<ArrowUpDown className="ml-2 h-4 w-4" />
-						</Button>
-					</div>
-				);
-			},
+			header: sortableHeader("Staff"),
 			cell: ({ row }) => (
 				<div className="text-center">
 					<Badge
@@ -159,23 +102,7 @@ export function DepartmentsView() {
 		},
 		{
 			accessorKey: "course_count",
-			header: ({ column }) => {
-				return (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							onClick={() =>
-								column.toggleSorting(
-									column.getIsSorted() === "asc",
-								)
-							}
-						>
-							Courses
-							<ArrowUpDown className="ml-2 h-4 w-4" />
-						</Button>
-					</div>
-				);
-			},
+			header: sortableHeader("Courses"),
 			cell: ({ row }) => (
 				<div className="text-center">
 					<Badge
@@ -189,23 +116,7 @@ export function DepartmentsView() {
 		},
 		{
 			accessorKey: "student_count",
-			header: ({ column }) => {
-				return (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							onClick={() =>
-								column.toggleSorting(
-									column.getIsSorted() === "asc",
-								)
-							}
-						>
-							Students
-							<ArrowUpDown className="ml-2 h-4 w-4" />
-						</Button>
-					</div>
-				);
-			},
+			header: sortableHeader("Students"),
 			cell: ({ row }) => (
 				<div className="text-center">
 					<Badge

@@ -1,24 +1,10 @@
-import { useState, useEffect } from "react";
-import { UserList, getBaseUserColumns } from "@/features/shared";
-import { Badge } from "@/components/ui/badge";
+import { ConfirmDeleteDialog } from "../../features/shared";
+import { AdminCreateUserDialog } from "./AdminCreateUserDialog";
+import { useState, useMemo, useEffect } from "react";
+import { UserList } from "@/features/shared";
 import { Button } from "@/components/ui/button";
-import {
-	Plus,
-	Trash2,
-	AlertCircle,
-	RefreshCw,
-	ArrowUpDown,
-	X,
-} from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import {
 	Select,
 	SelectContent,
@@ -26,8 +12,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import type {
@@ -38,6 +22,7 @@ import type {
 } from "@/services/api";
 import { adminApi } from "@/services/api/admin";
 import { usePaginatedData } from "@/lib/usePaginatedData";
+import { getUsersViewColumns } from "./UsersView.columns";
 
 export function UsersView({ currentUser }: { currentUser?: User | null }) {
 	const {
@@ -89,165 +74,17 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 		phones: [""],
 	});
 
-	const getRoleBadgeColor = (role: string) => {
-		switch (role.toLowerCase()) {
-			case "admin":
-				return "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800";
-			case "dean":
-				return "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800";
-			case "hod":
-				return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
-			case "faculty":
-				return "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800";
-			case "staff":
-				return "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200 dark:border-orange-800";
-			default:
-				return "bg-slate-50 text-slate-700 dark:bg-slate-950 dark:text-slate-300 border-slate-200 dark:border-slate-800";
-		}
-	};
-
-	const columns: ColumnDef<User>[] = [
-		...getBaseUserColumns<User>(),
-		{
-			accessorKey: "designation",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Designation
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<Badge variant="secondary" className="flex italic">
-					{row.getValue("designation") || "—"}
-				</Badge>
-			),
-		},
-		{
-			id: "phones",
-			header: "Phones",
-			cell: ({ row }) => {
-				const phones = row.original.phones;
-				return (
-					<div className="text-muted-foreground flex flex-wrap gap-1">
-						{phones && phones.length > 0
-							? phones.map((phone, i) => (
-									<Badge
-										variant="secondary"
-										key={i}
-										className="font-mono"
-									>
-										{phone}
-									</Badge>
-								))
-							: "—"}
-					</div>
-				);
-			},
-		},
-		{
-			accessorKey: "role",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Role
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => {
-				const user = row.original;
-				const isHOD = user.role === "hod";
-				const isDean = Number(user.is_dean) === 1;
-
-				return (
-					<div className="flex gap-1">
-						<Badge
-							variant="secondary"
-							className={getRoleBadgeColor(user.role)}
-						>
-							{user.role.toUpperCase()}
-						</Badge>
-						{isDean && (
-							<Badge
-								variant="secondary"
-								className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800"
-							>
-								DEAN
-							</Badge>
-						)}
-						{isHOD && (
-							<Badge
-								variant="secondary"
-								className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-							>
-								HOD
-							</Badge>
-						)}
-					</div>
-				);
-			},
-		},
-		{
-			accessorKey: "department_code",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Department
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => {
-				const deptCode = row.getValue("department_code") as string;
-				return deptCode ? (
-					<Badge
-						variant="secondary"
-						className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
-					>
-						{deptCode}
-					</Badge>
-				) : (
-					<span className="text-muted-foreground">—</span>
-				);
-			},
-		},
-		{
-			id: "actions",
-			header: () => <div className="text-center">Actions</div>,
-			cell: ({ row }) => {
-				const user = row.original;
-				if (user.employee_id === currentUser?.employee_id) return null;
-				return (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							size="icon"
-							className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-							onClick={() => {
-								setUserToDelete(user);
-								setIsDeleteUserOpen(true);
-							}}
-						>
-							<Trash2 className="h-4 w-4" />
-						</Button>
-					</div>
-				);
-			},
-		},
-	];
+	const columns = useMemo<ColumnDef<User>[]>(
+		() =>
+			getUsersViewColumns({
+				onDelete: (user) => {
+					setUserToDelete(user);
+					setIsDeleteUserOpen(true);
+				},
+				currentUserId: currentUser?.employee_id,
+			}),
+		[currentUser],
+	);
 
 	const handleCreateUser = async () => {
 		if (
@@ -418,342 +255,34 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 				)}
 			</UserList>
 
-			<Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-				<DialogContent className="sm:max-w-[500px]">
-					<DialogHeader>
-						<DialogTitle>Add New User</DialogTitle>
-						<DialogDescription>
-							Create a new user account. Fill in all required
-							fields.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="grid gap-4 py-4">
-						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="employee_id">
-									Employee ID *
-								</Label>
-								<Input
-									id="employee_id"
-									type="number"
-									placeholder="e.g., 5001"
-									value={newUser.employee_id || ""}
-									onChange={(e) =>
-										setNewUser({
-											...newUser,
-											employee_id:
-												parseInt(e.target.value) || 0,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="role">Role *</Label>
-								<Select
-									value={newUser.role}
-									onValueChange={(val) =>
-										setNewUser({
-											...newUser,
-											role: val as CreateUserRequest["role"],
-										})
-									}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="Select role" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="admin">
-											Admin
-										</SelectItem>
-										<SelectItem value="hod">
-											HOD (Dedicated Account)
-										</SelectItem>
-										<SelectItem value="dean">
-											Dean (Dedicated Account)
-										</SelectItem>
-										<SelectItem value="faculty">
-											Faculty
-										</SelectItem>
-										<SelectItem value="staff">
-											Staff
-										</SelectItem>
-									</SelectContent>
-								</Select>
-								{newUser.role === "hod" && (
-									<p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-										Creates a permanent HOD login account
-										(e.g. hod_cse@tezu.ac.in). Faculty
-										serving as HOD are tracked separately
-										via Dean's HOD Management.
-									</p>
-								)}
-							</div>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="username">Full Name *</Label>
-							<Input
-								id="username"
-								placeholder="e.g., Dr. John Doe"
-								value={newUser.username}
-								onChange={(e) =>
-									setNewUser({
-										...newUser,
-										username: e.target.value,
-									})
-								}
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="email">Email *</Label>
-							<Input
-								id="email"
-								type="email"
-								placeholder="e.g., john@tezu.edu"
-								value={newUser.email}
-								onChange={(e) =>
-									setNewUser({
-										...newUser,
-										email: e.target.value,
-									})
-								}
-							/>
-						</div>
-						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="designation">Designation</Label>
-								<Input
-									id="designation"
-									placeholder="e.g., Professor"
-									value={newUser.designation || ""}
-									onChange={(e) =>
-										setNewUser({
-											...newUser,
-											designation: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-4 col-span-2 mt-2">
-								<div className="flex items-center justify-between">
-									<Label>Phone Numbers</Label>
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={() => {
-											const currentPhones =
-												newUser.phones || [];
-											setNewUser({
-												...newUser,
-												phones: [...currentPhones, ""],
-											});
-										}}
-										className="h-8 gap-1"
-									>
-										<Plus className="h-3 w-3" />
-										Add Phone
-									</Button>
-								</div>
-								<div className="space-y-2">
-									{(newUser.phones || [""]).map(
-										(phone, index) => (
-											<div
-												key={index}
-												className="flex gap-2 items-center"
-											>
-												<Input
-													type="tel"
-													maxLength={10}
-													placeholder="e.g., 9876543210"
-													value={phone}
-													onChange={(e) => {
-														const val =
-															e.target.value.replace(
-																/\D/g,
-																"",
-															);
-														const newPhones = [
-															...(newUser.phones || [
-																"",
-															]),
-														];
-														newPhones[index] = val;
-														setNewUser({
-															...newUser,
-															phones: newPhones,
-														});
-													}}
-												/>
-												{(newUser.phones || []).length >
-													1 && (
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
-														onClick={() => {
-															const newPhones = [
-																...(newUser.phones || [
-																	"",
-																]),
-															];
-															newPhones.splice(
-																index,
-																1,
-															);
-															setNewUser({
-																...newUser,
-																phones: newPhones,
-															});
-														}}
-													>
-														<Trash2 className="h-4 w-4" />
-													</Button>
-												)}
-											</div>
-										),
-									)}
-								</div>
-							</div>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="password">Password *</Label>
-							<Input
-								id="password"
-								type="password"
-								placeholder="Enter password"
-								value={newUser.password}
-								onChange={(e) =>
-									setNewUser({
-										...newUser,
-										password: e.target.value,
-									})
-								}
-							/>
-						</div>
+			<AdminCreateUserDialog
+				open={isAddUserOpen}
+				onOpenChange={setIsAddUserOpen}
+				newUser={newUser}
+				setNewUser={setNewUser}
+				departments={departments}
+				schools={schools}
+				onSubmit={handleCreateUser}
+				isSubmitting={submitting}
+			/>
 
-						{newUser.role === "dean" ? (
-							<div className="space-y-2">
-								<Label htmlFor="school">
-									School (Required for Dean)
-								</Label>
-								<select
-									id="school"
-									className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-									value={newUser.school_id || ""}
-									onChange={(e) =>
-										setNewUser({
-											...newUser,
-											school_id: e.target.value
-												? parseInt(e.target.value)
-												: null,
-										})
-									}
-								>
-									<option value="">Select a School</option>
-									{schools.map((sch) => (
-										<option
-											key={sch.school_id}
-											value={sch.school_id}
-										>
-											{sch.school_name}
-										</option>
-									))}
-								</select>
-							</div>
-						) : (
-							<div className="space-y-2">
-								<Label htmlFor="department">Department</Label>
-								<select
-									id="department"
-									className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-									value={newUser.department_id || ""}
-									onChange={(e) =>
-										setNewUser({
-											...newUser,
-											department_id: e.target.value
-												? parseInt(e.target.value)
-												: null,
-										})
-									}
-								>
-									<option value="">No Department</option>
-									{departments.map((dept) => (
-										<option
-											key={dept.department_id}
-											value={dept.department_id}
-										>
-											{dept.department_name} (
-											{dept.department_code})
-										</option>
-									))}
-								</select>
-							</div>
-						)}
-					</div>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setIsAddUserOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={handleCreateUser}
-							disabled={submitting}
-						>
-							{submitting ? (
-								<>
-									<RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-									Creating...
-								</>
-							) : (
-								"Create User"
-							)}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-
-			<Dialog open={isDeleteUserOpen} onOpenChange={setIsDeleteUserOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2 text-red-600">
-							<AlertCircle className="h-5 w-5" />
-							Delete User
-						</DialogTitle>
-						<DialogDescription>
-							Are you sure you want to delete{" "}
-							<span className="font-semibold">
-								{userToDelete?.username}
-							</span>
-							? This action cannot be undone.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setIsDeleteUserOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							onClick={handleDeleteUser}
-							disabled={submitting}
-						>
-							{submitting ? (
-								<>
-									<RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-									Deleting...
-								</>
-							) : (
-								"Delete"
-							)}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<ConfirmDeleteDialog
+				open={isDeleteUserOpen}
+				onOpenChange={setIsDeleteUserOpen}
+				title="Delete User"
+				description={
+					<>
+						Are you sure you want to delete{" "}
+						<span className="font-semibold">
+							{userToDelete?.username}
+						</span>
+						? This action cannot be undone.
+					</>
+				}
+				confirmText="Delete"
+				isLoading={submitting}
+				onConfirm={handleDeleteUser}
+			/>
 		</div>
 	);
 }

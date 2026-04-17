@@ -58,15 +58,15 @@ export function createAdminStats(stats: {
  * Create stat items for HOD dashboard
  */
 export function createHODStats(stats: {
-	departmentCourses: number;
-	facultyMembers: number;
-	students: number;
-	assessments: number;
+	totalCourses: number;
+	totalFaculty: number;
+	totalStudents: number;
+	totalAssessments: number;
 }): StatItem[] {
 	return [
 		{
 			label: "Department Courses",
-			value: stats.departmentCourses,
+			value: stats.totalCourses,
 			icon: BookOpen,
 			bgGradient:
 				"from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30",
@@ -74,7 +74,7 @@ export function createHODStats(stats: {
 		},
 		{
 			label: "Faculty Members",
-			value: stats.facultyMembers,
+			value: stats.totalFaculty,
 			icon: Users,
 			bgGradient:
 				"from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30",
@@ -82,7 +82,7 @@ export function createHODStats(stats: {
 		},
 		{
 			label: "Students",
-			value: stats.students,
+			value: stats.totalStudents,
 			icon: GraduationCap,
 			bgGradient:
 				"from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30",
@@ -90,7 +90,7 @@ export function createHODStats(stats: {
 		},
 		{
 			label: "Assessments",
-			value: stats.assessments,
+			value: stats.totalAssessments,
 			icon: ClipboardList,
 			bgGradient:
 				"from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30",
@@ -103,15 +103,15 @@ export function createHODStats(stats: {
  * Create stat items for Faculty dashboard
  */
 export function createFacultyStats(stats: {
-	myCourses: number;
-	assessmentsCreated: number;
+	totalCourses: number;
+	totalAssessments: number;
 	totalStudents: number;
-	avgAttainment: number;
+	averageAttainment: number;
 }): StatItem[] {
 	return [
 		{
 			label: "My Courses",
-			value: stats.myCourses,
+			value: stats.totalCourses,
 			icon: BookOpen,
 			bgGradient:
 				"from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30",
@@ -119,7 +119,7 @@ export function createFacultyStats(stats: {
 		},
 		{
 			label: "Assessments Created",
-			value: stats.assessmentsCreated,
+			value: stats.totalAssessments,
 			icon: ClipboardList,
 			bgGradient:
 				"from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30",
@@ -135,7 +135,7 @@ export function createFacultyStats(stats: {
 		},
 		{
 			label: "Avg. Attainment",
-			value: stats.avgAttainment,
+			value: stats.averageAttainment,
 			icon: TrendingUp,
 			bgGradient:
 				"from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30",

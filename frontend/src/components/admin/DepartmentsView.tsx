@@ -1,6 +1,5 @@
 import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,17 +20,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
@@ -46,6 +34,8 @@ import type { Department, School } from "@/services/api";
 import { adminApi } from "@/services/api/admin";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import { X } from "lucide-react";
+import { sortableHeader } from "../../features/shared/tableUtils";
+import { ConfirmDeleteDialog } from '../../features/shared';
 
 export function DepartmentsView() {
 	const {
@@ -95,18 +85,7 @@ export function DepartmentsView() {
 	const columns: ColumnDef<Department>[] = [
 		{
 			accessorKey: "department_code",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Code
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Code"),
 			cell: ({ row }) => (
 				<Badge
 					variant="secondary"
@@ -118,18 +97,7 @@ export function DepartmentsView() {
 		},
 		{
 			accessorKey: "department_name",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Name"),
 			cell: ({ row }) => (
 				<div className="font-medium flex">
 					{row.getValue("department_name")}
@@ -306,43 +274,21 @@ export function DepartmentsView() {
 						>
 							<Pencil className="w-4 h-4" />
 						</Button>
-						<AlertDialog>
-							<AlertDialogTrigger asChild>
-								<Button
+						<ConfirmDeleteDialog 
+                title={<>Are you absolutely sure?</>}
+                description={<>This will permanently delete the{" "}
+										<strong>{dept.department_name}</strong>{" "}
+										department. This action cannot be
+										undone.</>}
+                onConfirm={() => handleDeleteDepartment(dept)}
+                trigger={<Button
 									variant="ghost"
 									size="icon"
 									className="text-red-600 hover:text-red-700 hover:bg-red-50"
 								>
 									<Trash2 className="w-4 h-4" />
-								</Button>
-							</AlertDialogTrigger>
-							<AlertDialogContent>
-								<AlertDialogHeader>
-									<AlertDialogTitle>
-										Are you absolutely sure?
-									</AlertDialogTitle>
-									<AlertDialogDescription>
-										This will permanently delete the{" "}
-										<strong>{dept.department_name}</strong>{" "}
-										department. This action cannot be
-										undone.
-									</AlertDialogDescription>
-								</AlertDialogHeader>
-								<AlertDialogFooter>
-									<AlertDialogCancel>
-										Cancel
-									</AlertDialogCancel>
-									<AlertDialogAction
-										onClick={() =>
-											handleDeleteDepartment(dept)
-										}
-										className="bg-red-600 hover:bg-red-700 text-white"
-									>
-										Delete
-									</AlertDialogAction>
-								</AlertDialogFooter>
-							</AlertDialogContent>
-						</AlertDialog>
+								</Button>}
+            />
 					</div>
 				);
 			},

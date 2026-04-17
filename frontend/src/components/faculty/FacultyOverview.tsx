@@ -1,3 +1,4 @@
+import { ConcludeCourseDialog } from './ConcludeCourseDialog';
 import { useState, useEffect, useCallback } from "react";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import {
 	BookOpen,
 	TrendingUp,
-	ArrowUpDown,
 	Archive,
 	ChevronRight,
 	Loader2,
@@ -17,17 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { facultyApi } from "@/services/api/faculty";
 import type { TestAverage } from "@/services/api/types";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 // ── Test type colour map ─────────────────────────────────────────────────────
 const TEST_TYPE_COLORS: Record<string, string> = {
@@ -236,34 +227,14 @@ export function FacultyOverview({
 			},
 			{
 				accessorKey: "course_code",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Code
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Code"),
 				cell: ({ row }) => (
 					<Badge variant="outline">{row.original.course_code}</Badge>
 				),
 			},
 			{
 				accessorKey: "course_name",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Course Name
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Course Name"),
 				cell: ({ row }) => (
 					<div
 						className="max-w-60 truncate"
@@ -294,21 +265,7 @@ export function FacultyOverview({
 			},
 			{
 				accessorKey: "enrollment_count",
-				header: ({ column }) => (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							onClick={() =>
-								column.toggleSorting(
-									column.getIsSorted() === "asc",
-								)
-							}
-						>
-							Enrolled
-							<ArrowUpDown className="ml-2 h-4 w-4" />
-						</Button>
-					</div>
-				),
+				header: sortableHeader("Enrolled"),
 				cell: ({ row }) => (
 					<div className="text-center">
 						<Badge
@@ -322,21 +279,7 @@ export function FacultyOverview({
 			},
 			{
 				accessorKey: "test_count",
-				header: ({ column }) => (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							onClick={() =>
-								column.toggleSorting(
-									column.getIsSorted() === "asc",
-								)
-							}
-						>
-							Tests
-							<ArrowUpDown className="ml-2 h-4 w-4" />
-						</Button>
-					</div>
-				),
+				header: sortableHeader("Tests"),
 				cell: ({ row }) => (
 					<div className="text-center">
 						<Badge
@@ -350,21 +293,7 @@ export function FacultyOverview({
 			},
 			{
 				accessorKey: "avg_score_pct",
-				header: ({ column }) => (
-					<div className="text-center">
-						<Button
-							variant="ghost"
-							onClick={() =>
-								column.toggleSorting(
-									column.getIsSorted() === "asc",
-								)
-							}
-						>
-							Avg Score
-							<ArrowUpDown className="ml-2 h-4 w-4" />
-						</Button>
-					</div>
-				),
+				header: sortableHeader("Avg Score"),
 				cell: ({ row }) => {
 					const pct = row.original.avg_score_pct;
 					if (pct == null) {
@@ -508,99 +437,18 @@ export function FacultyOverview({
 				</CardContent>
 			</Card>
 
-			<AlertDialog
+			<ConcludeCourseDialog
 				open={concludeData.isOpen}
-				onOpenChange={(open) =>
+				onOpenChange={(open: boolean) =>
 					!concludeData.isConcluding &&
 					setConcludeData((prev) => ({ ...prev, isOpen: open }))
 				}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>
-							{concludeData.canConclude
-								? "Are you absolutely sure?"
-								: "Action Not Allowed"}
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							{!concludeData.canConclude ? (
-								<>
-									<span className="text-destructive font-semibold">
-										Cannot conclude the session for{" "}
-										{concludeData.course?.course_name}.
-									</span>
-									<br />
-									<br />
-									The following assessments have incomplete
-									marks entries:
-									<ul className="list-disc list-inside mt-2 ml-4">
-										{concludeData.incompleteTests.map(
-											(testName, i) => (
-												<li
-													key={i}
-													className="text-foreground"
-												>
-													{testName}
-												</li>
-											),
-										)}
-									</ul>
-									<br />
-									Please ensure that ALL enrolled students
-									have been graded for these assessments or
-									the assessments have appropriate max marks
-									set up.
-									<br />
-								</>
-							) : (
-								<>
-									This action cannot be undone. This will
-									permanently conclude the session for{" "}
-									<span className="font-bold">
-										{concludeData.course?.course_name}
-									</span>
-									.
-									<br />
-									<br />
-									Please ensure that{" "}
-									<span className="font-bold">ALL</span>{" "}
-									assessments for this course have been
-									created and{" "}
-									<span className="font-bold">ALL</span>{" "}
-									enrolled students have been graded. If marks
-									entry is incomplete, the system will reject
-									the request.
-									<br />
-									<br />
-									You will no longer have active faculty
-									assignments to this specific offering.
-									Enrolled students will also be marked as
-									Completed.
-								</>
-							)}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={concludeData.isConcluding}>
-							{concludeData.canConclude ? "Cancel" : "Close"}
-						</AlertDialogCancel>
-						{concludeData.canConclude && (
-							<AlertDialogAction
-								onClick={(e) => {
-									e.preventDefault();
-									handleConcludeCourse();
-								}}
-								disabled={concludeData.isConcluding}
-								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							>
-								{concludeData.isConcluding
-									? "Concluding Session..."
-									: "Yes, Conclude Session"}
-							</AlertDialogAction>
-						)}
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+				canConclude={concludeData.canConclude}
+				isConcluding={concludeData.isConcluding}
+				course={concludeData.course}
+				incompleteTests={concludeData.incompleteTests}
+				onConclude={handleConcludeCourse}
+			/>
 		</div>
 	);
 }

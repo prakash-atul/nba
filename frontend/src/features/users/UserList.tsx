@@ -1,3 +1,20 @@
+export const getRoleBadgeColor = (role: string) => {
+	switch (role.toLowerCase()) {
+		case "admin":
+			return "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800";
+		case "dean":
+			return "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800";
+		case "hod":
+			return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+		case "faculty":
+			return "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+		case "staff":
+			return "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200 dark:border-orange-800";
+		default:
+			return "bg-slate-50 text-slate-700 dark:bg-slate-950 dark:text-slate-300 border-slate-200 dark:border-slate-800";
+	}
+};
+
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { debugLogger } from "@/lib/debugLogger";
@@ -19,7 +36,6 @@ import {
 	Users,
 	Plus,
 	X,
-	ArrowUpDown,
 	Pencil,
 	Trash2,
 	ChevronRight,
@@ -39,6 +55,7 @@ import { CreateUserDialog } from "./CreateUserDialog";
 import { EditUserDialog } from "./EditUserDialog";
 import { DeleteUserDialog } from "./DeleteUserDialog";
 import { UserPhonesRow } from "./UserPhonesRow";
+import { sortableHeader } from "../shared/tableUtils";
 
 /**
  * @file UserList.tsx
@@ -257,23 +274,6 @@ export function UserList({
 		[refresh, setDeleteDialogOpen],
 	);
 
-	const getRoleBadgeColor = (role: string) => {
-		switch (role.toLowerCase()) {
-			case "admin":
-				return "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800";
-			case "dean":
-				return "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800";
-			case "hod":
-				return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
-			case "faculty":
-				return "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800";
-			case "staff":
-				return "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200 dark:border-orange-800";
-			default:
-				return "bg-slate-50 text-slate-700 dark:bg-slate-950 dark:text-slate-300 border-slate-200 dark:border-slate-800";
-		}
-	};
-
 	const columns: ColumnDef<User | DeanUser>[] = useMemo(() => {
 		const cols: ColumnDef<User | DeanUser>[] = [
 			{
@@ -296,17 +296,7 @@ export function UserList({
 			},
 			{
 				accessorKey: "employee_id",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Employee ID
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Employee ID"),
 				cell: ({ row }) => (
 					<Badge variant="outline" className="font-mono">
 						{row.getValue("employee_id")}
@@ -315,18 +305,7 @@ export function UserList({
 			},
 			{
 				accessorKey: "username",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						className="mr-auto"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Name
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Name"),
 				cell: ({ row }) => (
 					<div className="font-medium flex">
 						{row.getValue("username")}
@@ -338,18 +317,7 @@ export function UserList({
 		if (showEmail) {
 			cols.push({
 				accessorKey: "email",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						className="mr-auto"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Email
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Email"),
 				cell: ({ row }) => (
 					<Badge variant="outline" className="flex">
 						{row.getValue("email")}
@@ -361,18 +329,7 @@ export function UserList({
 		if (showDesignation) {
 			cols.push({
 				accessorKey: "designation",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						className="mr-auto"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Designation
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Designation"),
 				cell: ({ row }) => (
 					<Badge variant="secondary" className="flex italic">
 						{row.getValue("designation") || "—"}
@@ -402,18 +359,7 @@ export function UserList({
 		if (showRole) {
 			cols.push({
 				accessorKey: "role",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						className="mr-auto"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Role
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Role"),
 				cell: ({ row }) => {
 					const user = row.original as any;
 					return (
@@ -453,17 +399,7 @@ export function UserList({
 		if (effectiveShowDepartment) {
 			cols.push({
 				accessorKey: "department_code",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Department
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Department"),
 				cell: ({ row }) => {
 					const deptCode = row.getValue("department_code") as string;
 					return deptCode ? (

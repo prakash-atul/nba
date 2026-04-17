@@ -21,7 +21,6 @@ import {
 import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-	ArrowUpDown,
 	Building2,
 	UserPlus,
 	UserMinus,
@@ -37,6 +36,7 @@ import {
 } from "@/services/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateAppointmentOrder } from "@/utils/appointmentUtils";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 interface HODManagementProps {
 	departments: DeanDepartment[];
@@ -184,19 +184,7 @@ export function HODManagement({
 	const statusColumns: ColumnDef<DeanDepartment>[] = [
 		{
 			accessorKey: "department_code",
-			header: ({ column }) => {
-				return (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Code
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
-			},
+			header: sortableHeader("Code"),
 			cell: ({ row }) => (
 				<Badge
 					variant="secondary"
@@ -208,20 +196,7 @@ export function HODManagement({
 		},
 		{
 			accessorKey: "department_name",
-			header: ({ column }) => {
-				return (
-					<Button
-						variant="ghost"
-						className="mr-auto"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Department
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
-			},
+			header: sortableHeader("Department"),
 			cell: ({ row }) => (
 				<div className="font-medium flex">
 					{row.getValue("department_name")}
@@ -252,20 +227,7 @@ export function HODManagement({
 		},
 		{
 			accessorKey: "faculty_count",
-			header: ({ column }) => {
-				return (
-					<Button
-						variant="ghost"
-						className="mr-auto"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Faculty Count
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
-			},
+			header: sortableHeader("Faculty Count"),
 			cell: ({ row }) => (
 				<div className="flex items-center gap-2 ml-4">
 					<Users className="w-4 h-4 text-muted-foreground" />
@@ -317,18 +279,7 @@ export function HODManagement({
 		},
 		{
 			accessorKey: "username",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Faculty Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Faculty Name"),
 			cell: ({ row }) => (
 				<div className="font-medium">
 					{row.getValue("username")}
@@ -350,17 +301,7 @@ export function HODManagement({
 		},
 		{
 			accessorKey: "start_date",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Start Date
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Start Date"),
 			cell: ({ row }) => (
 				<span className="text-sm">
 					{new Date(row.getValue("start_date")).toLocaleDateString()}

@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { DataTable } from "./DataTable";
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown } from "lucide-react";
+import { sortableHeader } from "./tableUtils";
 
 export interface BaseTestType {
         id?: number;
@@ -21,31 +20,13 @@ export function getBaseTestColumns<T extends BaseTestType>(): ColumnDef<T>[] {
                 {
                         id: "test_identifier",
                         accessorFn: (row) => row.test_id ?? row.id,
-                        header: ({ column }) => (
-                                <Button
-                                        variant="ghost"
-                                        className="p-0 hover:bg-transparent"
-                                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                                >
-                                        ID
-                                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                                </Button>
-                        ),
+                        header: sortableHeader("ID"),
                         cell: ({ row }) => <span className="font-medium">{row.getValue("test_identifier")}</span>,
                 },
                 {
                         id: "test_label",
                         accessorFn: (row) => row.test_name ?? row.name,
-                        header: ({ column }) => (
-                                <Button
-                                        variant="ghost"
-                                        className="p-0 hover:bg-transparent"
-                                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                                >
-                                        Test Name
-                                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                                </Button>
-                        ),
+                        header: sortableHeader("Test Name"),
                         cell: ({ row }) => <span>{row.getValue("test_label")}</span>,
                 },
                 {

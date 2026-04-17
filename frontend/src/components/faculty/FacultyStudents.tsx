@@ -1,3 +1,4 @@
+import { ConfirmDeleteDialog } from '@/features/shared';
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { facultyApi } from "@/services/api/faculty";
 import type { EnrolledStudent, UpdateStudentRequest } from "@/services/api";
@@ -16,16 +17,6 @@ import {
 	DialogFooter,
 } from "@/components/ui/dialog";
 import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -34,7 +25,6 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-	ArrowUpDown,
 	GraduationCap,
 	Pencil,
 	RefreshCw,
@@ -44,6 +34,7 @@ import {
 	ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 const STATUS_OPTIONS = ["Active", "Inactive", "Graduated", "Dropped"];
 const BATCH_OPTIONS = Array.from(
@@ -225,17 +216,7 @@ export function FacultyStudents({
 		() => [
 			{
 				accessorKey: "roll_no",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Roll No
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Roll No"),
 				cell: ({ row }) => (
 					<Badge variant="outline" className="font-mono text-xs">
 						{row.original.roll_no}
@@ -244,17 +225,7 @@ export function FacultyStudents({
 			},
 			{
 				accessorKey: "student_name",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Name
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Name"),
 				cell: ({ row }) => (
 					<div className="font-medium">
 						{row.original.student_name}
@@ -276,17 +247,7 @@ export function FacultyStudents({
 			},
 			{
 				accessorKey: "batch_year",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Batch
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
+				header: sortableHeader("Batch"),
 				cell: ({ row }) => row.original.batch_year ?? "—",
 			},
 			{
@@ -552,7 +513,7 @@ export function FacultyStudents({
 			{/* -- Edit Dialog -- */}
 			<Dialog
 				open={!!editTarget}
-				onOpenChange={(open) => !open && setEditTarget(null)}
+				onOpenChange={(open: boolean) => !open && setEditTarget(null)}
 			>
 				<DialogContent className="max-w-md">
 					<DialogHeader>
@@ -716,37 +677,23 @@ export function FacultyStudents({
 			</Dialog>
 
 			{/* -- Delete Confirm -- */}
-			<AlertDialog
+			<ConfirmDeleteDialog
 				open={!!deleteTarget}
-				onOpenChange={(open) => !open && setDeleteTarget(null)}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>
-							Remove Student Enrollment
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will remove{" "}
-							<strong>{deleteTarget?.student_name}</strong> (
-							{deleteTarget?.roll_no}) from all of your course
-							enrollments. Their marks and data will remain
-							intact. This action cannot be undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={deleteLoading}>
-							Cancel
-						</AlertDialogCancel>
-						<AlertDialogAction
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={handleDelete}
-							disabled={deleteLoading}
-						>
-							{deleteLoading ? "Removing�" : "Remove"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+				onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}
+				title="Remove Student Enrollment"
+				description={
+					<>
+						This will remove{" "}
+						<strong>{deleteTarget?.student_name}</strong> (
+						{deleteTarget?.roll_no}) from all of your course
+						enrollments. Their marks and data will remain
+						intact. This action cannot be undone.
+					</>
+				}
+				confirmText="Remove"
+				isLoading={deleteLoading}
+				onConfirm={handleDelete}
+			/>
 		</div>
 	);
 }

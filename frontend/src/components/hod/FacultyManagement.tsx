@@ -1,29 +1,13 @@
+import { ConfirmDeleteDialog } from "../../features/shared";
+import {
+	DepartmentMemberDialog,
+	type DepartmentMemberFormData,
+} from "./DepartmentMemberDialog";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { debugLogger } from "@/lib/debugLogger";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import {
 	Select,
 	SelectContent,
@@ -32,21 +16,9 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-	Plus,
-	Pencil,
-	Trash2,
-	Users,
-	Eye,
-	EyeOff,
-	Phone,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Phone } from "lucide-react";
 import { toast } from "sonner";
-import type {
-	DepartmentFaculty,
-	HODCreateUserRequest,
-	HODUpdateUserRequest,
-} from "@/services/api";
+import type { DepartmentFaculty, HODUpdateUserRequest } from "@/services/api";
 import { hodApi } from "@/services/api/hod";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import { UserList, getBaseUserColumns } from "@/features/shared";
@@ -88,11 +60,10 @@ export function FacultyManagement() {
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [showPassword, setShowPassword] = useState(false);
 	const [selectedUser, setSelectedUser] = useState<DepartmentFaculty | null>(
 		null,
 	);
-	const [formData, setFormData] = useState<HODCreateUserRequest>({
+	const [formData, setFormData] = useState<DepartmentMemberFormData>({
 		employee_id: 0,
 		username: "",
 		email: "",
@@ -101,13 +72,14 @@ export function FacultyManagement() {
 		designation: "",
 		phones: [""],
 	});
-	const [editFormData, setEditFormData] = useState<HODUpdateUserRequest>({
-		username: "",
-		email: "",
-		password: "",
-		role: "faculty" as "faculty" | "staff",
-		designation: "",
-		phones: [""],
+	const [editFormData, setEditFormData] = useState<DepartmentMemberFormData>({
+		employee_id: 0,
+		username: " ",
+		email: " ",
+		password: " ",
+		role: "faculty",
+		designation: " ",
+		phones: [" "],
 	});
 
 	const resetForm = () => {
@@ -120,7 +92,6 @@ export function FacultyManagement() {
 			designation: "",
 			phones: [""],
 		});
-		setShowPassword(false);
 	};
 
 	const handleCreateUser = async () => {
@@ -152,7 +123,12 @@ export function FacultyManagement() {
 
 		setIsSubmitting(true);
 		try {
-			await hodApi.createUser(formData);
+			await hodApi.createUser({
+				...formData,
+				password: formData.password || "password",
+				designation: formData.designation || null,
+				phones: formData.phones?.filter(Boolean) || undefined,
+			});
 			toast.success(
 				`${
 					formData.role === "faculty" ? "Faculty" : "Staff"
@@ -272,6 +248,7 @@ export function FacultyManagement() {
 	const openEditDialog = (user: DepartmentFaculty) => {
 		setSelectedUser(user);
 		setEditFormData({
+			employee_id: user.employee_id,
 			username: user.username,
 			email: user.email,
 			password: "",
@@ -384,8 +361,8 @@ export function FacultyManagement() {
 							<Pencil className="w-4 h-4" />
 						</Button>
 						{!isHOD && (
-							<AlertDialog>
-								<AlertDialogTrigger asChild>
+							<ConfirmDeleteDialog
+								trigger={
 									<Button
 										variant="ghost"
 										size="icon"
@@ -393,37 +370,23 @@ export function FacultyManagement() {
 									>
 										<Trash2 className="w-4 h-4" />
 									</Button>
-								</AlertDialogTrigger>
-								<AlertDialogContent>
-									<AlertDialogHeader>
-										<AlertDialogTitle>
-											Delete Member?
-										</AlertDialogTitle>
-										<AlertDialogDescription>
-											Are you sure you want to delete "
-											{member.username}"? This action
-											cannot be undone.
-										</AlertDialogDescription>
-									</AlertDialogHeader>
-									<AlertDialogFooter>
-										<AlertDialogCancel>
-											Cancel
-										</AlertDialogCancel>
-										<AlertDialogAction
-											onClick={() =>
-												handleDeleteUser(
-													member.employee_id,
-													member.username,
-													member.role,
-												)
-											}
-											className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-										>
-											Delete
-										</AlertDialogAction>
-									</AlertDialogFooter>
-								</AlertDialogContent>
-							</AlertDialog>
+								}
+								title="Delete Member?"
+								description={
+									<>
+										Are you sure you want to delete{" "}
+										{member.username}? This action cannot be
+										undone.
+									</>
+								}
+								onConfirm={() =>
+									handleDeleteUser(
+										member.employee_id,
+										member.username,
+										member.role,
+									)
+								}
+							/>
 						)}
 					</div>
 				);
@@ -445,257 +408,29 @@ export function FacultyManagement() {
 						</p>
 					</div>
 				</div>
-				<Dialog
+				<Button
+					className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+					onClick={() => {
+						setIsAddDialogOpen(true);
+						resetForm();
+					}}
+				>
+					<Plus className="w-4 h-4" />
+					Add Member
+				</Button>
+				<DepartmentMemberDialog
+					mode="add"
 					open={isAddDialogOpen}
 					onOpenChange={(open) => {
 						setIsAddDialogOpen(open);
 						if (!open) resetForm();
 					}}
-				>
-					<DialogTrigger asChild>
-						<Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-							<Plus className="w-4 h-4" />
-							Add Member
-						</Button>
-					</DialogTrigger>
-					<DialogContent className="sm:max-w-[500px]">
-						<DialogHeader>
-							<DialogTitle>Add New Member</DialogTitle>
-							<DialogDescription>
-								Add a new faculty or staff member to your
-								department
-							</DialogDescription>
-						</DialogHeader>
-						<div className="grid gap-4 py-4">
-							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<Label htmlFor="employee_id">
-										Employee ID *
-									</Label>
-									<Input
-										id="employee_id"
-										type="number"
-										placeholder="e.g., 3016"
-										value={formData.employee_id || ""}
-										onChange={(e) =>
-											setFormData({
-												...formData,
-												employee_id:
-													parseInt(e.target.value) ||
-													0,
-											})
-										}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="role">Role *</Label>
-									<Select
-										value={formData.role}
-										onValueChange={(
-											value: "faculty" | "staff",
-										) =>
-											setFormData({
-												...formData,
-												role: value,
-											})
-										}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="faculty">
-												Faculty
-											</SelectItem>
-											<SelectItem value="staff">
-												Staff
-											</SelectItem>
-										</SelectContent>
-									</Select>
-								</div>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="username">Full Name *</Label>
-								<Input
-									id="username"
-									placeholder="e.g., Dr. John Doe"
-									value={formData.username}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											username: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="email">Email *</Label>
-								<Input
-									id="email"
-									type="email"
-									placeholder="e.g., john@tezu.ernet.in"
-									value={formData.email}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											email: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<Label htmlFor="designation">
-										Designation
-									</Label>
-									<Input
-										id="designation"
-										placeholder="e.g., Professor"
-										value={formData.designation ?? ""}
-										onChange={(e) =>
-											setFormData({
-												...formData,
-												designation: e.target.value,
-											})
-										}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label>Phone Numbers</Label>
-									{(formData.phones?.length
-										? formData.phones
-										: [""]
-									).map((phone, idx) => (
-										<div
-											key={idx}
-											className="flex items-center gap-2"
-										>
-											<Input
-												type="tel"
-												maxLength={10}
-												pattern="\d{10}"
-												placeholder="e.g., 9876543210"
-												value={phone}
-												onChange={(e) => {
-													const val =
-														e.target.value.replace(
-															/\D/g,
-															"",
-														);
-													const newPhones = [
-														...(formData.phones ||
-															[]),
-													];
-													newPhones[idx] = val;
-													setFormData({
-														...formData,
-														phones: newPhones,
-													});
-												}}
-											/>
-											{(formData.phones?.length
-												? formData.phones.length
-												: 1) > 1 && (
-												<Button
-													type="button"
-													variant="ghost"
-													size="icon"
-													className="text-red-500 hover:text-red-700 hover:bg-red-50"
-													onClick={() => {
-														const newPhones = (
-															formData.phones ||
-															[]
-														).filter(
-															(_, i) => i !== idx,
-														);
-														if (
-															newPhones.length ===
-															0
-														)
-															newPhones.push("");
-														setFormData({
-															...formData,
-															phones: newPhones,
-														});
-													}}
-												>
-													<Trash2 className="w-4 h-4" />
-												</Button>
-											)}
-										</div>
-									))}
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										className="w-full mt-2"
-										onClick={() => {
-											setFormData({
-												...formData,
-												phones: [
-													...(formData.phones || []),
-													"",
-												],
-											});
-										}}
-									>
-										<Plus className="w-4 h-4 mr-2" />
-										Add Phone Number
-									</Button>
-								</div>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="password">Password *</Label>
-								<div className="relative">
-									<Input
-										id="password"
-										type={
-											showPassword ? "text" : "password"
-										}
-										placeholder="Minimum 6 characters"
-										value={formData.password}
-										onChange={(e) =>
-											setFormData({
-												...formData,
-												password: e.target.value,
-											})
-										}
-									/>
-									<Button
-										type="button"
-										variant="ghost"
-										size="sm"
-										className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-										onClick={() =>
-											setShowPassword(!showPassword)
-										}
-									>
-										{showPassword ? (
-											<EyeOff className="h-4 w-4 text-muted-foreground" />
-										) : (
-											<Eye className="h-4 w-4 text-muted-foreground" />
-										)}
-									</Button>
-								</div>
-							</div>
-						</div>
-						<DialogFooter>
-							<Button
-								variant="outline"
-								onClick={() => setIsAddDialogOpen(false)}
-							>
-								Cancel
-							</Button>
-							<Button
-								onClick={handleCreateUser}
-								disabled={isSubmitting}
-								className="bg-emerald-600 hover:bg-emerald-700"
-							>
-								{isSubmitting ? "Creating..." : "Create"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+					formData={formData}
+					setFormData={setFormData}
+					onSubmit={handleCreateUser}
+					isSubmitting={isSubmitting}
+					onCancel={() => setIsAddDialogOpen(false)}
+				/>
 			</CardHeader>
 			<CardContent>
 				<UserList
@@ -738,217 +473,19 @@ export function FacultyManagement() {
 			</CardContent>
 
 			{/* Edit Dialog */}
-			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-				<DialogContent className="sm:max-w-[500px]">
-					<DialogHeader>
-						<DialogTitle>Edit Member</DialogTitle>
-						<DialogDescription>
-							Update member information
-						</DialogDescription>
-					</DialogHeader>
-					<div className="grid gap-4 py-4">
-						<div className="space-y-2">
-							<Label htmlFor="edit_role">Role</Label>
-							<Select
-								value={editFormData.role}
-								onValueChange={(value: "faculty" | "staff") =>
-									setEditFormData({
-										...editFormData,
-										role: value,
-									})
-								}
-							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="faculty">
-										Faculty
-									</SelectItem>
-									<SelectItem value="staff">Staff</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="edit_username">Full Name *</Label>
-							<Input
-								id="edit_username"
-								value={editFormData.username ?? ""}
-								onChange={(e) =>
-									setEditFormData({
-										...editFormData,
-										username: e.target.value,
-									})
-								}
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="edit_email">Email *</Label>
-							<Input
-								id="edit_email"
-								type="email"
-								value={editFormData.email ?? ""}
-								onChange={(e) =>
-									setEditFormData({
-										...editFormData,
-										email: e.target.value,
-									})
-								}
-							/>
-						</div>
-						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="edit_designation">
-									Designation
-								</Label>
-								<Input
-									id="edit_designation"
-									placeholder="e.g., Professor"
-									value={
-										(editFormData.designation as string) ??
-										""
-									}
-									onChange={(e) =>
-										setEditFormData({
-											...editFormData,
-											designation: e.target.value || null,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label>Phone Numbers</Label>
-								{(editFormData.phones?.length
-									? editFormData.phones
-									: [""]
-								).map((phone, idx) => (
-									<div
-										key={idx}
-										className="flex items-center gap-2"
-									>
-										<Input
-											type="tel"
-											maxLength={10}
-											pattern="\d{10}"
-											placeholder="e.g., 9876543210"
-											value={phone}
-											onChange={(e) => {
-												const val =
-													e.target.value.replace(
-														/\D/g,
-														"",
-													);
-												const newPhones = [
-													...(editFormData.phones ||
-														[]),
-												];
-												newPhones[idx] = val;
-												setEditFormData({
-													...editFormData,
-													phones: newPhones,
-												});
-											}}
-										/>
-										{(editFormData.phones?.length
-											? editFormData.phones.length
-											: 1) > 1 && (
-											<Button
-												type="button"
-												variant="ghost"
-												size="icon"
-												className="text-red-500 hover:text-red-700 hover:bg-red-50"
-												onClick={() => {
-													const newPhones = (
-														editFormData.phones ||
-														[]
-													).filter(
-														(_, i) => i !== idx,
-													);
-													if (newPhones.length === 0)
-														newPhones.push("");
-													setEditFormData({
-														...editFormData,
-														phones: newPhones,
-													});
-												}}
-											>
-												<Trash2 className="w-4 h-4" />
-											</Button>
-										)}
-									</div>
-								))}
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									className="w-full mt-2"
-									onClick={() => {
-										setEditFormData({
-											...editFormData,
-											phones: [
-												...(editFormData.phones || []),
-												"",
-											],
-										});
-									}}
-								>
-									<Plus className="w-4 h-4 mr-2" />
-									Add Phone Number
-								</Button>
-							</div>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="edit_password">
-								New Password (leave empty to keep current)
-							</Label>
-							<div className="relative">
-								<Input
-									id="edit_password"
-									type={showPassword ? "text" : "password"}
-									placeholder="Enter new password"
-									value={editFormData.password ?? ""}
-									onChange={(e) =>
-										setEditFormData({
-											...editFormData,
-											password: e.target.value,
-										})
-									}
-								/>
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-									onClick={() =>
-										setShowPassword(!showPassword)
-									}
-								>
-									{showPassword ? (
-										<EyeOff className="h-4 w-4 text-muted-foreground" />
-									) : (
-										<Eye className="h-4 w-4 text-muted-foreground" />
-									)}
-								</Button>
-							</div>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setIsEditDialogOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={handleEditUser}
-							disabled={isSubmitting}
-							className="bg-emerald-600 hover:bg-emerald-700"
-						>
-							{isSubmitting ? "Saving..." : "Save Changes"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<DepartmentMemberDialog
+				mode="edit"
+				open={isEditDialogOpen}
+				onOpenChange={setIsEditDialogOpen}
+				formData={editFormData}
+				setFormData={setEditFormData}
+				onSubmit={handleEditUser}
+				isSubmitting={isSubmitting}
+				onCancel={() => {
+					setIsEditDialogOpen(false);
+					setSelectedUser(null);
+				}}
+			/>
 		</Card>
 	);
 }

@@ -20,10 +20,11 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { CreateBaseCourseDialog } from "./CreateBaseCourseDialog";
 import { DeleteCourseDialog } from "./DeleteCourseDialog";
 import { EditBaseCourseDialog } from "./EditBaseCourseDialog";
+import { sortableHeader } from "../shared/tableUtils";
 
 export interface BaseCourseListProps {
 	fetchFn?: (
@@ -59,18 +60,7 @@ function createBaseCourseColumns(
 	const columns: ColumnDef<BaseCourse>[] = [
 		{
 			accessorKey: "course_code",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-					className="p-0 hover:bg-transparent"
-				>
-					Code
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Code"),
 			cell: ({ row }) => (
 				<Badge variant="outline" className="font-mono text-xs">
 					{row.getValue("course_code")}
@@ -79,18 +69,7 @@ function createBaseCourseColumns(
 		},
 		{
 			accessorKey: "course_name",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-					className="p-0 hover:bg-transparent"
-				>
-					Course Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Course Name"),
 			cell: ({ row }) => (
 				<div className="font-medium max-w-[250px] truncate">
 					{row.getValue("course_name")}
