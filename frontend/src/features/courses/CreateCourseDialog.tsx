@@ -25,6 +25,7 @@ export interface CreateCourseDialogProps {
 	onSave: (data: any) => Promise<void>;
 	isLoading?: boolean;
 	initialData?: any;
+	mode?: "base" | "offering";
 }
 
 export function CreateCourseDialog({
@@ -33,6 +34,7 @@ export function CreateCourseDialog({
 	onSave,
 	isLoading = false,
 	initialData,
+	mode = "offering",
 }: CreateCourseDialogProps) {
 	const defaultFormData = {
 		course_code: "",
@@ -97,7 +99,7 @@ export function CreateCourseDialog({
 		if (
 			!formData.course_code ||
 			!formData.course_name ||
-			!formData.faculty_id
+			(mode === "offering" && !formData.faculty_id)
 		) {
 			return;
 		}
@@ -106,13 +108,19 @@ export function CreateCourseDialog({
 			course_code: formData.course_code,
 			name: formData.course_name,
 			credit: parseInt(formData.credit),
-			course_type: formData.course_type,
-			course_level: formData.course_level,
-			year: parseInt(formData.year),
-			semester: formData.semester,
-			faculty_id: parseInt(formData.faculty_id),
-			co_threshold: parseFloat(formData.co_threshold),
-			passing_threshold: parseFloat(formData.passing_threshold),
+			...(mode === "offering"
+				? {
+						course_type: formData.course_type,
+						course_level: formData.course_level,
+						year: parseInt(formData.year),
+						semester: formData.semester,
+						faculty_id: parseInt(formData.faculty_id),
+						co_threshold: parseFloat(formData.co_threshold),
+						passing_threshold: parseFloat(
+							formData.passing_threshold,
+						),
+					}
+				: {}),
 		});
 
 		setFormData(defaultFormData);
@@ -194,7 +202,6 @@ export function CreateCourseDialog({
 							Or enter course details manually below
 						</p>
 					</div>
-
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-1.5">
 							<Label>Course Code *</Label>
@@ -242,7 +249,6 @@ export function CreateCourseDialog({
 							</Select>
 						</div>
 					</div>
-
 					<div className="space-y-1.5">
 						<Label>Course Name *</Label>
 						<Input
@@ -259,7 +265,6 @@ export function CreateCourseDialog({
 							placeholder="e.g., Biochemistry"
 						/>
 					</div>
-
 					{selectedBaseCourseid === null && (
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-1.5">
@@ -321,120 +326,125 @@ export function CreateCourseDialog({
 							</div>
 						</div>
 					)}
-
-					<div className="grid grid-cols-3 gap-4">
-						<div className="space-y-1.5">
-							<Label>Year</Label>
-							<Input
-								type="number"
-								value={formData.year}
-								onChange={(e) =>
-									setFormData((f) => ({
-										...f,
-										year: e.target.value,
-									}))
-								}
-								disabled={isLoading}
-								min="2020"
-								max="2050"
-							/>
-						</div>
-						<div className="space-y-1.5">
-							<Label>Semester</Label>
-							<Select
-								value={formData.semester}
-								onValueChange={(value) =>
-									setFormData((f) => ({
-										...f,
-										semester: value,
-									}))
-								}
-								disabled={isLoading}
-							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{["Autumn", "Spring"].map((s) => (
-										<SelectItem key={s} value={s}>
-											{s}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-1.5">
-							<Label>Faculty *</Label>
-							<Select
-								value={formData.faculty_id}
-								onValueChange={(value) =>
-									setFormData((f) => ({
-										...f,
-										faculty_id: value,
-									}))
-								}
-								disabled={isLoading || isFetchingFaculties}
-							>
-								<SelectTrigger className="w-full">
-									<SelectValue placeholder="Select Faculty" />
-								</SelectTrigger>
-								<SelectContent className="max-h-[200px]">
-									{faculties.map((faculty) => (
-										<SelectItem
-											key={faculty.employee_id}
-											value={faculty.employee_id.toString()}
-										>
-											{faculty.username} (
-											{faculty.employee_id})
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					</div>
-
-					<div className="grid grid-cols-2 gap-4">
-						<div className="space-y-1.5">
-							<Label>CO Attainment Threshold (%)</Label>
-							<Input
-								type="number"
-								value={formData.co_threshold}
-								onChange={(e) =>
-									setFormData((f) => ({
-										...f,
-										co_threshold: e.target.value,
-									}))
-								}
-								disabled={isLoading}
-								min="0"
-								max="100"
-							/>
-							<p className="text-[10px] text-muted-foreground">
-								Target percentage of students achieving target
-								marks
-							</p>
-						</div>
-						<div className="space-y-1.5">
-							<Label>Passing Threshold (%)</Label>
-							<Input
-								type="number"
-								value={formData.passing_threshold}
-								onChange={(e) =>
-									setFormData((f) => ({
-										...f,
-										passing_threshold: e.target.value,
-									}))
-								}
-								disabled={isLoading}
-								min="0"
-								max="100"
-							/>
-							<p className="text-[10px] text-muted-foreground">
-								Target marks percentage for a student to "pass"
-								a CO
-							</p>
-						</div>
-					</div>
+					{mode === "offering" && (
+						<>
+							<div className="grid grid-cols-3 gap-4">
+								<div className="space-y-1.5">
+									<Label>Year</Label>
+									<Input
+										type="number"
+										value={formData.year}
+										onChange={(e) =>
+											setFormData((f) => ({
+												...f,
+												year: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+										min="2020"
+										max="2050"
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Semester</Label>
+									<Select
+										value={formData.semester}
+										onValueChange={(value) =>
+											setFormData((f) => ({
+												...f,
+												semester: value,
+											}))
+										}
+										disabled={isLoading}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{["Autumn", "Spring"].map((s) => (
+												<SelectItem key={s} value={s}>
+													{s}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Faculty *</Label>
+									<Select
+										value={formData.faculty_id}
+										onValueChange={(value) =>
+											setFormData((f) => ({
+												...f,
+												faculty_id: value,
+											}))
+										}
+										disabled={
+											isLoading || isFetchingFaculties
+										}
+									>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Select Faculty" />
+										</SelectTrigger>
+										<SelectContent className="max-h-[200px]">
+											{faculties.map((faculty) => (
+												<SelectItem
+													key={faculty.employee_id}
+													value={faculty.employee_id.toString()}
+												>
+													{faculty.username} (
+													{faculty.employee_id})
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-1.5">
+									<Label>CO Attainment Threshold (%)</Label>
+									<Input
+										type="number"
+										value={formData.co_threshold}
+										onChange={(e) =>
+											setFormData((f) => ({
+												...f,
+												co_threshold: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+										min="0"
+										max="100"
+									/>
+									<p className="text-[10px] text-muted-foreground">
+										Target percentage of students achieving
+										target marks
+									</p>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Passing Threshold (%)</Label>
+									<Input
+										type="number"
+										value={formData.passing_threshold}
+										onChange={(e) =>
+											setFormData((f) => ({
+												...f,
+												passing_threshold:
+													e.target.value,
+											}))
+										}
+										disabled={isLoading}
+										min="0"
+										max="100"
+									/>
+									<p className="text-[10px] text-muted-foreground">
+										Target marks percentage for a student to
+										"pass" a CO
+									</p>
+								</div>
+							</div>{" "}
+						</>
+					)}{" "}
 				</div>
 
 				<DialogFooter>
@@ -451,7 +461,7 @@ export function CreateCourseDialog({
 							isLoading ||
 							!formData.course_code ||
 							!formData.course_name ||
-							!formData.faculty_id
+							(mode === "offering" && !formData.faculty_id)
 						}
 					>
 						{isLoading ? "Creating..." : "Create Course"}

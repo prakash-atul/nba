@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { usePaginatedData } from "@/lib/usePaginatedData";
 import type {
 	Student,
@@ -7,7 +7,7 @@ import type {
 	UpdateStudentRequest,
 } from "@/services/api";
 import { DataTable } from "@/features/shared/DataTable";
-import { Badge } from "@/components/ui/badge";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

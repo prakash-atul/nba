@@ -26,6 +26,7 @@ export interface EditCourseDialogProps {
 	onOpenChange: (open: boolean) => void;
 	onSave: (courseId: number | undefined, data: any) => Promise<void>;
 	isLoading?: boolean;
+	mode?: "base" | "offering";
 }
 
 export function EditCourseDialog({
@@ -34,6 +35,7 @@ export function EditCourseDialog({
 	onOpenChange,
 	onSave,
 	isLoading = false,
+	mode = "offering",
 }: EditCourseDialogProps) {
 	const [formData, setFormData] = useState(() => ({
 		course_code: course?.course_code || "",
@@ -44,6 +46,8 @@ export function EditCourseDialog({
 		year: (course?.year || new Date().getFullYear()).toString(),
 		semester: course?.semester || "Autumn",
 		faculty_id: (course?.faculty_id || "").toString(),
+		co_threshold: (course?.co_threshold || 40).toString(),
+		passing_threshold: (course?.passing_threshold || 60).toString(),
 	}));
 
 	const [faculties, setFaculties] = useState<DepartmentFaculty[]>([]);
@@ -79,6 +83,8 @@ export function EditCourseDialog({
 				year: (course.year || new Date().getFullYear()).toString(),
 				semester: course.semester || "Autumn",
 				faculty_id: (course.faculty_id || "").toString(),
+				co_threshold: (course.co_threshold || 40).toString(),
+				passing_threshold: (course.passing_threshold || 60).toString(),
 			});
 		}
 	}, [course, open]);
@@ -228,76 +234,114 @@ export function EditCourseDialog({
 						</div>
 					</div>
 
-					<div className="grid grid-cols-3 gap-4">
-						<div className="space-y-1.5">
-							<Label>Year</Label>
-							<Input
-								type="number"
-								value={formData.year}
-								onChange={(e) =>
-									setFormData((f) => ({
-										...f,
-										year: e.target.value,
-									}))
-								}
-								disabled={isLoading}
-								min="2020"
-								max="2050"
-							/>
-						</div>
-						<div className="space-y-1.5">
-							<Label>Semester</Label>
-							<Select
-								value={formData.semester}
-								onValueChange={(value) =>
-									setFormData((f) => ({
-										...f,
-										semester: value,
-									}))
-								}
-								disabled={isLoading}
-							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{["Autumn", "Spring"].map((s) => (
-										<SelectItem key={s} value={s}>
-											{s}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-1.5">
-							<Label>Faculty *</Label>
-							<Select
-								value={formData.faculty_id}
-								onValueChange={(value) =>
-									setFormData((f) => ({
-										...f,
-										faculty_id: value,
-									}))
-								}
-								disabled={isLoading || isFetchingFaculties}
-							>
-								<SelectTrigger className="w-full">
-									<SelectValue placeholder="Select Faculty" />
-								</SelectTrigger>
-								<SelectContent className="max-h-[200px]">
-									{faculties.map((faculty) => (
-										<SelectItem
-											key={faculty.employee_id}
-											value={faculty.employee_id.toString()}
-										>
-											{faculty.username} (
-											{faculty.employee_id})
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					</div>
+					{mode === "offering" && (
+						<>
+							<div className="grid grid-cols-3 gap-4">
+								<div className="space-y-1.5">
+									<Label>Year</Label>
+									<Input
+										type="number"
+										value={formData.year}
+										onChange={(e) =>
+											setFormData((f) => ({
+												...f,
+												year: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+										min="2020"
+										max="2050"
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Semester</Label>
+									<Select
+										value={formData.semester}
+										onValueChange={(value) =>
+											setFormData((f) => ({
+												...f,
+												semester: value,
+											}))
+										}
+										disabled={isLoading}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{["Autumn", "Spring"].map((s) => (
+												<SelectItem key={s} value={s}>
+													{s}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Faculty *</Label>
+									<Select
+										value={formData.faculty_id}
+										onValueChange={(value) =>
+											setFormData((f) => ({
+												...f,
+												faculty_id: value,
+											}))
+										}
+										disabled={
+											isLoading || isFetchingFaculties
+										}
+									>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Select Faculty" />
+										</SelectTrigger>
+										<SelectContent className="max-h-[200px]">
+											{faculties.map((faculty) => (
+												<SelectItem
+													key={faculty.employee_id}
+													value={faculty.employee_id.toString()}
+												>
+													{faculty.username} (
+													{faculty.employee_id})
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-1.5">
+									<Label>CO Attainment Threshold (%)</Label>
+									<Input
+										type="number"
+										value={formData.co_threshold}
+										onChange={(e) =>
+											setFormData((f) => ({
+												...f,
+												co_threshold: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Passing Threshold (%)</Label>
+									<Input
+										type="number"
+										value={formData.passing_threshold}
+										onChange={(e) =>
+											setFormData((f) => ({
+												...f,
+												passing_threshold:
+													e.target.value,
+											}))
+										}
+										disabled={isLoading}
+									/>
+								</div>
+							</div>
+						</>
+					)}
 				</div>
 
 				<DialogFooter>
@@ -310,7 +354,12 @@ export function EditCourseDialog({
 					</Button>
 					<Button
 						onClick={handleSave}
-						disabled={isLoading || !formData.faculty_id}
+						disabled={
+							isLoading ||
+							!formData.course_code ||
+							!formData.course_name ||
+							(mode === "offering" && !formData.faculty_id)
+						}
 					>
 						{isLoading ? "Saving..." : "Save Changes"}
 					</Button>

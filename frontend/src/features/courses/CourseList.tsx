@@ -29,6 +29,7 @@ export interface CourseListProps {
 	fetchFn?: (
 		params: PaginationParams,
 	) => Promise<PaginatedResponse<AdminCourse>>;
+	initialFilters?: Record<string, string | number | undefined>;
 	clientData?: AdminCourse[];
 
 	// Permissions & capabilities
@@ -74,14 +75,18 @@ export interface CourseListProps {
 	onRefresh?: () => void;
 	onViewCOPO?: (course: AdminCourse) => void;
 
+	mode?: "base" | "offering";
+
 	department_id?: number | null;
 }
 
 export function CourseList({
 	fetchFn,
+	initialFilters,
 	clientData,
 	permissions = {},
 	title = "Courses",
+	mode = "offering",
 	hideHeader = false,
 	showFaculty = true,
 	showDepartment = permissions.canViewDepartment,
@@ -134,7 +139,10 @@ export function CourseList({
 		search,
 		setSearch,
 		setFilter,
-	} = usePaginatedData<AdminCourse>({
+	} = usePaginatedData<
+		AdminCourse,
+		Record<string, string | number | undefined>
+	>({
 		fetchFn:
 			fetchFn ||
 			(() =>
@@ -145,6 +153,7 @@ export function CourseList({
 					message: "",
 				})),
 		limit: pageSize,
+		initialFilters,
 		defaultSort: "-course_code",
 	});
 
@@ -488,8 +497,9 @@ export function CourseList({
 				open={!!editTarget}
 				course={editTarget}
 				onOpenChange={(open) => !open && setEditTarget(null)}
-				onSave={handleEditSave}
+				onSave={handleEditSave as any}
 				isLoading={editSaving}
+				mode={mode}
 			/>
 			<CreateCourseDialog
 				open={createOpen}
