@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DataTable } from "@/features/shared/DataTable";
+import { UserList, getBaseUserColumns } from "@/features/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -107,63 +107,7 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 	};
 
 	const columns: ColumnDef<User>[] = [
-		{
-			accessorKey: "employee_id",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Employee ID
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<Badge variant="outline" className="font-mono">
-					{row.getValue("employee_id")}
-				</Badge>
-			),
-		},
-		{
-			accessorKey: "username",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<div className="flex">{row.getValue("username")}</div>
-			),
-		},
-		{
-			accessorKey: "email",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Email
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<Badge variant="outline" className="flex">
-					{row.getValue("email")}
-				</Badge>
-			),
-		},
+		...getBaseUserColumns<User>(),
 		{
 			accessorKey: "designation",
 			header: ({ column }) => (
@@ -388,7 +332,7 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 				</div>
 			</div>
 
-			<DataTable
+			<UserList
 				columns={columns}
 				data={users}
 				searchPlaceholder="Search users..."
@@ -472,7 +416,7 @@ export function UsersView({ currentUser }: { currentUser?: User | null }) {
 						)}
 					</>
 				)}
-			</DataTable>
+			</UserList>
 
 			<Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
 				<DialogContent className="sm:max-w-[500px]">

@@ -32,3 +32,11 @@ export {
 	createDeanStats,
 	createStaffStats,
 } from "./statsFactory";
+export {
+        createAdminQuickAccess,
+        createHODQuickAccess,
+        createFacultyQuickAccess,
+        createStaffQuickAccess,
+} from "./quickAccessFactory";
+
+export { UserList, getBaseUserColumns, type BaseUserType } from './UserList';

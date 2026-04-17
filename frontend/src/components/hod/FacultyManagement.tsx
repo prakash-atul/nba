@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-	ArrowUpDown,
 	Plus,
 	Pencil,
 	Trash2,
@@ -50,7 +49,7 @@ import type {
 } from "@/services/api";
 import { hodApi } from "@/services/api/hod";
 import { usePaginatedData } from "@/lib/usePaginatedData";
-import { DataTable } from "@/features/shared/DataTable";
+import { UserList, getBaseUserColumns } from "@/features/shared";
 import { UserPhonesRow } from "@/features/users";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -338,65 +337,7 @@ export function FacultyManagement() {
 	};
 
 	const columns: ColumnDef<DepartmentFaculty>[] = [
-		{
-			accessorKey: "employee_id",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Emp. ID
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<Badge variant="outline" className="font-mono">
-					{row.getValue("employee_id")}
-				</Badge>
-			),
-		},
-		{
-			accessorKey: "username",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<div className="font-medium flex">
-					{row.getValue("username")}
-				</div>
-			),
-		},
-		{
-			accessorKey: "email",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Email
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<Badge variant="outline" className="flex">
-					{row.getValue("email")}
-				</Badge>
-			),
-		},
+		...getBaseUserColumns<DepartmentFaculty>(),
 		{
 			accessorKey: "designation",
 			header: "Designation",
@@ -757,7 +698,7 @@ export function FacultyManagement() {
 				</Dialog>
 			</CardHeader>
 			<CardContent>
-				<DataTable
+				<UserList
 					columns={columns}
 					data={faculty}
 					refreshing={isLoading}
@@ -770,7 +711,7 @@ export function FacultyManagement() {
 						search,
 						onSearch: setSearch,
 					}}
-					renderSubRow={(row) => (
+					renderSubRow={(row: any) => (
 						<UserPhonesRow
 							employeeId={(row.original as any).employee_id}
 						/>
@@ -793,7 +734,7 @@ export function FacultyManagement() {
 							</SelectContent>
 						</Select>
 					)}
-				</DataTable>
+				</UserList>
 			</CardContent>
 
 			{/* Edit Dialog */}
