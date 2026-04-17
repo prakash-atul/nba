@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/features/shared/DataTable";
+import { TestList, getBaseTestColumns } from "@/features/shared";
 import { ArrowUpDown, ClipboardList, X } from "lucide-react";
 import type { DeanTest, DeanDepartment } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -17,53 +17,30 @@ import {
 import { formatOrdinal } from "@/lib/utils";
 
 const columns: ColumnDef<DeanTest>[] = [
-	{
-		accessorKey: "test_name",
-		header: ({ column }) => (
-			<Button
-				variant="ghost"
-				className="mr-auto"
-				onClick={() =>
-					column.toggleSorting(column.getIsSorted() === "asc")
-				}
-			>
-				Test Name
-				<ArrowUpDown className="ml-2 h-4 w-4" />
-			</Button>
-		),
-		cell: ({ row }) => (
-			<div className="font-medium flex">{row.getValue("test_name")}</div>
-		),
-	},
-	{
-		accessorKey: "course_code",
-		header: ({ column }) => (
-			<Button
-				variant="ghost"
-				onClick={() =>
-					column.toggleSorting(column.getIsSorted() === "asc")
-				}
-			>
-				Course
-				<ArrowUpDown className="ml-2 h-4 w-4" />
-			</Button>
-		),
-		cell: ({ row }) => (
-			<div className="flex gap-2 items-center">
-				<Badge variant="outline" className="font-mono shrink-0">
-					{row.getValue("course_code")}
-				</Badge>
-				<span
-					className="text-xs text-muted-foreground max-w-32"
-					title={row.original.course_name}
-				>
-					{row.original.course_name}
-				</span>
-			</div>
-		),
-	},
-	{
-		accessorKey: "faculty_name",
+		...getBaseTestColumns<DeanTest>(),
+		{
+			accessorKey: "course_code",
+			header: "Course",
+			cell: ({ row }) => (
+				<div className="flex gap-2 items-center">
+					<Badge variant="outline" className="font-mono shrink-0">
+						{row.getValue("course_code")}
+					</Badge>
+					<span
+						className="text-xs text-muted-foreground max-w-32"
+						title={row.original.course_name}
+					>
+						{row.original.course_name}
+					</span>
+				</div>
+			),
+		},
+		{
+			accessorKey: "test_type",
+			header: "Type",
+		},
+		{
+			accessorKey: "faculty_name",
 		header: ({ column }) => (
 			<Button
 				variant="ghost"
@@ -227,7 +204,7 @@ export function TestsView() {
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<DataTable
+				<TestList
 					columns={columns}
 					data={tests}
 					searchPlaceholder="Search tests..."
@@ -323,7 +300,7 @@ export function TestsView() {
 							)}
 						</>
 					)}
-				</DataTable>
+				</TestList>
 			</CardContent>
 		</Card>
 	);

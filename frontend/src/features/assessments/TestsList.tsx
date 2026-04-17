@@ -1,10 +1,8 @@
-import { DataTable } from "@/features/shared/DataTable";
+import { TestList, getBaseTestColumns } from "@/features/shared";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
 	DialogContent,
@@ -45,46 +43,7 @@ export function TestsList({
 	const [isDeleting, setIsDeleting] = useState(false);
 
 	const columns: ColumnDef<Test>[] = [
-		{
-			accessorKey: "name",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-					className="p-0 hover:bg-transparent"
-				>
-					Test Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
-			cell: ({ row }) => (
-				<div className="font-medium">{row.getValue("name")}</div>
-			),
-		},
-		{
-			accessorKey: "full_marks",
-			header: "Full Marks",
-			cell: ({ row }) => (
-				<div className="text-center">
-					<Badge variant="outline">
-						{row.getValue("full_marks")}
-					</Badge>
-				</div>
-			),
-		},
-		{
-			accessorKey: "pass_marks",
-			header: "Pass Marks",
-			cell: ({ row }) => (
-				<div className="text-center">
-					<Badge variant="outline">
-						{row.getValue("pass_marks")}
-					</Badge>
-				</div>
-			),
-		},
+		...getBaseTestColumns<Test>(),
 		{
 			id: "actions",
 			header: () => <div className="text-right">Actions</div>,
@@ -223,7 +182,7 @@ export function TestsList({
 
 			<Card className="shadow-sm">
 				<CardContent className="px-5">
-					<DataTable
+					<TestList
 						columns={columns}
 						data={tests}
 						searchKey="name"

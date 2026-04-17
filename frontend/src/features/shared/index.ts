@@ -40,3 +40,5 @@ export {
 } from "./quickAccessFactory";
 
 export { UserList, getBaseUserColumns, type BaseUserType } from './UserList';
+
+export { TestList, getBaseTestColumns, type BaseTestType } from './TestList';
