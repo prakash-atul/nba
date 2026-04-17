@@ -5,34 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import {
-	Plus,
-	Trash2,
-	UserPlus,
-	Pencil,
-	School as SchoolIcon,
-} from "lucide-react";
+import { Trash2, UserPlus, Pencil, School as SchoolIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { adminApi } from "@/services/api/admin";
 import type { School, User } from "@/services/api/types";
-import { generateAppointmentOrder } from "@/utils/appointmentUtils";
+import { CreateSchoolDialog } from "./CreateSchoolDialog";
+import { EditSchoolDialog } from "./EditSchoolDialog";
+import { AppointDeanDialog } from "./AppointDeanDialog";
 
 export function SchoolsView() {
 	const [schools, setSchools] = useState<School[]>([]);
@@ -65,7 +45,6 @@ export function SchoolsView() {
 	const [isEditSchoolOpen, setIsEditSchoolOpen] = useState(false);
 	const [isAppointDeanOpen, setIsAppointDeanOpen] = useState(false);
 	const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
-	const [submitting, setSubmitting] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 
 	// Filter schools based on search query
@@ -85,92 +64,14 @@ export function SchoolsView() {
 		[users],
 	);
 
-	// Create/Edit School Form
-	const [schoolForm, setSchoolForm] = useState({
-		school_code: "",
-		school_name: "",
-		description: "",
-	});
-
-	// Appoint Dean Form
-	const [appointDeanForm, setAppointDeanForm] = useState({
-		employee_id: "",
-		appointment_order: "",
-	});
-
-	// Auto-generate appointment order when dialog opens and school is selected
-	useEffect(() => {
-		if (isAppointDeanOpen && selectedSchool) {
-			setAppointDeanForm((prev) => ({
-				...prev,
-				appointment_order: generateAppointmentOrder(
-					"DEAN",
-					selectedSchool.school_id,
-				),
-			}));
-		}
-	}, [isAppointDeanOpen, selectedSchool]);
-
-	const resetForm = () => {
-		setSchoolForm({
-			school_code: "",
-			school_name: "",
-			description: "",
-		});
-	};
-
-	const handleCreateSchool = async () => {
-		if (!schoolForm.school_name.trim() || !schoolForm.school_code.trim()) {
-			toast.error("School name and code are required");
-			return;
-		}
-
-		setSubmitting(true);
-		try {
-			await adminApi.createSchool(schoolForm);
-			toast.success("School created successfully");
-			setIsCreateSchoolOpen(false);
-			resetForm();
-			onDataRefresh();
-		} catch (error: any) {
-			toast.error(error.message || "Failed to create school");
-		} finally {
-			setSubmitting(false);
-		}
-	};
-
 	const openEditSchoolDialog = (school: School) => {
 		setSelectedSchool(school);
-		setSchoolForm({
-			school_code: school.school_code,
-			school_name: school.school_name,
-			description: school.description || "",
-		});
 		setIsEditSchoolOpen(true);
 	};
 
-	const handleUpdateSchool = async () => {
-		if (
-			!selectedSchool ||
-			!schoolForm.school_name.trim() ||
-			!schoolForm.school_code.trim()
-		) {
-			toast.error("School name and code are required");
-			return;
-		}
-
-		setSubmitting(true);
-		try {
-			await adminApi.updateSchool(selectedSchool.school_id, schoolForm);
-			toast.success("School updated successfully");
-			setIsEditSchoolOpen(false);
-			resetForm();
-			onDataRefresh();
-		} catch (error: any) {
-			toast.error(error.message || "Failed to update school");
-		} finally {
-			setSubmitting(false);
-		}
+	const openAppointDeanDialog = (school: School) => {
+		setSelectedSchool(school);
+		setIsAppointDeanOpen(true);
 	};
 
 	const handleDeleteSchool = async (school: School) => {
@@ -188,38 +89,6 @@ export function SchoolsView() {
 			onDataRefresh();
 		} catch (error: any) {
 			toast.error(error.message || "Failed to delete school");
-		}
-	};
-
-	const openAppointDeanDialog = (school: School) => {
-		setSelectedSchool(school);
-		setAppointDeanForm({ employee_id: "", appointment_order: "" });
-		setIsAppointDeanOpen(true);
-	};
-
-	const handleAppointDean = async () => {
-		if (
-			!selectedSchool ||
-			!appointDeanForm.employee_id ||
-			!appointDeanForm.appointment_order
-		) {
-			toast.error("Please fill in all fields");
-			return;
-		}
-
-		setSubmitting(true);
-		try {
-			await adminApi.appointDean(selectedSchool.school_id, {
-				employee_id: parseInt(appointDeanForm.employee_id),
-				appointment_order: appointDeanForm.appointment_order,
-			});
-			toast.success("Dean appointed successfully");
-			setIsAppointDeanOpen(false);
-			onDataRefresh();
-		} catch (error: any) {
-			toast.error(error.message || "Failed to appoint Dean");
-		} finally {
-			setSubmitting(false);
 		}
 	};
 
@@ -250,258 +119,28 @@ export function SchoolsView() {
 						Manage schools and appoint Deans
 					</p>
 				</div>
-				<Dialog
-					open={isCreateSchoolOpen}
+				<CreateSchoolDialog
+					isOpen={isCreateSchoolOpen}
 					onOpenChange={setIsCreateSchoolOpen}
-				>
-					<DialogTrigger asChild>
-						<Button className="gap-2" onClick={resetForm}>
-							<Plus className="h-4 w-4" />
-							Add School
-						</Button>
-					</DialogTrigger>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>Create New School</DialogTitle>
-							<DialogDescription>
-								Add a new school to the university.
-							</DialogDescription>
-						</DialogHeader>
-						<div className="py-4 space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor="school-code">School Code</Label>
-								<Input
-									id="school-code"
-									value={schoolForm.school_code}
-									onChange={(e) =>
-										setSchoolForm({
-											...schoolForm,
-											school_code: e.target.value,
-										})
-									}
-									placeholder="e.g. SOE"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="school-name">School Name</Label>
-								<Input
-									id="school-name"
-									value={schoolForm.school_name}
-									onChange={(e) =>
-										setSchoolForm({
-											...schoolForm,
-											school_name: e.target.value,
-										})
-									}
-									placeholder="e.g. School of Engineering"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="description">
-									Description (Optional)
-								</Label>
-								<Input
-									id="description"
-									value={schoolForm.description}
-									onChange={(e) =>
-										setSchoolForm({
-											...schoolForm,
-											description: e.target.value,
-										})
-									}
-									placeholder="e.g. Engineering and Technology disciplines"
-								/>
-							</div>
-						</div>
-						<DialogFooter>
-							<Button
-								variant="outline"
-								onClick={() => setIsCreateSchoolOpen(false)}
-							>
-								Cancel
-							</Button>
-							<Button
-								onClick={handleCreateSchool}
-								disabled={submitting}
-							>
-								{submitting ? "Creating..." : "Create School"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+					onSuccess={onDataRefresh}
+				/>
 
-				<Dialog
-					open={isEditSchoolOpen}
+				<EditSchoolDialog
+					isOpen={isEditSchoolOpen}
 					onOpenChange={setIsEditSchoolOpen}
-				>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>Edit School</DialogTitle>
-							<DialogDescription>
-								Update school details.
-							</DialogDescription>
-						</DialogHeader>
-						<div className="py-4 space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor="edit-school-code">
-									School Code
-								</Label>
-								<Input
-									id="edit-school-code"
-									value={schoolForm.school_code}
-									onChange={(e) =>
-										setSchoolForm({
-											...schoolForm,
-											school_code: e.target.value,
-										})
-									}
-									placeholder="e.g. SOE"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="edit-school-name">
-									School Name
-								</Label>
-								<Input
-									id="edit-school-name"
-									value={schoolForm.school_name}
-									onChange={(e) =>
-										setSchoolForm({
-											...schoolForm,
-											school_name: e.target.value,
-										})
-									}
-									placeholder="e.g. School of Engineering"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="edit-description">
-									Description (Optional)
-								</Label>
-								<Input
-									id="edit-description"
-									value={schoolForm.description}
-									onChange={(e) =>
-										setSchoolForm({
-											...schoolForm,
-											description: e.target.value,
-										})
-									}
-									placeholder="e.g. Engineering and Technology disciplines"
-								/>
-							</div>
-						</div>
-						<DialogFooter>
-							<Button
-								variant="outline"
-								onClick={() => setIsEditSchoolOpen(false)}
-							>
-								Cancel
-							</Button>
-							<Button
-								onClick={handleUpdateSchool}
-								disabled={submitting}
-							>
-								{submitting ? "Updating..." : "Update School"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+					onSuccess={onDataRefresh}
+					school={selectedSchool}
+				/>
 			</div>
 
-			{/* Appoint Dean Dialog */}
-			<Dialog
-				open={isAppointDeanOpen}
+			{/* Appoint Dean Dialog extracted to separate component */}
+			<AppointDeanDialog
+				isOpen={isAppointDeanOpen}
 				onOpenChange={setIsAppointDeanOpen}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>
-							Appoint Dean - {selectedSchool?.school_name}
-						</DialogTitle>
-						<DialogDescription>
-							Select a faculty member to appoint as Dean.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="py-4 space-y-4">
-						<div className="space-y-2">
-							<Label>Faculty Member</Label>
-							<Select
-								value={appointDeanForm.employee_id}
-								onValueChange={(val) =>
-									setAppointDeanForm({
-										...appointDeanForm,
-										employee_id: val,
-									})
-								}
-							>
-								<SelectTrigger>
-									<SelectValue placeholder="Select faculty" />
-								</SelectTrigger>
-								<SelectContent>
-									{facultyUsers
-										.filter(
-											(u) =>
-												selectedSchool &&
-												Number(u.school_id) ===
-													selectedSchool.school_id,
-										)
-										.map((u) => (
-											<SelectItem
-												key={u.employee_id}
-												value={u.employee_id.toString()}
-											>
-												{u.username} ({u.employee_id})
-												{u.department_code
-													? ` - ${u.department_code}`
-													: ""}
-											</SelectItem>
-										))}
-									{facultyUsers.filter(
-										(u) =>
-											selectedSchool &&
-											Number(u.school_id) ===
-												selectedSchool.school_id,
-									).length === 0 && (
-										<SelectItem value="none" disabled>
-											No eligible faculty found in this
-											school
-										</SelectItem>
-									)}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="order">Appointment Order No.</Label>
-							<Input
-								id="order"
-								value={appointDeanForm.appointment_order}
-								onChange={(e) =>
-									setAppointDeanForm({
-										...appointDeanForm,
-										appointment_order: e.target.value,
-									})
-								}
-								placeholder="e.g. ORD/DEAN/2026/01"
-							/>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setIsAppointDeanOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={handleAppointDean}
-							disabled={submitting}
-						>
-							{submitting ? "Appointing..." : "Appoint Dean"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				onSuccess={onDataRefresh}
+				school={selectedSchool}
+				facultyUsers={facultyUsers}
+			/>
 
 			<div className="flex w-full max-w-sm items-center space-x-2 pb-4">
 				<Input

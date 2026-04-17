@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+
+
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -27,19 +27,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
 	BookOpen,
-	Upload,
-	Download,
-	Users,
+		Users,
 	Trash2,
-	CheckCircle2,
-	FileText,
-	UserPlus,
-	X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { staffApi } from "@/services/api";
 import type { StaffCourse, Enrollment } from "@/services/api";
 import { usePaginatedData } from "@/lib/usePaginatedData";
+import { StaffStudentUpload } from "./StaffStudentUpload";
 
 interface StudentEntry {
 	rollno: string;
@@ -68,11 +63,8 @@ export function StaffEnrollmentView() {
 	);
 	const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
 	const [loadingEnrollments, setLoadingEnrollments] = useState(false);
-	const [file, setFile] = useState<File | null>(null);
 	const [students, setStudents] = useState<StudentEntry[]>([]);
-	const [, setUploading] = useState(false);
 	const [enrolling, setEnrolling] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const enrollmentColumns = useMemo<ColumnDef<Enrollment>[]>(
 		() => [
@@ -153,49 +145,13 @@ export function StaffEnrollmentView() {
 		],
 		[selectedCourse],
 	);
+
 
-	const studentColumns = useMemo<ColumnDef<StudentEntry>[]>(
-		() => [
-			{
-				accessorKey: "rollno",
-				header: "Roll No",
-				cell: ({ row }) => (
-					<span className="font-mono">{row.original.rollno}</span>
-				),
-			},
-			{
-				accessorKey: "name",
-				header: "Name",
-			},
-			{
-				id: "remove",
-				header: "Remove",
-				cell: ({ row }) => (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-						onClick={() =>
-							handleRemoveFromList(row.original.rollno)
-						}
-					>
-						<X className="w-4 h-4" />
-					</Button>
-				),
-			},
-		],
-		[],
-	);
-
-	// Manual enrollment state
-	const [manualRollno, setManualRollno] = useState("");
-	const [manualName, setManualName] = useState("");
 
 	const handleCourseChange = async (courseId: string) => {
 		const course = courses.find((c) => c.course_id.toString() === courseId);
 		setSelectedCourse(course || null);
 		setEnrollments([]);
-		setFile(null);
 		setStudents([]);
 
 		if (course) {
@@ -219,79 +175,7 @@ export function StaffEnrollmentView() {
 		}
 	};
 
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const selectedFile = e.target.files?.[0];
-		if (!selectedFile) return;
-
-		if (!selectedFile.name.endsWith(".csv")) {
-			toast.error("Please select a CSV file");
-			return;
-		}
-
-		setFile(selectedFile);
-		parseCSV(selectedFile);
-	};
-
-	const parseCSV = (file: File) => {
-		setUploading(true);
-		const reader = new FileReader();
-
-		reader.onload = (e) => {
-			try {
-				const text = e.target?.result as string;
-				const lines = text.split("\n").filter((line) => line.trim());
-
-				// Skip header row if it exists
-				const startIndex = lines[0].toLowerCase().includes("rollno")
-					? 1
-					: 0;
-
-				const parsedStudents: StudentEntry[] = [];
-
-				for (let i = startIndex; i < lines.length; i++) {
-					const line = lines[i].trim();
-					if (!line) continue;
-
-					// Split by comma and handle quoted values
-					const parts = line
-						.split(",")
-						.map((part) => part.trim().replace(/^"|"$/g, ""));
-
-					if (parts.length >= 2) {
-						const rollno = parts[0];
-						const name = parts[1];
-
-						if (rollno && name) {
-							parsedStudents.push({ rollno, name });
-						}
-					}
-				}
-
-				if (parsedStudents.length === 0) {
-					toast.error("No valid student entries found in CSV");
-				} else {
-					setStudents(parsedStudents);
-					toast.success(
-						`Parsed ${parsedStudents.length} students from CSV`,
-					);
-				}
-			} catch (error) {
-				console.error("CSV parsing error:", error);
-				toast.error("Failed to parse CSV file");
-			} finally {
-				setUploading(false);
-			}
-		};
-
-		reader.onerror = () => {
-			toast.error("Failed to read file");
-			setUploading(false);
-		};
-
-		reader.readAsText(file);
-	};
-
-	const handleEnroll = async () => {
+const handleEnroll = async () => {
 		if (!selectedCourse) {
 			toast.error("No course selected");
 			return;
@@ -320,11 +204,7 @@ export function StaffEnrollmentView() {
 			}
 
 			// Reset and reload
-			setFile(null);
 			setStudents([]);
-			if (fileInputRef.current) {
-				fileInputRef.current.value = "";
-			}
 			await loadEnrollments(selectedCourse.offering_id!);
 			refreshCourses();
 		} catch (error) {
@@ -358,56 +238,7 @@ export function StaffEnrollmentView() {
 		}
 	};
 
-	const downloadTemplate = () => {
-		const csvContent =
-			"rollno,name\nCS101,John Doe\nCS102,Jane Smith\nCS103,Bob Johnson";
-		const blob = new Blob([csvContent], { type: "text/csv" });
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = "student_enrollment_template.csv";
-		link.click();
-		URL.revokeObjectURL(url);
-	};
-
-	const clearUpload = () => {
-		setFile(null);
-		setStudents([]);
-		if (fileInputRef.current) {
-			fileInputRef.current.value = "";
-		}
-	};
-
-	// Manual enrollment handlers
-	const handleAddManualStudent = () => {
-		if (!manualRollno.trim()) {
-			toast.error("Please enter a roll number");
-			return;
-		}
-		if (!manualName.trim()) {
-			toast.error("Please enter student name");
-			return;
-		}
-
-		// Check for duplicate
-		if (students.some((s) => s.rollno === manualRollno.trim())) {
-			toast.error("This roll number is already in the list");
-			return;
-		}
-
-		setStudents((prev) => [
-			...prev,
-			{ rollno: manualRollno.trim(), name: manualName.trim() },
-		]);
-		setManualRollno("");
-		setManualName("");
-		toast.success("Student added to enrollment list");
-	};
-
-	const handleRemoveFromList = (rollno: string) => {
-		setStudents((prev) => prev.filter((s) => s.rollno !== rollno));
-	};
-
+	
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center h-64">
@@ -453,7 +284,7 @@ export function StaffEnrollmentView() {
 
 			{selectedCourse && (
 				<>
-					{/* Enrollment Section with Tabs */}
+					{/* Enrollment Section */}
 					<Card>
 						<CardHeader>
 							<CardTitle className="flex items-center gap-2">
@@ -465,210 +296,29 @@ export function StaffEnrollmentView() {
 							</p>
 						</CardHeader>
 						<CardContent>
-							<Tabs defaultValue="csv" className="w-full">
-								<TabsList className="grid w-full grid-cols-2 mb-4">
-									<TabsTrigger
-										value="csv"
-										className="flex items-center gap-2"
-									>
-										<Upload className="w-4 h-4" />
-										CSV Upload
-									</TabsTrigger>
-									<TabsTrigger
-										value="manual"
-										className="flex items-center gap-2"
-									>
-										<UserPlus className="w-4 h-4" />
-										Manual Entry
-									</TabsTrigger>
-								</TabsList>
-
-								{/* CSV Upload Tab */}
-								<TabsContent value="csv" className="space-y-4">
-									<div className="flex items-center justify-between">
-										<div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 flex-1">
-											<h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
-												<FileText className="w-4 h-4" />
-												CSV Format Requirements
-											</h4>
-											<ul className="text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1 list-disc list-inside">
-												<li>
-													First row should be headers:
-													rollno,name
-												</li>
-												<li>
-													Each subsequent row should
-													contain:
-													roll_number,student_name
-												</li>
-												<li>Example: CS101,John Doe</li>
-											</ul>
-										</div>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={downloadTemplate}
-											className="ml-4"
-										>
-											<Download className="w-4 h-4 mr-2" />
-											Template
-										</Button>
-									</div>
-
-									{/* File Upload */}
-									<div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6">
-										<input
-											ref={fileInputRef}
-											type="file"
-											accept=".csv"
-											onChange={handleFileChange}
-											className="hidden"
-											id="csv-upload"
-										/>
-										<label
-											htmlFor="csv-upload"
-											className="flex flex-col items-center cursor-pointer"
-										>
-											<Upload className="w-10 h-10 text-gray-400 mb-2" />
-											<span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-												{file
-													? file.name
-													: "Click to upload CSV file"}
-											</span>
-											<span className="text-xs text-gray-500 mt-1">
-												or drag and drop
-											</span>
-										</label>
-									</div>
-								</TabsContent>
-
-								{/* Manual Entry Tab */}
-								<TabsContent
-									value="manual"
-									className="space-y-4"
-								>
-									<div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4">
-										<h4 className="text-sm font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
-											<UserPlus className="w-4 h-4" />
-											Manual Student Entry
-										</h4>
-										<p className="text-sm text-green-700 dark:text-green-300 mt-1">
-											Add students one by one to the
-											enrollment list
-										</p>
-									</div>
-
-									<div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end">
-										<div className="space-y-2">
-											<Label htmlFor="rollno">
-												Roll Number
-											</Label>
-											<Input
-												id="rollno"
-												placeholder="e.g., CS101"
-												value={manualRollno}
-												onChange={(e) =>
-													setManualRollno(
-														e.target.value,
-													)
-												}
-												onKeyDown={(e) => {
-													if (e.key === "Enter") {
-														e.preventDefault();
-														document
-															.getElementById(
-																"studentName",
-															)
-															?.focus();
-													}
-												}}
-											/>
-										</div>
-										<div className="space-y-2">
-											<Label htmlFor="studentName">
-												Student Name
-											</Label>
-											<Input
-												id="studentName"
-												placeholder="e.g., John Doe"
-												value={manualName}
-												onChange={(e) =>
-													setManualName(
-														e.target.value,
-													)
-												}
-												onKeyDown={(e) => {
-													if (e.key === "Enter") {
-														e.preventDefault();
-														handleAddManualStudent();
-													}
-												}}
-											/>
-										</div>
-										<Button
-											onClick={handleAddManualStudent}
-											className="h-10"
-										>
-											<UserPlus className="w-4 h-4 mr-2" />
-											Add
-										</Button>
-									</div>
-								</TabsContent>
-							</Tabs>
-
-							{/* Preview Table - Shows for both tabs */}
+							<div className="mb-4">
+								<StaffStudentUpload
+									course={selectedCourse}
+									onStudentsChange={setStudents}
+								/>
+							</div>
 							{students.length > 0 && (
-								<div className="space-y-4 mt-6 pt-6 border-t">
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-2">
-											<CheckCircle2 className="w-5 h-5 text-green-500" />
-											<span className="font-medium">
-												{students.length} students ready
-												to enroll
-											</span>
-										</div>
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={clearUpload}
-										>
-											Clear All
-										</Button>
-									</div>
-
-									<div className="max-h-64 overflow-y-auto rounded-md border">
-										<DataTable
-											columns={studentColumns}
-											data={students}
-										/>
-									</div>
-
-									<Button
-										onClick={handleEnroll}
-										disabled={enrolling}
-										className="w-full"
-									>
-										{enrolling ? (
-											<>
-												<span className="animate-spin mr-2">
-													⏳
-												</span>
-												Enrolling...
-											</>
-										) : (
-											<>
-												<Users className="w-4 h-4 mr-2" />
-												Enroll {students.length}{" "}
-												Students
-											</>
-										)}
-									</Button>
-								</div>
+								<Button onClick={handleEnroll} disabled={enrolling} className="w-full mt-4">
+									{enrolling ? (
+										<>
+											<span className="animate-spin mr-2">?</span>Enrolling...
+										</>
+									) : (
+										<>
+											<Users className="w-4 h-4 mr-2" />Enroll {students.length} Students
+										</>
+									)}
+								</Button>
 							)}
 						</CardContent>
 					</Card>
 
-					{/* Current Enrollments */}
+										{/* Current Enrollments */}
 					<Card>
 						<CardHeader>
 							<div className="flex items-center justify-between">
