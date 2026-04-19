@@ -1,7 +1,6 @@
 import { useOutletContext } from "react-router-dom";
 import { AppHeader } from "@/components/layout";
 import { UserList } from "@/features/users";
-import { AdminDebugPanel } from "@/features/admin/AdminDebugPanel";
 import { adminApi } from "@/services/api/admin";
 import { apiService } from "@/services/api";
 
@@ -41,7 +40,6 @@ export function AdminUsers() {
 					showDeanStatus={true}
 				/>
 			</div>
-			<AdminDebugPanel />
 		</div>
 	);
 }
