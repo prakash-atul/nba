@@ -349,7 +349,7 @@ export function CourseList({
 				<CardContent>
 					<DataTable
 						columns={columns}
-						data={courses}
+						data={courses || []}
 						refreshing={isLoading}
 						renderSubRow={renderSubRow}
 						{...(paginationMode === "server" && {

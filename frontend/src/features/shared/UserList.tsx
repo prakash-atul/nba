@@ -61,7 +61,7 @@ export function UserList<TData extends BaseUserType>({
 	return (
 		<DataTable
 			columns={columns}
-			data={data}
+			data={data || []}
 			searchPlaceholder={searchPlaceholder}
 			refreshing={refreshing}
 			serverPagination={serverPagination}

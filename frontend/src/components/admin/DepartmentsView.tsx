@@ -351,7 +351,7 @@ export function DepartmentsView() {
 
 			<DataTable
 				columns={columns}
-				data={departments}
+				data={departments || []}
 				searchPlaceholder="Search departments..."
 				refreshing={refreshing}
 				serverPagination={{

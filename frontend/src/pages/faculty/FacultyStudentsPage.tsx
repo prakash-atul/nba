@@ -26,22 +26,8 @@ export function FacultyStudentsPage() {
 
 	return (
 		<StudentList
-			fetchFn={async () => {
-				const students = await facultyApi.getEnrolledStudents();
-				return {
-					success: true,
-					message: "ok",
-					data: students,
-					pagination: {
-						next_cursor: null,
-						prev_cursor: null,
-						has_more: false,
-						total: students.length,
-						limit: students.length,
-					},
-				};
-			}}
-			paginationMode="client"
+			fetchFn={facultyApi.getEnrolledStudents}
+			paginationMode="server"
 			permissions={{
 				canEdit: true,
 				canDelete: true,

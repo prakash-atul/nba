@@ -60,7 +60,10 @@ export function FacultyStudents({
 	const loadStudents = useCallback(async () => {
 		setLoading(true);
 		try {
-			const data = await facultyApi.getEnrolledStudents();
+			const response = await facultyApi.getEnrolledStudents({
+				limit: 1000,
+			});
+			const data = response.data;
 			setAllStudents(data);
 		} catch {
 			toast.error("Failed to load students");
@@ -161,7 +164,8 @@ export function FacultyStudents({
 					<CardContent>
 						<DataTable
 							columns={columns}
-							data={filtered}
+							data={filtered || []}
+							searchKey="student_name"
 							searchPlaceholder="Search by roll no, name or email..."
 							refreshing={loading}
 						>

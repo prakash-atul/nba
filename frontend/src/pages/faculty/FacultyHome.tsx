@@ -4,11 +4,7 @@ import { apiService } from "@/services/api";
 import { facultyApi } from "@/services/api/faculty";
 import type { User, FacultyStats, Course } from "@/services/api";
 import { RefreshCw } from "lucide-react";
-import {
-	StatsGrid,
-	QuickAccessGrid,
-	
-} from "@/features/shared";
+import { StatsGrid, QuickAccessGrid } from "@/features/shared";
 import { createFacultyStats } from "@/features/shared/statsFactory";
 import { createFacultyQuickAccess } from "@/features/shared/quickAccessFactory";
 import { FacultyOverview } from "@/components/faculty";
@@ -40,11 +36,16 @@ export function FacultyHome() {
 		limit: 100,
 	});
 
-	const [selectedCourse, setSelectedCourseState] = useState<Course | null>(null);
+	const [selectedCourse, setSelectedCourseState] = useState<Course | null>(
+		null,
+	);
 	const setSelectedCourse = (course: Course | null) => {
 		setSelectedCourseState(course);
 		if (course) {
-			localStorage.setItem("faculty_last_course", String(course.offering_id || course.course_id || ""));
+			localStorage.setItem(
+				"faculty_last_course",
+				String(course.offering_id || course.course_id || ""),
+			);
 		}
 	};
 	const [stats, setStats] = useState<FacultyStats>({
@@ -61,11 +62,15 @@ export function FacultyHome() {
 
 	useEffect(() => {
 		if (courses.length > 0 && !selectedCourse) {
-			let activeCourse = courses.find((c) => c.is_active !== 0) || courses[0];
+			let activeCourse =
+				courses.find((c) => c.is_active !== 0) || courses[0];
 			const savedCourseId = localStorage.getItem("faculty_last_course");
-			
+
 			if (savedCourseId) {
-				const foundCourse = courses.find(c => String(c.offering_id || c.course_id) === savedCourseId);
+				const foundCourse = courses.find(
+					(c) =>
+						String(c.offering_id || c.course_id) === savedCourseId,
+				);
 				if (foundCourse) {
 					activeCourse = foundCourse;
 				}

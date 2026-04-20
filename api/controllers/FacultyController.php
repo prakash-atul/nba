@@ -175,55 +175,122 @@ class FacultyController
     /**
      * Get all students enrolled in any of the faculty's courses
      */
-    public function getEnrolledStudents($facultyId)
+        public function getEnrolledStudents($facultyId)
     {
         try {
             $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
 
             if (empty($assignments)) {
                 http_response_code(200);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'data' => []]);
+                header("Content-Type: application/json");
+                echo json_encode(array_merge(["success" => true, "message" => "Enrolled students retrieved successfully"], PaginationHelper::buildResponse([], 'roll_no', 10, 0)));
                 return;
             }
 
-            $offeringIds = array_column($assignments, 'offering_id');
-            $placeholders = implode(',', array_fill(0, count($offeringIds), '?'));
+            $offeringIds = array_column($assignments, "offering_id");
+            $placeholders = implode(",", array_fill(0, count($offeringIds), "?"));
 
-            $stmt = $this->db->prepare("
-                SELECT DISTINCT
-                    s.roll_no,
-                    s.student_name,
-                    s.department_id,
-                    s.batch_year,
-                    s.student_status,
-                    s.email,
-                    s.phone,
-                    d.department_name,
-                    d.department_code,
-                    GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ') AS enrolled_courses
+            // Parse pagination params
+            $params = PaginationHelper::parseParams($_GET, "roll_no", "roll_no", ["roll_no", "student_name", "batch_year"], ["batch_year", "department_id", "student_status"]);
+            
+            $whereConditions = ["e.offering_id IN ($placeholders)"];
+            $queryParams = $offeringIds;
+
+            if (!empty($params["search"])) {
+                $whereConditions[] = "(s.student_name LIKE ? OR s.roll_no LIKE ? OR s.email LIKE ?)";
+                $searchParam = "%{$params["search"]}%";
+                array_push($queryParams, $searchParam, $searchParam, $searchParam);
+            }
+            if (!empty($params["filters"])) {
+                foreach ($params["filters"] as $key => $value) {
+                    $dbKey = "s." . ltrim($key, "s.");
+                    $whereConditions[] = "$dbKey = ?";
+                    $queryParams[] = $value;
+                }
+            }
+
+            $rawSort = ltrim($params["sort"], "s.");
+            $sortCol = "s." . $rawSort;
+            $op = ($params["sortDir"] === "ASC") ? ">" : "<";
+
+            // Count Query — run BEFORE adding cursor conditions so the total
+            // reflects all matching rows, not just those after the cursor.
+            // Must use the same JOINs as the data query so the count is consistent
+            // with the rows that will actually be returned (avoids orphaned-record inflation).
+            $countWhereClause = implode(" AND ", $whereConditions);
+            $countQuery = "
+                SELECT COUNT(DISTINCT s.roll_no)
+                FROM enrollments e
+                JOIN students s ON e.student_rollno = s.roll_no
+                JOIN course_offerings co ON e.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                WHERE $countWhereClause
+            ";
+            $stmtCount = $this->db->prepare($countQuery);
+            $stmtCount->execute($queryParams);
+            $totalCount = (int)$stmtCount->fetchColumn();
+
+            if ($params["cursor"] !== null) {
+                $cursorVal = $params["cursor"];
+
+                if ($rawSort === "roll_no") {
+                    $whereConditions[] = "s.roll_no $op ?";
+                    $queryParams[] = $cursorVal;
+                } else {
+                    $parts = explode("|", $cursorVal, 2);
+                    if (count($parts) === 2) {
+                        $cond1 = "$sortCol $op ?";
+                        $cond2 = "($sortCol = ? AND s.roll_no > ?)";
+                        $whereConditions[] = "($cond1 OR $cond2)";
+                        array_push($queryParams, $parts[0], $parts[0], $parts[1]);
+                    } else {
+                        // fallback
+                        $whereConditions[] = "s.roll_no > ?";
+                        $queryParams[] = $cursorVal;
+                    }
+                }
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            if ($rawSort !== "roll_no") {
+                $orderBy = "$sortCol {$params["sortDir"]}, s.roll_no ASC";
+            } else {
+                $orderBy = "s.roll_no {$params["sortDir"]}";
+            }
+
+            $limit = (int)$params["limit"];
+            $fetchLimit = $limit + 1;
+
+            $dataQuery = "
+                SELECT s.roll_no, s.student_name, s.department_id, s.batch_year, s.student_status,
+                       s.email, s.phone, d.department_name, d.department_code,
+                       GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ') AS enrolled_courses
                 FROM enrollments e
                 JOIN students s ON e.student_rollno = s.roll_no
                 JOIN course_offerings co ON e.offering_id = co.offering_id
                 JOIN courses c ON co.course_id = c.course_id
                 LEFT JOIN departments d ON s.department_id = d.department_id
-                WHERE e.offering_id IN ($placeholders)
-                GROUP BY s.roll_no
-                ORDER BY s.roll_no
-            ");
-            $stmt->execute($offeringIds);
+                WHERE $whereClause
+                GROUP BY s.roll_no, s.student_name, s.department_id, s.batch_year, 
+                         s.student_status, s.email, s.phone, d.department_name, d.department_code
+                ORDER BY $orderBy
+                LIMIT $fetchLimit
+            ";
+
+            $stmt = $this->db->prepare($dataQuery);
+            $stmt->execute($queryParams);
             $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             http_response_code(200);
-            header('Content-Type: application/json');
-            
-            echo json_encode(['success' => true, 'data' => $students]);
+            header("Content-Type: application/json");
+            echo json_encode(array_merge(['success' => true, 'message' => 'Enrolled students retrieved successfully'], PaginationHelper::buildResponse($students, 'roll_no', $params['limit'], $totalCount)));
         } catch (Exception $e) {
-            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getEnrolledStudents prompt', ['error' => $e->getMessage()]); }
+            if (isset($GLOBALS["fileLogger"])) { $GLOBALS["fileLogger"]->error("FacultyController", "getEnrolledStudents", ["error" => $e->getMessage()]); }
             error_log("Error getting enrolled students: " . $e->getMessage());
             http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
+            header("Content-Type: application/json");
+            echo json_encode(["success" => false, "message" => "Failed to retrieve students", "error" => $e->getMessage()]);
         }
     }
 
@@ -716,3 +783,4 @@ class FacultyController
         }
     }
 }
+

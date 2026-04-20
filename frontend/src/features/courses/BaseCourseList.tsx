@@ -343,7 +343,7 @@ export function BaseCourseList({
 						<CardContent>
 							<DataTable
 								columns={columns}
-								data={filteredCourses}
+								data={filteredCourses || []}
 								refreshing={isLoading}
 							>
 								{/* Custom Filters inside header */}

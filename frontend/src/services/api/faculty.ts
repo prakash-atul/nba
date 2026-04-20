@@ -1,4 +1,4 @@
-import { apiGet, apiPut, apiDelete, apiPost } from "./base";
+import { apiGet, apiPut, apiDelete, apiPost, apiGetPaginated } from "./base";
 import type {
 	FacultyStats,
 	CourseStats,
@@ -14,25 +14,15 @@ async function getStats(): Promise<FacultyStats> {
 }
 
 async function getCourses(
-	_params?: PaginationParams,
+	params?: PaginationParams,
 ): Promise<PaginatedResponse<Course>> {
-	const courses = await apiGet<Course[]>("/courses");
-	return {
-		success: true,
-		message: "ok",
-		data: courses,
-		pagination: {
-			next_cursor: null,
-			prev_cursor: null,
-			has_more: false,
-			total: courses.length,
-			limit: courses.length,
-		},
-	};
+	return apiGetPaginated<Course>("/courses", params as any);
 }
 
-async function getEnrolledStudents(): Promise<EnrolledStudent[]> {
-	return apiGet<EnrolledStudent[]>("/faculty/students");
+async function getEnrolledStudents(
+	params?: PaginationParams,
+): Promise<PaginatedResponse<EnrolledStudent>> {
+	return apiGetPaginated<EnrolledStudent>("/faculty/students", params);
 }
 
 async function updateStudent(

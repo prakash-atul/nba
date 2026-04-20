@@ -33,8 +33,9 @@ export function HODStudentsPage() {
 			title="Department Students"
 			showPhone={true}
 			showEnrolledCourses={true}
-			availableFilters={["batch", "status", "course"]}
+			availableFilters={["batch", "status"]}
 			onStudentUpdate={handleStudentUpdate}
 		/>
 	);
 }
+

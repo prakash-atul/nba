@@ -84,44 +84,48 @@ class AssessmentController
     /**
      * Get courses (offerings) for faculty
      */
-    public function getFacultyCourses()
+            public function getFacultyCourses()
     {
         try {
-            $userData = $_REQUEST['authenticated_user'];
+            $userData = $_REQUEST["authenticated_user"];
 
-            // Faculty can access their courses (HODs/Deans are faculty with role check)
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean') {
-                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
+            if ($userData["role"] !== "faculty" && $userData["role"] !== "hod" && $userData["role"] !== "dean") {
+                if (isset($GLOBALS["fileLogger"])) { $GLOBALS["fileLogger"]->warn("AssessmentController", "Unauthorized access attempt", ["user" => $_REQUEST["authenticated_user"] ?? "anonymous"]); }
                 http_response_code(403);
                 echo json_encode([
-                    'success' => false,
-                    'message' => 'Access denied. Only faculty can access courses.'
+                    "success" => false,
+                    "message" => "Access denied. Only faculty can access courses."
                 ]);
                 return;
             }
 
-            $facultyId = $userData['employee_id'];
+            $facultyId = $userData["employee_id"];
 
-            if ($userData['role'] === 'hod') {
-                // HOD sees all offerings in their department
-                $offerings = $this->courseOfferingRepository->findByDepartment($userData['department_id']);
+            // Parse pagination parameters
+            $params = PaginationHelper::parseParams($_GET, "offering_id", "year", ["year", "semester", "course_code", "course_name", "offering_id"], ["course_id", "department_id", "semester", "year", "is_active"]);
+
+            $isHod = ($userData["role"] === "hod");
+
+            if ($isHod) {
+                $departmentId = $userData["department_id"];
+                $totalCount = $this->courseOfferingRepository->countByDepartmentPaginated($departmentId, $params);
+                $offerings = $this->courseOfferingRepository->findByDepartmentPaginated($departmentId, $params);
             } else {
-                $offerings = $this->courseOfferingRepository->findByFacultyId($facultyId);
+                $totalCount = $this->courseOfferingRepository->countByFacultyPaginated($facultyId, $params);
+                $offerings = $this->courseOfferingRepository->findByFacultyPaginated($facultyId, $params);
             }
 
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Course offerings retrieved successfully',
-                'data' => $offerings // Note: repositories already return processed arrays from findByFacultyId
-            ]);
+            $result = PaginationHelper::buildResponse($offerings, 'offering_id', $params['limit'], $totalCount);
+
+              http_response_code(200);
+              echo json_encode(array_merge(['success' => true, 'message' => 'Course offerings retrieved successfully'], $result));
         } catch (Exception $e) {
-            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AssessmentController', 'getFacultyCourses prompt', ['error' => $e->getMessage()]); }
+            if (isset($GLOBALS["fileLogger"])) { $GLOBALS["fileLogger"]->error("AssessmentController", "getFacultyCourses prompt", ["error" => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve courses',
-                'error' => $e->getMessage()
+                "success" => false,
+                "message" => "Failed to retrieve courses",
+                "error" => $e->getMessage()
             ]);
         }
     }
@@ -737,3 +741,6 @@ class AssessmentController
         }
     }
 }
+
+
+

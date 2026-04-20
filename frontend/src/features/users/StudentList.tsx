@@ -80,13 +80,13 @@ export function StudentList({
 	paginationMode = fetchFn ? "server" : "client",
 	pageSize = 20,
 	availableFilters = ["batch", "status"],
-	
+
 	onStudentDelete,
 	onRefresh,
 	department_id,
 }: StudentListProps) {
 	// Dialog state
-			const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
 	const [deleteSaving, setDeleteSaving] = useState(false);
 
 	// Filter state
@@ -188,7 +188,7 @@ export function StudentList({
 	};
 
 	// Handle edit
-	
+
 	// Handle delete
 	const handleDelete = async (rollNo: string) => {
 		if (!onStudentDelete) return;
@@ -210,10 +210,14 @@ export function StudentList({
 	// Create columns
 	const columns = useMemo(
 		() =>
-			createStudentColumns(columnConfig, ()=>{}, (rollNo) => {
-				const student = students.find((s) => s.roll_no === rollNo);
-				if (student) setDeleteTarget(student);
-			}),
+			createStudentColumns(
+				columnConfig,
+				() => {},
+				(rollNo) => {
+					const student = students.find((s) => s.roll_no === rollNo);
+					if (student) setDeleteTarget(student);
+				},
+			),
 		[students, columnConfig],
 	);
 
@@ -271,7 +275,7 @@ export function StudentList({
 				<CardContent className="p-4 pt-0 md:p-6 md:pt-0">
 					<DataTable
 						columns={columns}
-						data={students}
+						data={students || []}
 						refreshing={isLoading}
 						{...(paginationMode === "server" && {
 							serverPagination: {
@@ -418,7 +422,6 @@ export function StudentList({
 			</Card>
 
 			{/* Dialogs */}
-			
 
 			<DeleteStudentDialog
 				open={!!deleteTarget}

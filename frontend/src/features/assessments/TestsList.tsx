@@ -185,7 +185,7 @@ export function TestsList({
 					<TestList
 						columns={columns}
 						data={tests}
-						searchKey="name"
+						searchKey="test_label"
 						searchPlaceholder="Search by test name..."
 						refreshing={loading}
 					/>

@@ -237,7 +237,7 @@ export function CourseManagement() {
 			<CardContent>
 				<DataTable
 					columns={columns}
-					data={courses}
+					data={courses || []}
 					refreshing={isLoading}
 					serverPagination={{
 						pagination,

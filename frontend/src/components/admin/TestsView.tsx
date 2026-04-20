@@ -68,8 +68,12 @@ export function TestsView() {
 			header: "Course",
 			cell: ({ row }) => (
 				<div>
-					<span className="font-medium">{row.getValue("course_code")}</span>
-					<span className="block text-xs text-gray-500">{row.original.course_name}</span>
+					<span className="font-medium">
+						{row.getValue("course_code")}
+					</span>
+					<span className="block text-xs text-gray-500">
+						{row.original.course_name}
+					</span>
 				</div>
 			),
 		},
@@ -107,7 +111,7 @@ export function TestsView() {
 
 			<TestList
 				columns={columns}
-				data={tests}
+				data={tests || []}
 				searchPlaceholder="Search by test name or course..."
 				refreshing={loading}
 				serverPagination={{

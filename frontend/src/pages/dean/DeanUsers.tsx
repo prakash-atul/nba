@@ -23,7 +23,7 @@ export function DeanUsers() {
 					permissions={{
 						canViewDepartment: true,
 					}}
-					availableFilters={["role"]}
+					availableFilters={["role", "department"]}
 					showRole={true}
 					showDepartment={true}
 					showPhone={true}
@@ -35,3 +35,4 @@ export function DeanUsers() {
 		</div>
 	);
 }
+

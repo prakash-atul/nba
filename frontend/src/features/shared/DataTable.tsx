@@ -133,7 +133,7 @@ export function DataTable<TData, TValue, F extends Record<string, any> = any>({
 	}, [serverPagination?.sort, serverPagination?.sortDir, sorting]);
 
 	const table = useReactTable({
-		data,
+		data: data || [],
 		columns,
 		state: {
 			sorting: tableSorting,
