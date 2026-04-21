@@ -1,4 +1,4 @@
-﻿import { TestList, getBaseTestColumns } from "@/features/shared";
+import { TestList, getBaseTestColumns } from "@/features/shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,11 +67,11 @@ export function TestsView() {
 			accessorKey: "course_code",
 			header: "Course",
 			cell: ({ row }) => (
-				<div>
+				<div className="text-left">
 					<span className="font-medium">
 						{row.getValue("course_code")}
 					</span>
-					<span className="block text-xs text-gray-500">
+					<span className="block text-xs text-gray-500 max-w-[160px] truncate">
 						{row.original.course_name}
 					</span>
 				</div>

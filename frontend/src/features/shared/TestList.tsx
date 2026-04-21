@@ -30,8 +30,12 @@ export function getBaseTestColumns<T extends BaseTestType>(): ColumnDef<T>[] {
 		{
 			id: "test_label",
 			accessorFn: (row) => row.test_name ?? row.name,
-			header: sortableHeader("Test Name"),
-			cell: ({ row }) => <span>{row.getValue("test_label")}</span>,
+			header: sortableHeader("Test Name", "text-left"),
+			cell: ({ row }) => (
+				<div className="font-medium text-left max-w-[220px] truncate">
+					{row.getValue("test_label")}
+				</div>
+			),
 		},
 		{
 			accessorKey: "full_marks",

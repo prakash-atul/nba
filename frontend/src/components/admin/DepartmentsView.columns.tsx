@@ -35,9 +35,9 @@ export function getDepartmentColumns({
 		},
 		{
 			accessorKey: "department_name",
-			header: sortableHeader("Name"),
+			header: sortableHeader("Name", "text-left"),
 			cell: ({ row }) => (
-				<div className="font-medium flex">
+				<div className="font-medium text-left">
 					{row.getValue("department_name")}
 				</div>
 			),

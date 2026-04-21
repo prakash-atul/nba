@@ -40,10 +40,10 @@ export function getFacultyOverviewColumns(
 		},
 		{
 			accessorKey: "course_name",
-			header: sortableHeader("Course Name"),
+			header: sortableHeader("Course Name", "text-left"),
 			cell: ({ row }) => (
 				<div
-					className="max-w-60 truncate"
+					className="max-w-60 truncate text-left font-medium"
 					title={row.original.course_name}
 				>
 					{row.original.course_name}

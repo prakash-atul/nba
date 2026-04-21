@@ -74,9 +74,9 @@ export function useUserColumns({
 			},
 			{
 				accessorKey: "username",
-				header: sortableHeader("Name"),
+				header: sortableHeader("Name", "text-left"),
 				cell: ({ row }) => (
-					<div className="font-medium flex">
+					<div className="font-medium text-left">
 						{row.getValue("username")}
 					</div>
 				),
@@ -86,11 +86,11 @@ export function useUserColumns({
 		if (showEmail) {
 			cols.push({
 				accessorKey: "email",
-				header: sortableHeader("Email"),
+				header: sortableHeader("Email", "text-left"),
 				cell: ({ row }) => (
-					<Badge variant="outline" className="flex">
-						{row.getValue("email")}
-					</Badge>
+					<div className="text-sm text-muted-foreground text-left max-w-[200px] truncate">
+						{row.getValue("email") || "—"}
+					</div>
 				),
 			});
 		}
@@ -98,11 +98,11 @@ export function useUserColumns({
 		if (showDesignation) {
 			cols.push({
 				accessorKey: "designation",
-				header: sortableHeader("Designation"),
+				header: sortableHeader("Designation", "text-left"),
 				cell: ({ row }) => (
-					<Badge variant="secondary" className="flex italic">
+					<span className="text-sm text-muted-foreground italic">
 						{row.getValue("designation") || "—"}
-					</Badge>
+					</span>
 				),
 			});
 		}

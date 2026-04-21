@@ -26,14 +26,19 @@ export function getBaseUserColumns<T extends BaseUserType>(): ColumnDef<T>[] {
 		},
 		{
 			accessorKey: "username",
-			header: sortableHeader("Name"),
+			header: sortableHeader("Name", "text-left"),
 			cell: ({ row }) => (
-				<div className="flex">{row.getValue("username")}</div>
+				<div className="font-medium text-left">{row.getValue("username")}</div>
 			),
 		},
 		{
 			accessorKey: "email",
-			header: sortableHeader("Email"),
+			header: sortableHeader("Email", "text-left"),
+			cell: ({ row }) => (
+				<div className="text-sm text-muted-foreground text-left max-w-[200px] truncate">
+					{row.getValue("email") || "—"}
+				</div>
+			),
 		},
 	];
 }

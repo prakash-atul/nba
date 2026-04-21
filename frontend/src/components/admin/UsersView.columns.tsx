@@ -20,11 +20,11 @@ export const getUsersViewColumns = ({
 	...getBaseUserColumns<User>(),
 	{
 		accessorKey: "designation",
-		header: sortableHeader("Designation"),
+		header: sortableHeader("Designation", "text-left"),
 		cell: ({ row }) => (
-			<Badge variant="secondary" className="flex italic">
+			<span className="text-sm text-muted-foreground italic">
 				{row.getValue("designation") || "—"}
-			</Badge>
+			</span>
 		),
 	},
 	{

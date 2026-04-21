@@ -99,7 +99,7 @@ export function StudentMarksTable({
 										<TableCell className="text-center border border-gray-300 dark:border-gray-700 font-medium">
 											{student.rollNo}
 										</TableCell>
-										<TableCell className="border border-gray-300 dark:border-gray-700 px-2">
+										<TableCell className="border border-gray-300 dark:border-gray-700 px-2 text-left font-medium max-w-[180px] truncate">
 											{student.name}
 										</TableCell>
 										<TableCell className="text-center border border-gray-300 dark:border-gray-700">

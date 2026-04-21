@@ -11,8 +11,7 @@ import { DataTable } from "@/features/shared/DataTable";
 import type { Row } from "@tanstack/react-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { BookOpen, Plus, X, Search } from "lucide-react";
+import { BookOpen, Plus, X } from "lucide-react";
 import {
 	Select,
 	SelectContent,
@@ -382,22 +381,6 @@ export function CourseList({
 
 							return (
 								<>
-									{/* Additional filters next to the Search box inside DataTable */}
-									{paginationMode === "client" && (
-										<div className="relative">
-											<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-											<Input
-												placeholder="Search..."
-												value={search}
-												onChange={(e) =>
-													setSearch(e.target.value)
-												}
-												className="pl-8 h-9 w-[150px] lg:w-[250px]"
-												disabled={isLoading}
-											/>
-										</div>
-									)}
-
 									{availableFilters.includes("year") && (
 										<Select
 											value={

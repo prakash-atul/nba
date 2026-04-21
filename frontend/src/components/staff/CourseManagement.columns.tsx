@@ -27,10 +27,10 @@ export const getCourseColumns = ({
 	},
 	{
 		accessorKey: "course_name",
-		header: sortableHeader("Course Name"),
+		header: sortableHeader("Course Name", "text-left"),
 		cell: ({ row }) => (
 			<div
-				className="font-medium max-w-[200px] truncate"
+				className="font-medium text-left max-w-[220px] truncate"
 				title={row.original.course_name}
 			>
 				{row.original.course_name}
@@ -46,9 +46,9 @@ export const getCourseColumns = ({
 	},
 	{
 		accessorKey: "faculty_name",
-		header: "Faculty",
+		header: sortableHeader("Faculty", "text-left"),
 		cell: ({ row }) => (
-			<div className="text-muted-foreground">
+			<div className="text-muted-foreground text-left max-w-[160px] truncate">
 				{row.original.faculty_name || "—"}
 			</div>
 		),

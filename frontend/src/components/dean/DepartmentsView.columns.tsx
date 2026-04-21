@@ -16,9 +16,9 @@ export function getDeanDepartmentColumns(): ColumnDef<DeanDepartment>[] {
 		},
 		{
 			accessorKey: "department_name",
-			header: sortableHeader("Department Name"),
+			header: sortableHeader("Department Name", "text-left"),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-left">
 					{row.getValue("department_name")}
 				</div>
 			),
@@ -29,9 +29,9 @@ export function getDeanDepartmentColumns(): ColumnDef<DeanDepartment>[] {
 			cell: ({ row }) => {
 				const hodName = row.original.hod_name;
 				return hodName ? (
-					<span>{hodName}</span>
+					<span className="text-left">{hodName}</span>
 				) : (
-					<span className="text-muted-foreground italic">
+					<span className="text-muted-foreground italic text-left">
 						Not assigned
 					</span>
 				);

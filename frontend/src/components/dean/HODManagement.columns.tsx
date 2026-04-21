@@ -29,9 +29,9 @@ export function getStatusColumns({
 		},
 		{
 			accessorKey: "department_name",
-			header: sortableHeader("Department"),
+			header: sortableHeader("Department", "text-left"),
 			cell: ({ row }) => (
-				<div className="font-medium flex">
+				<div className="font-medium text-left">
 					{row.getValue("department_name")}
 				</div>
 			),
@@ -114,9 +114,9 @@ export function getHistoryColumns(): ColumnDef<HODHistoryRecord>[] {
 		},
 		{
 			accessorKey: "username",
-			header: sortableHeader("Faculty Name"),
+			header: sortableHeader("Faculty Name", "text-left"),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-left">
 					{row.getValue("username")}
 					<div className="text-xs text-muted-foreground font-normal">
 						{(row.original as HODHistoryRecord).email}

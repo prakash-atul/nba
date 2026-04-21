@@ -72,7 +72,7 @@ export function createStudentColumns(
 			accessorKey: "student_name",
 			header: createSortableHeader("Name"),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-left max-w-[180px] truncate">
 					{row.getValue("student_name")}
 				</div>
 			),
@@ -84,9 +84,9 @@ export function createStudentColumns(
 			accessorKey: "email",
 			header: createSortableHeader("Email"),
 			cell: ({ row }) => (
-				<Badge variant="outline" className="flex text-muted-foreground">
+				<div className="text-sm text-muted-foreground text-left max-w-[200px] truncate">
 					{row.getValue("email") ?? "—"}
-				</Badge>
+				</div>
 			),
 		});
 	}
@@ -156,8 +156,8 @@ export function createStudentColumns(
 				const hasMore = courses.length > 2;
 
 				return (
-					<div className="flex items-start justify-center gap-2 py-1">
-						<div className="flex flex-col items-center justify-center">
+					<div className="flex items-start gap-2 py-1">
+						<div className="flex flex-col items-start">
 							<AnimatePresence initial={false}>
 								{visibleCourses.length > 0 ? (
 									visibleCourses.map((course, idx) => (

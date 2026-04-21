@@ -178,7 +178,7 @@ export function BulkMarksTable({
 							{/* Sticky Name */}
 							<TableCell
 								className={cn(
-									"sticky left-[120px] z-20 px-6 py-3 whitespace-nowrap text-muted-foreground border-r border-border shadow-[1px_0_0_0_hsl(var(--border))]",
+									"sticky left-[120px] z-20 px-6 py-3 text-left whitespace-nowrap text-sm font-medium text-foreground border-r border-border shadow-[1px_0_0_0_hsl(var(--border))]",
 									stickyBg,
 								)}
 							>

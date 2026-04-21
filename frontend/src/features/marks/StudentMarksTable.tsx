@@ -52,10 +52,10 @@ export function StudentMarksTable({
 			<Table>
 				<TableHeader className="bg-muted/50">
 					<TableRow>
-						<TableHead className="font-semibold">
+						<TableHead className="font-semibold text-left">
 							Student ID
 						</TableHead>
-						<TableHead className="font-semibold">
+						<TableHead className="font-semibold text-left">
 							Student Name
 						</TableHead>
 						<TableHead className="text-center font-semibold">
@@ -84,10 +84,10 @@ export function StudentMarksTable({
 							key={`${mark.student_id}-${idx}`}
 							className="hover:bg-muted/50 transition-colors"
 						>
-							<TableCell className="font-mono text-sm">
+							<TableCell className="font-mono text-sm text-left">
 								{mark.student_id}
 							</TableCell>
-							<TableCell className="font-medium">
+							<TableCell className="font-medium text-left max-w-[180px] truncate">
 								{mark.student_name}
 							</TableCell>
 							<TableCell className="text-center">

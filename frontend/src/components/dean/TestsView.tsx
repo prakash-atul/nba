@@ -28,7 +28,7 @@ const columns: ColumnDef<DeanTest>[] = [
 						{row.getValue("course_code")}
 					</Badge>
 					<span
-						className="text-xs text-muted-foreground max-w-32"
+						className="text-xs text-muted-foreground max-w-32 truncate text-left"
 						title={row.original.course_name}
 					>
 						{row.original.course_name}
@@ -42,13 +42,13 @@ const columns: ColumnDef<DeanTest>[] = [
 		},
 		{
 			accessorKey: "faculty_name",
-		header: sortableHeader("Faculty"),
-		cell: ({ row }) => (
-			<div className="text-muted-foreground flex">
-				{(row.getValue("faculty_name") as string) || "—"}
-			</div>
-		),
-	},
+			header: sortableHeader("Faculty", "text-left"),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-left max-w-[160px] truncate">
+					{(row.getValue("faculty_name") as string) || "—"}
+				</div>
+			),
+		},
 	{
 		accessorKey: "department_code",
 		header: "Dept",
