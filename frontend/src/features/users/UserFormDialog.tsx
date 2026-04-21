@@ -358,15 +358,13 @@ export function UserFormDialog({
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="none">None</SelectItem>
-								{departments.map((dept) => (
-									<SelectItem
-										key={dept.department_id}
-										value={dept.department_id.toString()}
-									>
-										{dept.department_name} (
-										{dept.department_code})
-									</SelectItem>
-								))}
+								{departments.map((dept: any) => {
+															const id = dept.department_id || dept.id;
+															const label = dept.department_name || dept.name || dept.department_code || id;
+															return (
+																<SelectItem key={id} value={id ? id.toString() : 'none'}>{label}</SelectItem>
+															);
+													})}
 							</SelectContent>
 						</Select>
 					</div>
@@ -442,3 +440,5 @@ export function UserFormDialog({
 		</FormDialog>
 	);
 }
+
+

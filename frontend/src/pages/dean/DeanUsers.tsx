@@ -19,6 +19,13 @@ export function DeanUsers() {
 			<div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
 				<UserList
 					fetchFn={(params) => deanApi.getAllUsers(params)}
+					fetchDepartmentsFn={async () => {
+						const res = await deanApi.getAllDepartments();
+						return res.data.map((d) => ({
+							id: d.department_id,
+							name: d.department_name,
+						}));
+					}}
 					title="All Users"
 					permissions={{
 						canViewDepartment: true,
@@ -35,4 +42,3 @@ export function DeanUsers() {
 		</div>
 	);
 }
-

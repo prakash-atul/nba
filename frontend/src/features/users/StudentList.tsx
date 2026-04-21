@@ -10,7 +10,6 @@ import { DataTable } from "@/features/shared/DataTable";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { GraduationCap, X } from "lucide-react";
 import {
 	Select,
@@ -23,7 +22,6 @@ import { DeleteStudentDialog } from "./DeleteStudentDialog";
 import { createStudentColumns, type StudentListColumnConfig } from "./utils";
 import { toast } from "sonner";
 import { coursesApi } from "@/services/api/courses";
-import type { Course } from "@/services/api";
 
 const STATUS_OPTIONS = ["Active", "Inactive", "Graduated", "Dropped"];
 const BATCH_OPTIONS = Array.from(
@@ -56,6 +54,12 @@ export interface StudentListProps {
 
 	// Filters
 	availableFilters?: ("department" | "batch" | "status" | "course")[];
+	departments?: { id: number; name: string }[];
+	courses?: {
+		id: number | string;
+		course_code: string;
+		course_name: string;
+	}[];
 
 	// Events
 	onStudentUpdate?: (
@@ -80,6 +84,8 @@ export function StudentList({
 	paginationMode = fetchFn ? "server" : "client",
 	pageSize = 20,
 	availableFilters = ["batch", "status"],
+	departments = [],
+	courses: passedCourses,
 
 	onStudentDelete,
 	onRefresh,
@@ -98,21 +104,35 @@ export function StudentList({
 	const [courseFilter, setCourseFilter] = useState("all");
 
 	// Course list for select menu
-	const [courses, setCourses] = useState<Course[]>([]);
+	const [courses, setCourses] = useState<
+		{ id: string | number; course_code: string; course_name: string }[]
+	>([]);
 	const [loadingCourses, setLoadingCourses] = useState(false);
 
 	useEffect(() => {
+		if (passedCourses) {
+			setCourses(passedCourses);
+			return;
+		}
 		if (availableFilters.includes("course")) {
 			setLoadingCourses(true);
 			coursesApi
 				.getCourses()
-				.then((data) => setCourses(data))
+				.then((data) =>
+					setCourses(
+						data.map((c) => ({
+							id: c.course_id,
+							course_code: c.course_code,
+							course_name: c.course_name,
+						})),
+					),
+				)
 				.catch((err) =>
 					console.error("Failed to load courses for filter", err),
 				)
 				.finally(() => setLoadingCourses(false));
 		}
-	}, [availableFilters]);
+	}, [availableFilters, passedCourses]);
 
 	// Data fetching
 	const {
@@ -345,15 +365,36 @@ export function StudentList({
 
 						{availableFilters.includes("department") &&
 							permissions.allowDepartmentFilter && (
-								<Input
-									placeholder="Dept ID"
-									value={departmentFilter}
-									onChange={(e) =>
-										setDepartmentFilter(e.target.value)
-									}
+								<Select
+									value={departmentFilter || "all"}
+									onValueChange={(val) => {
+										const actualVal =
+											val === "all" ? "" : val;
+										setDepartmentFilter(actualVal);
+										setFilter(
+											"department_id",
+											actualVal || undefined,
+										);
+									}}
 									disabled={isLoading}
-									className="h-9 w-[120px]"
-								/>
+								>
+									<SelectTrigger className="h-9 w-[180px]">
+										<SelectValue placeholder="Department" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">
+											All Depts
+										</SelectItem>
+										{departments.map((d) => (
+											<SelectItem
+												key={d.id}
+												value={d.id.toString()}
+											>
+												{d.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							)}
 
 						{availableFilters.includes("course") && (
@@ -378,14 +419,11 @@ export function StudentList({
 									</SelectItem>
 									{Array.from(
 										new Map(
-											courses.map((c) => [
-												c.course_id,
-												c,
-											]),
+											courses.map((c) => [c.id, c]),
 										).values(),
 									).map((c) => (
 										<SelectItem
-											key={c.course_id}
+											key={c.id}
 											value={c.course_code}
 										>
 											{c.course_code} - {c.course_name}

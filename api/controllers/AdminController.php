@@ -153,7 +153,7 @@ class AdminController
                 's.roll_no',
                 's.roll_no',
                 ['s.roll_no', 's.student_name', 's.batch_year', 's.student_status'],
-                ['department_id', 'batch_year', 'student_status']
+                ['department_id', 'batch_year', 'student_status', 'course_code']
             );
 
             $total = $this->studentRepository->countPaginated($params);

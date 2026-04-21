@@ -37,6 +37,7 @@ export interface UserListProps {
 	fetchFn: (
 		params: PaginationParams,
 	) => Promise<PaginatedResponse<User | DeanUser>>;
+	fetchDepartmentsFn?: () => Promise<{ id: number; name: string }[]>;
 
 	// Permissions & capabilities
 	permissions?: {
@@ -77,6 +78,7 @@ export function UserList({
 	showDeanStatus = true,
 	pageSize = 20,
 	availableFilters = ["role"],
+	fetchDepartmentsFn,
 }: UserListProps) {
 	// Set showDepartment default after permissions is available
 	const effectiveShowDepartment =
@@ -122,20 +124,28 @@ export function UserList({
 					"UserList",
 					"Loading departments and schools...",
 				);
-				const response = await adminApi.getAllDepartments();
-				setDepartments(response.data || []);
+				const data = fetchDepartmentsFn
+					? await fetchDepartmentsFn()
+					: (await adminApi.getAllDepartments()).data || [];
+				setDepartments(data as any);
 
-				// Keep error wrapper in case school endpoint fails on non-admin
-				try {
-					const schoolRes = await adminApi.getAllSchools();
-					setSchools((schoolRes as any).data || schoolRes || []);
-				} catch (e) {
-					console.warn("Could not load schools:", e);
+				// Only attempt to load schools if we have create/edit permissions or are in Admin context
+				if (
+					!fetchDepartmentsFn ||
+					permissions?.canCreate ||
+					permissions?.canEdit
+				) {
+					try {
+						const schoolRes = await adminApi.getAllSchools();
+						setSchools((schoolRes as any).data || schoolRes || []);
+					} catch (e) {
+						console.warn("Could not load schools:", e);
+					}
 				}
 
 				debugLogger.info(
 					"UserList",
-					`Loaded ${(response.data || []).length} departments`,
+					`Loaded ${data.length} departments`,
 				);
 			} catch (error) {
 				debugLogger.error(
@@ -374,14 +384,27 @@ export function UserList({
 											<SelectItem value="all">
 												All Departments
 											</SelectItem>
-											{departments.map((dept) => (
-												<SelectItem
-													key={dept.department_id}
-													value={dept.department_id.toString()}
-												>
-													{dept.department_code}
-												</SelectItem>
-											))}
+											{departments.map((dept: any) => {
+												const id =
+													dept.department_id ||
+													dept.id;
+												const label =
+													dept.department_code ||
+													dept.name ||
+													id;
+												return (
+													<SelectItem
+														key={id}
+														value={
+															id
+																? id.toString()
+																: "empty"
+														}
+													>
+														{label}
+													</SelectItem>
+												);
+											})}
 										</SelectContent>
 									</Select>
 								)}

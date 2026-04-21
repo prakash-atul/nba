@@ -30,14 +30,18 @@ export function getStatusVariant(status: string): BadgeVariant {
  */
 export function createSortableHeader(label: string) {
 	return ({ column }: any) => (
-		<Button
-			variant="ghost"
-			onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-			className="p-0 hover:bg-transparent"
-		>
-			{label}
-			<ArrowUpDown className="ml-2 h-4 w-4" />
-		</Button>
+		<div className="flex w-full items-center justify-start">
+			<Button
+				variant="ghost"
+				onClick={() =>
+					column.toggleSorting(column.getIsSorted() === "asc")
+				}
+				className="p-0 hover:bg-transparent justify-start font-semibold text-left"
+			>
+				{label}
+				<ArrowUpDown className="ml-2 h-4 w-4" />
+			</Button>
+		</div>
 	);
 }
 
