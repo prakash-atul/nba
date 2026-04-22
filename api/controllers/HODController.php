@@ -1045,7 +1045,7 @@ class HODController
                 's.roll_no',
                 's.roll_no',
                 ['s.roll_no', 's.student_name', 's.batch_year', 's.student_status'],
-                ['batch_year', 'student_status']
+                ['batch_year', 'student_status', 'course_code']
             );
 
             $total  = $this->studentRepository->countByDepartmentPaginated($departmentId, $params);

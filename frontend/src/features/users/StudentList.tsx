@@ -159,7 +159,7 @@ export function StudentList({
 					message: "",
 				})),
 		limit: pageSize,
-		defaultSort: "-s.enrollment_date",
+		defaultSort: "-s.roll_no",
 	});
 
 	// Client-side filtering

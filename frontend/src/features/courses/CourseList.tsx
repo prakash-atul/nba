@@ -471,7 +471,7 @@ export function CourseList({
 												}
 												disabled={isLoading}
 											>
-												<SelectTrigger className="h-9 w-[160px]">
+												<SelectTrigger className="h-9 w-40">
 													<SelectValue placeholder="All Departments" />
 												</SelectTrigger>
 												<SelectContent>
