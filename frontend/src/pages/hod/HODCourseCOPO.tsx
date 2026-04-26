@@ -7,22 +7,22 @@ export function HODCourseCOPO() {
 	const { id } = useParams<{ id: string }>();
 	const location = useLocation();
 
-	// Support both current semester (item) and all offerings (offering) structures from CourseList
-	const courseId = Number(id);
+	// HOD COPO is offering-scoped
+	const offeringId = Number(id);
 	const courseData =
 		location.state?.courseData ||
 		location.state?.item ||
 		location.state?.offering;
 
 	debugLogger.debug("HODCourseCOPO", "Rendering COPO Mapping", {
-		courseId,
+		offeringId,
 		hasState: !!location.state,
 		courseData,
 	});
 
-	if (!courseId) {
-		debugLogger.warn("HODCourseCOPO", "Invalid Course ID provided in URL");
-		return <div className="p-8">Invalid Course ID</div>;
+	if (!offeringId) {
+		debugLogger.warn("HODCourseCOPO", "Invalid offering ID provided in URL");
+		return <div className="p-8">Invalid offering ID</div>;
 	}
 
 	return (
@@ -52,7 +52,7 @@ export function HODCourseCOPO() {
 			<div className="flex-1 p-6 z-0">
 				<div className="max-w-7xl mx-auto">
 					<COPOMapping
-						courseId={courseId}
+						courseId={offeringId}
 						courseCode={
 							courseData?.course_code ||
 							courseData?.courseCode ||

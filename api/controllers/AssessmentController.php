@@ -155,8 +155,10 @@ class AssessmentController
             }
 
             // Validate required fields
+            $offeringId = isset($data['offering_id']) ? (int)$data['offering_id'] : (isset($data['course_id']) ? (int)$data['course_id'] : 0);
+
             if (
-                empty($data['course_id']) || empty($data['name']) ||
+                empty($offeringId) || empty($data['name']) ||
                 empty($data['full_marks']) || !isset($data['pass_marks']) ||
                 empty($data['questions'])
             ) {
@@ -164,14 +166,14 @@ class AssessmentController
                 echo json_encode([
                     'success' => false,
                     'message' => 'Missing required fields',
-                    'required' => ['course_id', 'name', 'full_marks', 'pass_marks', 'questions']
+                    'required' => ['offering_id', 'name', 'full_marks', 'pass_marks', 'questions']
                 ]);
                 return;
             }
 
             // Verify offering belongs to faculty
-            $offering = $this->courseOfferingRepository->findById($data['course_id']);
-            $GLOBALS['audit_old_state'] = (isset($offering) && is_object($offering) && method_exists($offering, 'toArray')) ? $offering->toArray() : (isset($offering) ? clone $offering : null); // course_id from legacy frontend is offering_id
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            $GLOBALS['audit_old_state'] = (isset($offering) && is_object($offering) && method_exists($offering, 'toArray')) ? $offering->toArray() : (isset($offering) ? clone $offering : null);
             if (!$offering) {
                 http_response_code(404);
                 echo json_encode([
@@ -182,7 +184,7 @@ class AssessmentController
             }
 
             // Verify access (faculty assignment or HOD department ownership)
-            $access = $this->checkOfferingAccess($userData, $data['course_id']);
+            $access = $this->checkOfferingAccess($userData, $offeringId);
             if (!$access['allowed']) {
                 if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
@@ -209,7 +211,7 @@ class AssessmentController
             // Create test (pass offering info for filename generation)
             $test = new Test(
                 null,
-                $data['course_id'], // offering_id
+                $offeringId,
                 $data['name'],
                 $data['full_marks'],
                 $data['pass_marks'],
@@ -421,136 +423,77 @@ class AssessmentController
                 return;
             }
 
-            $id = isset($_GET['course_id']) ? (int)$_GET['course_id'] : null;
+            $offeringId = isset($_GET['offering_id']) ? (int)$_GET['offering_id'] : (isset($_GET['course_id']) ? (int)$_GET['course_id'] : null);
 
-            if (!$id) {
-                if (isset($GLOBALS['fileLogger'])) $GLOBALS['fileLogger']->debug('AssessmentController', 'getCourseTests invoked without ID', ['role' => $userData['role']]);
+            if (!$offeringId) {
+                if (isset($GLOBALS['fileLogger'])) $GLOBALS['fileLogger']->debug('AssessmentController', 'getCourseTests invoked without offering_id', ['role' => $userData['role']]);
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Course/Offering ID is required'
+                    'message' => 'Offering ID is required'
                 ]);
                 return;
             }
 
-            // Determine if the ID is a course_id or offering_id
-            $isOffering = false;
-            $offering = null;
-            $course = null;
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Course offering not found'
+                ]);
+                return;
+            }
+
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Course not found for offering'
+                ]);
+                return;
+            }
+
             $accessAllowed = false;
-
-            // We must try BOTH interpretations because the frontend sends a generic ID,
-            // and an ID might exist in both `courses` (e.g. course_id=9) and `course_offerings` (offering_id=9).
-            // Only one of them will typically pass authorization for the current user.
-            $candidates = [];
-
-            // 1. Try as offering
-            $optOffering = $this->courseOfferingRepository->findById($id);
-            if ($optOffering) {
-                $optCourse = $this->courseRepository->findById($optOffering->getCourseId());
-                if ($optCourse) {
-                    $candidates[] = ['isOffering' => true, 'offering' => $optOffering, 'course' => $optCourse];
-                }
-            }
-
-            // 2. Try as direct course
-            $optCourseDirect = $this->courseRepository->findById($id);
-            if ($optCourseDirect) {
-                $candidates[] = ['isOffering' => false, 'offering' => null, 'course' => $optCourseDirect];
-            }
-
-            if (empty($candidates)) {
-                 if (isset($GLOBALS['fileLogger'])) $GLOBALS['fileLogger']->error('AssessmentController', 'Course/Offering not found completely', ['id' => $id]);
-                 http_response_code(404);
-                 echo json_encode([
-                     'success' => false,
-                     'message' => 'Course/Offering not found'
-                 ]);
-                 return;
-            }
-
-            // Verify Access among candidates
-            foreach ($candidates as $candidate) {
-                $cCourse = $candidate['course'];
-                $cIsOffering = $candidate['isOffering'];
-                $cAccess = false;
-
-                if ($userData['role'] === 'admin' || $userData['role'] === 'dean') {
-                    $cAccess = true;
-                } elseif ($userData['role'] === 'hod') {
-                    if ($cCourse->getDepartmentId() == $userData['department_id']) {
-                        $cAccess = true;
+            if ($userData['role'] === 'admin' || $userData['role'] === 'dean') {
+                $accessAllowed = true;
+            } elseif ($userData['role'] === 'hod') {
+                $accessAllowed = ($course->getDepartmentId() == $userData['department_id']);
+            } else {
+                $assignments = $this->courseOfferingRepository->findByFacultyId($userData['employee_id']);
+                foreach ($assignments as $a) {
+                    if ($a['offering_id'] == $offeringId) {
+                        $accessAllowed = true;
+                        break;
                     }
-                } else {
-                    // Faculty role - must be explicitly assigned
-                    $assignments = $this->courseOfferingRepository->findByFacultyId($userData['employee_id']);
-                    foreach ($assignments as $a) {
-                        if ($cIsOffering && $a['offering_id'] == $id) {
-                            $cAccess = true;
-                            break;
-                        } elseif (!$cIsOffering && $a['course_id'] == $id) {
-                            $cAccess = true;
-                            break;
-                        }
-                    }
-                }
-
-                if ($cAccess) {
-                    $accessAllowed = true;
-                    $isOffering = $cIsOffering;
-                    $offering = $candidate['offering'];
-                    $course = $cCourse;
-                    break;
                 }
             }
 
             if (!$accessAllowed) {
-                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
-                if (isset($GLOBALS['fileLogger'])) $GLOBALS['fileLogger']->error('AssessmentController', 'Access denied to course/offering (exhausted all candidates)', ['id' => $id, 'user' => $userData]);
+                if (isset($GLOBALS['fileLogger'])) {
+                    $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']);
+                }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Access denied to this course/offering'
+                    'message' => 'Access denied to this course offering'
                 ]);
                 return;
             }
 
-            // Retrieve tests
-            if ($isOffering) {
-                $tests = $this->testRepository->findByOfferingId($id);
-            } else {
-                // If it's a course_id without a specific offering, either get all tests for all offerings, or just return tests for latest offering.
-                // Since this is for CO-PO mapping overview, fetching all tests for the course makes sense, 
-                // or we could just fetch offerings and test for them. The testRepository might not have findByCourseId.
-                // Let's manually fetch all offerings and then tests, or adapt.
-                $offerings = $this->courseOfferingRepository->findByCourseId($id);
-                $tests = [];
-                foreach ($offerings as $off) {
-                    $offeringTests = $this->testRepository->findByOfferingId($off['offering_id']);
-                    $tests = array_merge($tests, $offeringTests);
-                }
-            }
+            $tests = $this->testRepository->findByOfferingId($offeringId);
 
-            // Build response data
-            if ($isOffering && $offering) {
-                $offeringData = [
-                    'allowed'     => true,
-                    'course_code' => $course->getCourseCode(),
-                    'course_name' => $course->getCourseName(),
-                    'credit'      => $course->getCredit(),
-                    'year'        => $offering->getYear(),
-                    'semester'    => $offering->getSemester()
-                ];
-            } else {
-                $offeringData = [
-                    'allowed'     => true,
-                    'course_code' => $course->getCourseCode(),
-                    'course_name' => $course->getCourseName(),
-                    'credit'      => $course->getCredit(),
-                    'year'        => 'All',
-                    'semester'    => 'All'
-                ];
-            }
+            $offeringData = [
+                'allowed' => true,
+                'offering_id' => $offering->getOfferingId(),
+                'course_id' => $course->getCourseId(),
+                'course_code' => $course->getCourseCode(),
+                'course_name' => $course->getCourseName(),
+                'credit' => $course->getCredit(),
+                'year' => $offering->getYear(),
+                'semester' => $offering->getSemester()
+            ];
 
             http_response_code(200);
             echo json_encode([

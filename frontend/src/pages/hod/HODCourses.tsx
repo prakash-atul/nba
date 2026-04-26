@@ -95,7 +95,7 @@ export function HODCourses() {
 							}}
 							onViewCOPO={(course) =>
 								navigate(
-									`/hod/courses/${course.course_id}/copo`,
+									`/hod/courses/${course.offering_id || course.course_id}/copo`,
 									{
 										state: { courseData: course },
 									},
@@ -128,7 +128,7 @@ export function HODCourses() {
 							}}
 							onViewCOPO={(course) =>
 								navigate(
-									`/hod/courses/${course.course_id}/copo`,
+									`/hod/courses/${course.offering_id || course.course_id}/copo`,
 									{
 										state: { courseData: course },
 									},

@@ -238,13 +238,13 @@ CREATE TABLE `course_faculty_assignments` (
 -- Attainment Scale (configurable thresholds per course)
 CREATE TABLE `attainment_scale` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `course_id` BIGINT NOT NULL,
+    `offering_id` BIGINT NOT NULL,
     `level` SMALLINT NOT NULL CHECK (`level` >= 0 AND `level` <= 10),
     `min_percentage` DECIMAL(5, 2) NOT NULL CHECK (`min_percentage` >= 0 AND `min_percentage` <= 100),
     PRIMARY KEY (`id`),
-    UNIQUE KEY (`course_id`, `level`),
-    INDEX (`course_id`),
-    FOREIGN KEY (`course_id`) REFERENCES `courses`(`course_id`) ON DELETE CASCADE
+    UNIQUE KEY (`offering_id`, `level`),
+    INDEX (`offering_id`),
+    FOREIGN KEY (`offering_id`) REFERENCES `course_offerings`(`offering_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CO-PO Mapping Table
@@ -252,13 +252,13 @@ CREATE TABLE `attainment_scale` (
 -- Repository returns CONCAT('CO', co_number) AS co_name for API backward compatibility.
 CREATE TABLE `co_po_mapping` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `course_id` BIGINT NOT NULL,
+    `offering_id` BIGINT NOT NULL,
     `co_number` TINYINT NOT NULL CHECK (`co_number` BETWEEN 1 AND 6),
     `po_name` VARCHAR(5) NOT NULL,  -- PO1..PO12, PSO1..PSO3
     `value` TINYINT NOT NULL DEFAULT 0 CHECK (`value` BETWEEN 0 AND 3),
     PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_mapping` (`course_id`, `co_number`, `po_name`),
-    FOREIGN KEY (`course_id`) REFERENCES `courses`(`course_id`) ON DELETE CASCADE
+    UNIQUE KEY `unique_mapping` (`offering_id`, `co_number`, `po_name`),
+    FOREIGN KEY (`offering_id`) REFERENCES `course_offerings`(`offering_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tests (references offering_id — a test belongs to a specific offering, not the template)
@@ -705,34 +705,34 @@ VALUES
     ('2024CSE005', 5, 9.50),
     ('2024CSE005', 6, 10.00);
 
--- CO-PO Mappings (for course templates)
+-- CO-PO Mappings (for specific offerings)
 -- co_name strings replaced with co_number integers to match questions.co type.
-INSERT INTO `co_po_mapping` (`course_id`, `co_number`, `po_name`, `value`)
+INSERT INTO `co_po_mapping` (`offering_id`, `co_number`, `po_name`, `value`)
 VALUES 
-    -- CS101: Introduction to Programming
+    -- Offering 1 (CS101: Introduction to Programming)
     (1, 1, 'PO1', 3), (1, 1, 'PO2', 2), (1, 1, 'PO5', 1),
     (1, 2, 'PO1', 2), (1, 2, 'PO2', 3), (1, 2, 'PO3', 1),
     (1, 3, 'PO2', 2), (1, 3, 'PO3', 3), (1, 3, 'PO5', 2),
     (1, 4, 'PO1', 1), (1, 4, 'PO3', 2), (1, 4, 'PO5', 3),
-    -- CS201: Data Structures
+    -- Offering 2 (CS201: Data Structures)
     (2, 1, 'PO1', 3), (2, 1, 'PO2', 2),
     (2, 2, 'PO1', 2), (2, 2, 'PO2', 3), (2, 2, 'PO3', 2),
     (2, 3, 'PO2', 2), (2, 3, 'PO3', 3),
     (2, 4, 'PO3', 2), (2, 4, 'PO5', 2),
-    -- CS301: DBMS
+    -- Offering 3 (CS301: DBMS)
     (3, 1, 'PO1', 3), (3, 1, 'PO2', 1),
     (3, 2, 'PO1', 2), (3, 2, 'PO2', 3), (3, 2, 'PO3', 1),
     (3, 3, 'PO2', 2), (3, 3, 'PO3', 3), (3, 3, 'PO5', 1),
     (3, 4, 'PO3', 2), (3, 4, 'PO5', 3);
 
--- Attainment Scale (per course template)
-INSERT INTO `attainment_scale` (`course_id`, `level`, `min_percentage`)
+-- Attainment Scale (per offering)
+INSERT INTO `attainment_scale` (`offering_id`, `level`, `min_percentage`)
 VALUES 
-    -- CS101
+    -- Offering 1 (CS101)
     (1, 1, 40.00), (1, 2, 60.00), (1, 3, 80.00),
-    -- CS201
+    -- Offering 2 (CS201)
     (2, 1, 40.00), (2, 2, 60.00), (2, 3, 80.00),
-    -- CS301
+    -- Offering 3 (CS301)
     (3, 1, 40.00), (3, 2, 60.00), (3, 3, 80.00);
 
 -- =============================================

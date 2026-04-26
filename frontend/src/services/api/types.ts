@@ -111,14 +111,16 @@ export interface QuestionResponse extends Question {
 
 export interface Test {
 	id: number;
-	course_id: number;
+	offering_id: number;
+	course_id?: number; // legacy alias
 	name: string;
 	full_marks: number;
 	pass_marks: number;
 }
 
 export interface CreateAssessmentRequest {
-	course_id: number;
+	offering_id: number;
+	course_id?: number; // legacy alias
 	name: string;
 	full_marks: number;
 	pass_marks: number;
@@ -257,6 +259,7 @@ export interface Enrollment {
 export interface CourseEnrollmentsResponse {
 	success: boolean;
 	data: {
+		offering_id: number;
 		course_id: number;
 		course_code: string;
 		enrollment_count: number;
@@ -352,7 +355,8 @@ export interface CreateUserRequest {
 
 // Attainment Types
 export interface AttainmentConfig {
-	course_id: number;
+	offering_id: number;
+	course_id?: number;
 	co_threshold: number;
 	passing_threshold: number;
 	attainment_thresholds: Array<{
@@ -363,7 +367,7 @@ export interface AttainmentConfig {
 }
 
 export interface SaveAttainmentConfigRequest {
-	course_id: number;
+	offering_id: number;
 	co_threshold: number;
 	passing_threshold: number;
 	attainment_thresholds: Array<{

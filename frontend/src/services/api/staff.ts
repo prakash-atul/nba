@@ -37,9 +37,10 @@ export const staffApi = {
 	},
 
 	/**
-	 * Get enrollments for a specific course
+	 * Get enrollments for a specific course offering
 	 */
-	async getCourseEnrollments(courseId: number): Promise<{
+	async getCourseEnrollments(offeringId: number): Promise<{
+		offering_id: number;
 		course_id: number;
 		course_code: string;
 		course_name: string;
@@ -48,19 +49,20 @@ export const staffApi = {
 	}> {
 		debugLogger.info("staffApi", "getDepartmentCourses called");
 		return apiGet<{
+			offering_id: number;
 			course_id: number;
 			course_code: string;
 			course_name: string;
 			enrollment_count: number;
 			enrollments: Enrollment[];
-		}>(`/staff/courses/${courseId}/enrollments`);
+		}>(`/staff/courses/${offeringId}/enrollments`);
 	},
 
 	/**
-	 * Bulk enroll students in a course
+	 * Bulk enroll students in a course offering
 	 */
 	async bulkEnrollStudents(
-		courseId: number,
+		offeringId: number,
 		students: Array<{ rollno: string; name: string }>,
 	): Promise<{
 		success_count: number;
@@ -76,15 +78,15 @@ export const staffApi = {
 				successful: Array<{ rollno: string; name: string }>;
 				failed: Array<{ rollno: string; name: string; reason: string }>;
 			}
-		>(`/staff/courses/${courseId}/enrollments`, { students });
+		>(`/staff/courses/${offeringId}/enrollments`, { students });
 	},
 
 	/**
-	 * Remove a student from a course
+	 * Remove a student from a course offering
 	 */
-	async removeEnrollment(courseId: number, rollno: string): Promise<void> {
+	async removeEnrollment(offeringId: number, rollno: string): Promise<void> {
 		debugLogger.info("staffApi", "bulkEnrollStudents called");
-		return apiDelete(`/staff/courses/${courseId}/enrollments/${rollno}`);
+		return apiDelete(`/staff/courses/${offeringId}/enrollments/${rollno}`);
 	},
 
 	/**
@@ -139,7 +141,7 @@ export const staffApi = {
 	 * Update an existing course
 	 */
 	async updateCourse(
-		courseId: number,
+		offeringId: number,
 		courseData: {
 			course_code?: string;
 			name?: string;
@@ -160,14 +162,14 @@ export const staffApi = {
 				semester?: string;
 			},
 			StaffCourse
-		>(`/staff/courses/${courseId}`, courseData);
+		>(`/staff/courses/${offeringId}`, courseData);
 	},
 
 	/**
 	 * Delete a course
 	 */
-	async deleteCourse(courseId: number): Promise<void> {
+	async deleteCourse(offeringId: number): Promise<void> {
 		debugLogger.info("staffApi", "deleteCourse called");
-		return apiDelete(`/staff/courses/${courseId}`);
+		return apiDelete(`/staff/courses/${offeringId}`);
 	},
 };

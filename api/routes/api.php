@@ -865,25 +865,25 @@ class Router
                     } else {
                         $this->sendMethodNotAllowed();
                     }
-                } elseif (preg_match('#^courses/(\d+)/attainment-config$#', $path, $matches)) {
-                    $courseId = (int)$matches[1];
+                } elseif (preg_match('#^offerings/(\d+)/attainment-config$#', $path, $matches)) {
+                    $offeringId = (int)$matches[1];
                     if ($method === 'GET') {
                         $user = $this->authMiddleware->requireAuth();
-                        $this->attainmentController->getConfig($courseId);
+                        $this->attainmentController->getConfig($offeringId);
                     } elseif ($method === 'POST') {
                         $user = $this->authMiddleware->requireAuth();
-                        $this->attainmentController->saveConfig($courseId);
+                        $this->attainmentController->saveConfig($offeringId);
                     } else {
                         $this->sendMethodNotAllowed();
                     }
-                } elseif (preg_match('#^courses/(\d+)/copo-matrix$#', $path, $matches)) {
-                    $courseId = (int)$matches[1];
+                } elseif (preg_match('#^offerings/(\d+)/copo-matrix$#', $path, $matches)) {
+                    $offeringId = (int)$matches[1];
                     if ($method === 'GET') {
                         $user = $this->authMiddleware->requireAuth();
-                        $this->attainmentController->getCoPoMatrix($courseId);
+                        $this->attainmentController->getCoPoMatrix($offeringId);
                     } elseif ($method === 'POST') {
                         $user = $this->authMiddleware->requireAuth();
-                        $this->attainmentController->saveCoPoMatrix($courseId);
+                        $this->attainmentController->saveCoPoMatrix($offeringId);
                     } else {
                         $this->sendMethodNotAllowed();
                     }
@@ -1089,13 +1089,15 @@ class Router
                     'DELETE /marks/student/{testId}/{studentId}'
                 ],
                 'enrollment' => [
-                    'POST /courses/{courseId}/enroll',
-                    'GET /courses/{courseId}/enrollments',
-                    'DELETE /courses/{courseId}/enroll/{rollno}'
+                    'POST /offerings/{offeringId}/enroll',
+                    'GET /offerings/{offeringId}/enrollments',
+                    'DELETE /offerings/{offeringId}/enroll/{rollno}'
                 ],
                 'attainment' => [
-                    'GET /courses/{courseId}/attainment-config',
-                    'POST /courses/{courseId}/attainment-config'
+                    'GET /offerings/{offeringId}/attainment-config',
+                    'POST /offerings/{offeringId}/attainment-config',
+                    'GET /offerings/{offeringId}/copo-matrix',
+                    'POST /offerings/{offeringId}/copo-matrix'
                 ]
             ]
         ]);

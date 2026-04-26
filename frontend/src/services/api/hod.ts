@@ -68,19 +68,19 @@ export const hodApi = {
 	},
 
 	async updateCourse(
-		courseId: number,
+		offeringId: number,
 		courseData: UpdateCourseRequest,
 	): Promise<DepartmentCourse> {
 		debugLogger.info("hodApi", "updateCourse called");
 		return apiPut<UpdateCourseRequest, DepartmentCourse>(
-			`/hod/courses/${courseId}`,
+			`/hod/courses/${offeringId}`,
 			courseData,
 		);
 	},
 
-	async deleteCourse(courseId: number): Promise<void> {
+	async deleteCourse(offeringId: number): Promise<void> {
 		debugLogger.info("hodApi", "deleteCourse called");
-		return apiDelete(`/hod/courses/${courseId}`);
+		return apiDelete(`/hod/courses/${offeringId}`);
 	},
 
 	// User management

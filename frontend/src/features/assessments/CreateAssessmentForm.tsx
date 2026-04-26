@@ -245,7 +245,7 @@ export function CreateAssessmentForm({
 		setIsSubmitting(true);
 		try {
 			const result = await apiService.createAssessment({
-				course_id:
+				offering_id:
 					selectedCourse.offering_id ?? selectedCourse.course_id,
 				name,
 				full_marks: parseFloat(fullMarks),

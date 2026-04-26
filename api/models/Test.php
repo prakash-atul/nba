@@ -191,7 +191,8 @@ class Test
 
         return [
             'id' => $this->test_id,
-            'course_id' => $this->offeringId,
+            'offering_id' => $this->offeringId,
+            'course_id' => $this->offeringId, // legacy alias
             'name' => $this->test_name,
             'full_marks' => $this->fullMarks,
             'pass_marks' => $this->passMarks,

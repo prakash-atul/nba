@@ -65,7 +65,7 @@ export interface CourseListColumnConfig {
 export function createCourseColumns(
 	config: CourseListColumnConfig,
 	onEdit?: (course: AdminCourse) => void,
-	onDelete?: (courseId: number | undefined) => void,
+	onDelete?: (course: AdminCourse) => void,
 	onViewCOPO?: (course: AdminCourse) => void,
 ): ColumnDef<AdminCourse>[] {
 	const columns: ColumnDef<AdminCourse>[] = [];
@@ -302,7 +302,7 @@ export function createCourseColumns(
 							variant="destructive"
 							size="icon"
 							className="h-8 w-8"
-							onClick={() => onDelete(row.original.course_id)}
+							onClick={() => onDelete(row.original)}
 						>
 							<Trash2 className="h-4 w-4" />
 						</Button>

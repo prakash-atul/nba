@@ -275,11 +275,8 @@ export function CourseList({
 			createCourseColumns(
 				columnConfig,
 				setEditTarget,
-				(courseId: number | undefined) => {
-					const course = courses.find(
-						(c) => c.course_id === courseId,
-					);
-					if (course) setDeleteTarget(course);
+				(course: AdminCourse) => {
+					setDeleteTarget(course);
 				},
 				onViewCOPO,
 			),
@@ -611,7 +608,14 @@ export function CourseList({
 				open={!!editTarget}
 				initialData={editTarget}
 				onOpenChange={(open) => !open && setEditTarget(null)}
-				onSave={(data) => handleEditSave(editTarget?.course_id, data)}
+				onSave={(data) =>
+					handleEditSave(
+						mode === "offering"
+							? (editTarget?.offering_id ?? undefined)
+							: editTarget?.course_id,
+						data,
+					)
+				}
 				isLoading={editSaving}
 			/>
 			<CourseFormDialog
@@ -626,7 +630,14 @@ export function CourseList({
 				open={!!deleteTarget}
 				course={deleteTarget}
 				onOpenChange={(open) => !open && setDeleteTarget(null)}
-				onConfirm={handleDelete}
+				onConfirm={async () => {
+					if (!deleteTarget) return;
+					const targetId =
+						mode === "offering"
+							? (deleteTarget.offering_id ?? undefined)
+							: deleteTarget.course_id;
+					await handleDelete(targetId);
+				}}
 				isLoading={deleteSaving}
 			/>
 		</div>

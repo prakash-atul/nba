@@ -510,7 +510,7 @@ export function useCOPOMappingData({
 
 		try {
 			await apiService.saveAttainmentConfig({
-				course_id: courseId,
+				offering_id: courseId,
 				co_threshold: coThreshold,
 				passing_threshold: passingThreshold,
 				attainment_thresholds: attainmentThresholds.map((t) => ({
