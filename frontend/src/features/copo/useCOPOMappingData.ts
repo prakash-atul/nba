@@ -20,8 +20,8 @@ export interface UseCOPOMappingDataProps {
 	courseCode: string;
 	facultyName: string;
 	departmentName: string;
-	year: number;
-	semester: string;
+	year: string | number;
+	semester: string | number;
 	courseName: string;
 }
 
@@ -638,14 +638,10 @@ export function useCOPOMappingData({
 				facultyName,
 				branch: departmentName,
 				programme: "B. Tech",
-				year: year.toString(),
-				semester: semester,
+				year: String(year),
+				semester: String(semester),
 				courseName,
-				session: `${new Date().getFullYear()}-${(
-					new Date().getFullYear() + 1
-				)
-					.toString()
-					.slice(-2)}`,
+				session: String(year),
 				studentsData: exportStudentsData,
 				assessments: exportAssessments,
 				copoMatrix: copoMatrix,

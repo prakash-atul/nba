@@ -862,7 +862,7 @@ class HODController
                 $input['role'],
                 $departmentId,
                 $input['designation'] ?? null,
-                $input['phone'] ?? null
+                $input['phones'] ?? []
             );
 
             $this->userRepository->save($user);

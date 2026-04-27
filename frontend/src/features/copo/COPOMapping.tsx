@@ -8,7 +8,8 @@ interface COPOMappingProps {
 	courseId: number;
 	facultyName: string;
 	departmentName: string;
-	year: number;
+	programme: string;
+	year: string | number;
 	semester: string;
 	readOnly?: boolean;
 }
@@ -19,6 +20,7 @@ export function COPOMapping({
 	courseId,
 	facultyName,
 	departmentName,
+	programme,
 	year,
 	semester,
 	readOnly = false,
@@ -55,8 +57,8 @@ export function COPOMapping({
 		courseCode,
 		facultyName,
 		departmentName,
-		year,
-		semester,
+		year: String(year),
+		semester: String(semester),
 		courseName,
 	});
 
@@ -72,6 +74,7 @@ export function COPOMapping({
 			courseName={courseName}
 			facultyName={facultyName}
 			departmentName={departmentName}
+			programme={programme}
 			year={year}
 			semester={semester}
 			readOnly={readOnly}

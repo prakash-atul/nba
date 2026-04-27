@@ -411,6 +411,7 @@ export interface DepartmentCourse {
 	course_name: string;
 	credit: number;
 	department_id?: number | null;
+	department_code?: string | null;
 	course_type?: string;
 	course_level?: string;
 	is_active?: number;

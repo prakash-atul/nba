@@ -51,7 +51,7 @@ export function HODCourseCOPO() {
 			{/* Main Content Area */}
 			<div className="flex-1 p-6 z-0">
 				<div className="max-w-7xl mx-auto">
-					<COPOMapping
+<COPOMapping
 						courseId={offeringId}
 						courseCode={
 							courseData?.course_code ||
@@ -72,8 +72,11 @@ export function HODCourseCOPO() {
 						departmentName={
 							courseData?.department_name ||
 							courseData?.departmentName ||
+							courseData?.departmentCode ||
+							courseData?.department_code ||
 							"Unknown Department"
 						}
+						programme={courseData?.course_level || "B. Tech"}
 						semester={courseData?.semester || "Unknown Semester"}
 						year={courseData?.year || new Date().getFullYear()}
 						readOnly={true}

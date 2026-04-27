@@ -33,6 +33,7 @@ export function FacultyCOPO({ selectedCourse, user }: FacultyCOPOProps) {
 				}
 				facultyName={user.username}
 				departmentName={user.department_name || "Not Assigned"}
+				programme="B. Tech"
 				year={selectedCourse.year}
 				semester={selectedCourse.semester}
 			/>

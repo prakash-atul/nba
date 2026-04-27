@@ -5,8 +5,9 @@ interface StudentMarksCardHeaderProps {
 	departmentName: string;
 	courseName: string;
 	courseCode: string;
-	year: number;
-	semester: string;
+	programme?: string;
+	year: string | number;
+	semester: string | number;
 }
 
 export function StudentMarksCardHeader({
@@ -14,15 +15,13 @@ export function StudentMarksCardHeader({
 	departmentName,
 	courseName,
 	courseCode,
+	programme,
 	year,
 	semester,
 }: StudentMarksCardHeaderProps) {
-	const getAcademicYear = (year: number) => `${year}-${year + 1}`;
-	const getSemesterDisplay = (sem: string) => sem;
-	const getCurrentSession = () => {
-		const currentYear = new Date().getFullYear();
-		return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
-	};
+	const getAcademicYear = (yr: string | number) => String(yr);
+	const getSemesterDisplay = (sem: string | number) => String(sem);
+	const getCurrentSession = () => String(year);
 
 	return (
 		<CardHeader className="bg-orange-100 dark:bg-orange-950 border-b-4 border-orange-500">
@@ -41,7 +40,7 @@ export function StudentMarksCardHeader({
 					</div>
 					<div className="flex gap-2">
 						<span className="font-semibold">Programme:</span>
-						<span>B. Tech</span>
+						<span>{programme || "B. Tech"}</span>
 					</div>
 					<div className="flex gap-2">
 						<span className="font-semibold">YEAR:</span>

@@ -777,6 +777,7 @@ class CourseRepository
                        u.employee_id AS faculty_id,
                        u.username    AS faculty_name,
                        cfa.is_active AS cfa_is_active,
+                       d.department_code,
                        (SELECT COUNT(*) FROM enrollments e
                         WHERE e.offering_id = co.offering_id) AS enrollment_count,
                        (SELECT COUNT(*) FROM tests t
@@ -792,6 +793,7 @@ class CourseRepository
                        ) AS avg_score_pct
                 FROM courses c
                 INNER JOIN course_offerings co ON co.course_id = c.course_id
+                INNER JOIN departments d ON d.department_id = c.department_id
                 LEFT JOIN course_faculty_assignments cfa
                        ON cfa.offering_id = co.offering_id
                       AND cfa.assignment_type = 'Primary'

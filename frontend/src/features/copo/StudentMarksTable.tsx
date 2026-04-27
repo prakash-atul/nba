@@ -6,24 +6,14 @@ import type { StudentMarks } from "./types";
 
 interface StudentMarksTableProps {
 	studentsData: StudentMarks[];
-	maxMarks: Record<
-		string,
-		{
-			total: number;
-			CO1: number;
-			CO2: number;
-			CO3: number;
-			CO4: number;
-			CO5: number;
-			CO6: number;
-		}
-	>;
+	maxMarks: any;
 	facultyName: string;
 	departmentName: string;
 	courseName: string;
 	courseCode: string;
-	year: number;
-	semester: string;
+	programme?: string;
+	year: string | number;
+	semester: string | number;
 	loading: boolean;
 	getPercentageColor: (percentage: number) => string;
 	coMaxMarks?: Record<string, number>; // Total max marks per CO across all tests
@@ -36,6 +26,7 @@ export function StudentMarksTable({
 	departmentName,
 	courseName,
 	courseCode,
+	programme,
 	year,
 	semester,
 	loading,
@@ -55,6 +46,7 @@ export function StudentMarksTable({
 				departmentName={departmentName}
 				courseName={courseName}
 				courseCode={courseCode}
+				programme={programme}
 				year={year}
 				semester={semester}
 			/>
