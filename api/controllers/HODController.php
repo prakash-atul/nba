@@ -1239,4 +1239,81 @@ class HODController
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve test averages', 'error' => $e->getMessage()]);
         }
     }
+
+    /**
+     * Reopen a concluded course offering for faculty review.
+     * Sets is_active = 1 and clears completion_date in course_faculty_assignments.
+     */
+    public function reopenCourseOffering($offeringId)
+    {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            if (!$departmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Department not assigned']);
+                return;
+            }
+
+            $offeringId = (int)$offeringId;
+
+            // Verify the offering belongs to this department
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Offering not found']);
+                return;
+            }
+
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course || $course->getDepartmentId() != $departmentId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Access denied']);
+                return;
+            }
+
+            // Check if already active or doesn't exist
+            $cfaRepo = $this->courseFacultyAssignmentRepository;
+            if (!$cfaRepo) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Repository not initialized']);
+                return;
+            }
+
+            // Check current status
+            $stmt = $cfaRepo->getDb()->prepare("SELECT is_active FROM course_faculty_assignments WHERE offering_id = ? AND assignment_type = 'Primary' LIMIT 1");
+            $stmt->execute([$offeringId]);
+            $currentStatus = $stmt->fetchColumn();
+
+            if ($currentStatus === false || $currentStatus === null) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'No primary faculty assignment exists for this offering']);
+                return;
+            }
+
+            if ($currentStatus == 1) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Course is already active']);
+                return;
+            }
+
+            // Reopen: set is_active = 1, clear completion_date
+            $cfaRepo->reactivateOffering($offeringId);
+
+            if (isset($this->auditService)) {
+                $this->auditService->log('REOPEN', 'CourseOffering', $offeringId, ['status' => 'concluded'], ['status' => 'active']);
+            }
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Course reopened successfully',
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to reopen course', 'error' => $e->getMessage()]);
+        }
+    }
 }

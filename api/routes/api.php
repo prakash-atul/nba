@@ -954,6 +954,15 @@ class Router
                     } else {
                         $this->sendMethodNotAllowed();
                     }
+                } elseif (preg_match('#^hod/offerings/(\d+)/reopen$#', $path, $matches)) {
+                    $offeringId = $matches[1];
+                    if ($method === 'POST') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->hodController->reopenCourseOffering($offeringId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
                                 } elseif (preg_match('#^hod/base-courses/(\\d+)$#', $path, $matches)) {
                     $courseId = $matches[1];
                     if ($method === 'PUT') {

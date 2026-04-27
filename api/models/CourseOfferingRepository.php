@@ -580,16 +580,17 @@ class CourseOfferingRepository
                 }
             }
 
-            $rawSort = ltrim($params["sort"], "co.");
+            $rawSort = ltrim($params["sort"] ?? "offering_id", "co.");
             $rawSort = ltrim($rawSort, "c.");
             $sortCol = "co." . $rawSort;
             if ($rawSort === "course_code" || $rawSort === "course_name" || $rawSort === "department_id") {
                 $sortCol = "c." . $rawSort;
             }
 
-            $op = ($params["sort_dir"] === "ASC") ? ">" : "<";
+            $sortDir = $params["sort_dir"] ?? "DESC";
+            $op = ($sortDir === "ASC") ? ">" : "<";
 
-            if ($params["cursor"] !== null) {
+            if (($params["cursor"] ?? null) !== null) {
                 $cursorVal = $params["cursor"];
                 if ($rawSort === "offering_id") {
                     $whereConditions[] = "co.offering_id $op ?";
@@ -611,9 +612,9 @@ class CourseOfferingRepository
             $whereClause = implode(" AND ", $whereConditions);
             
             // Note: avg_score_pct calculation in subquery and count
-            $orderBy = "$sortCol {$params["sort_dir"]}, co.offering_id ASC";
+            $orderBy = "$sortCol {$sortDir}, co.offering_id ASC";
             if ($rawSort === "offering_id") {
-                $orderBy = "co.offering_id {$params["sort_dir"]}";
+                $orderBy = "co.offering_id {$sortDir}";
             }
 
             $limit = (int)$params["limit"];
@@ -732,16 +733,17 @@ class CourseOfferingRepository
                 }
             }
 
-            $rawSort = ltrim($params["sort"], "co.");
+            $rawSort = ltrim($params["sort"] ?? "offering_id", "co.");
             $rawSort = ltrim($rawSort, "c.");
             $sortCol = "co." . $rawSort;
             if ($rawSort === "course_code" || $rawSort === "course_name" || $rawSort === "department_id") {
                 $sortCol = "c." . $rawSort;
             }
 
-            $op = ($params["sort_dir"] === "ASC") ? ">" : "<";
+            $sortDir = $params["sort_dir"] ?? "DESC";
+            $op = ($sortDir === "ASC") ? ">" : "<";
 
-            if ($params["cursor"] !== null) {
+            if (($params["cursor"] ?? null) !== null) {
                 $cursorVal = $params["cursor"];
                 if ($rawSort === "offering_id") {
                     $whereConditions[] = "co.offering_id $op ?";

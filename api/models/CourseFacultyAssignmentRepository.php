@@ -14,6 +14,11 @@ class CourseFacultyAssignmentRepository
         $this->db = $dbConnection;
     }
 
+    public function getDb()
+    {
+        return $this->db;
+    }
+
     /**
      * Find assignment by ID
      * @param int $id
@@ -265,6 +270,27 @@ class CourseFacultyAssignmentRepository
             ");
 
             $stmt->execute([$completionDate, $id]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reactivate a course offering (open it back for faculty review)
+     * @param int $offeringId
+     * @return bool
+     */
+    public function reactivateOffering($offeringId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE course_faculty_assignments 
+                SET is_active = 1, completion_date = NULL
+                WHERE offering_id = ? AND assignment_type = 'Primary'
+            ");
+
+            $stmt->execute([$offeringId]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());

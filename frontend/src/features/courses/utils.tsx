@@ -2,7 +2,7 @@ import { sortableHeader } from "../shared/tableUtils";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Pencil, Trash2, Target } from "lucide-react";
+import { ArrowUpDown, Pencil, Trash2, Target, Unlock } from "lucide-react";
 import type { AdminCourse } from "@/services/api";
 import type { VariantProps } from "class-variance-authority";
 import { badgeVariants } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ export interface CourseListColumnConfig {
 	showAverageScore?: boolean;
 	canEdit?: boolean;
 	canDelete?: boolean;
+	canReopen?: boolean;
 	expandable?: boolean;
 	canViewCOPO?: boolean;
 }
@@ -67,6 +68,7 @@ export function createCourseColumns(
 	onEdit?: (course: AdminCourse) => void,
 	onDelete?: (course: AdminCourse) => void,
 	onViewCOPO?: (course: AdminCourse) => void,
+	onReopen?: (course: AdminCourse) => void,
 ): ColumnDef<AdminCourse>[] {
 	const columns: ColumnDef<AdminCourse>[] = [];
 
@@ -297,7 +299,7 @@ export function createCourseColumns(
 							<Pencil className="h-4 w-4" />
 						</Button>
 					)}
-					{config.canDelete && onDelete && (
+{config.canDelete && onDelete && (
 						<Button
 							variant="destructive"
 							size="icon"
@@ -305,6 +307,17 @@ export function createCourseColumns(
 							onClick={() => onDelete(row.original)}
 						>
 							<Trash2 className="h-4 w-4" />
+						</Button>
+					)}
+					{config.canReopen && onReopen && (row.original.cfa_is_active ?? 1) === 0 && (
+						<Button
+							variant="outline"
+							size="icon"
+							title="Reopen for Faculty Review"
+							className="h-8 w-8 text-amber-600 hover:text-amber-700"
+							onClick={() => onReopen(row.original)}
+						>
+							<Unlock className="h-4 w-4" />
 						</Button>
 					)}
 				</div>

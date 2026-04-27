@@ -320,6 +320,7 @@ export interface AdminCourse {
 	passing_threshold?: number | null;
 	faculty_id?: number | null;
 	faculty_name?: string | null;
+	cfa_is_active?: number | null;
 	enrollment_count?: number;
 	test_count?: number;
 	// Legacy/Compat

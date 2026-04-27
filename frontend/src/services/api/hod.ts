@@ -78,9 +78,14 @@ export const hodApi = {
 		);
 	},
 
-	async deleteCourse(offeringId: number): Promise<void> {
+async deleteCourse(offeringId: number): Promise<void> {
 		debugLogger.info("hodApi", "deleteCourse called");
 		return apiDelete(`/hod/courses/${offeringId}`);
+	},
+
+	async reopenCourseOffering(offeringId: number): Promise<void> {
+		debugLogger.info("hodApi", "reopenCourseOffering called", { offeringId });
+		return apiPost<any, any>(`/hod/offerings/${offeringId}/reopen`, {});
 	},
 
 	// User management

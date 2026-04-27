@@ -93,6 +93,9 @@ export function HODCourses() {
 							onCourseDelete={async (courseId) => {
 								await hodApi.deleteCourse(courseId);
 							}}
+							onCourseReopen={async (courseId) => {
+								await hodApi.reopenCourseOffering(courseId);
+							}}
 							onViewCOPO={(course) =>
 								navigate(
 									`/hod/courses/${course.offering_id || course.course_id}/copo`,
@@ -125,6 +128,9 @@ export function HODCourses() {
 							}}
 							onCourseDelete={async (courseId) => {
 								await hodApi.deleteCourse(courseId);
+							}}
+							onCourseReopen={async (courseId) => {
+								await hodApi.reopenCourseOffering(courseId);
 							}}
 							onViewCOPO={(course) =>
 								navigate(

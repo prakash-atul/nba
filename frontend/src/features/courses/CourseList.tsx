@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { CourseFormDialog } from "./CourseFormDialog";
 import { DeleteCourseDialog } from "./DeleteCourseDialog";
+import { ReopenCourseDialog } from "./ReopenCourseDialog";
 import { createCourseColumns, type CourseListColumnConfig } from "./utils";
 
 export interface CourseListProps {
@@ -78,6 +79,7 @@ export interface CourseListProps {
 	onCourseUpdate?: (courseId: number, data: any) => Promise<void>;
 	onCourseDelete?: (courseId: number) => Promise<void>;
 	onCourseCreate?: (data: any) => Promise<void>;
+	onCourseReopen?: (courseId: number) => Promise<void>;
 	onRefresh?: () => void;
 	onViewCOPO?: (course: AdminCourse) => void;
 
@@ -114,6 +116,7 @@ export function CourseList({
 	onCourseUpdate,
 	onCourseDelete,
 	onCourseCreate,
+	onCourseReopen,
 	onRefresh,
 	onViewCOPO,
 	department_id,
@@ -125,6 +128,8 @@ export function CourseList({
 	const [createSaving, setCreateSaving] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState<AdminCourse | null>(null);
 	const [deleteSaving, setDeleteSaving] = useState(false);
+	const [reopenTarget, setReopenTarget] = useState<AdminCourse | null>(null);
+	const [reopenSaving, setReopenSaving] = useState(false);
 
 	// Data fetching
 	const {
@@ -143,6 +148,7 @@ export function CourseList({
 		sort,
 		sortDir,
 		setSort,
+		refresh,
 	} = usePaginatedData<
 		AdminCourse,
 		Record<string, string | number | undefined>
@@ -211,6 +217,7 @@ export function CourseList({
 		showAverageScore,
 		canEdit: permissions.canEdit,
 		canDelete: permissions.canDelete,
+		canReopen: !!onCourseReopen,
 		canViewCOPO: permissions.canViewCOPO || !!onViewCOPO,
 		expandable,
 	};
@@ -269,6 +276,29 @@ export function CourseList({
 		}
 	};
 
+// Handle reopen - just set the target, dialog will handle confirmation
+	const handleReopenClick = (course: AdminCourse) => {
+		setReopenTarget(course);
+	};
+
+	const handleReopenConfirm = async () => {
+		if (!onCourseReopen || !reopenTarget) return;
+		const courseId = reopenTarget.offering_id || reopenTarget.course_id;
+		if (!courseId) return;
+
+		setReopenSaving(true);
+		try {
+			await onCourseReopen(courseId);
+			toast.success("Course reopened successfully");
+			refresh();
+		} catch (err) {
+			toast.error("Failed to reopen course");
+			console.error(err);
+		} finally {
+			setReopenSaving(false);
+		}
+	};
+
 	// Create columns
 	const columns = useMemo(
 		() =>
@@ -279,8 +309,9 @@ export function CourseList({
 					setDeleteTarget(course);
 				},
 				onViewCOPO,
+				handleReopenClick,
 			),
-		[courses, columnConfig, onViewCOPO],
+		[courses, columnConfig, onViewCOPO, onCourseReopen, handleReopenClick],
 	);
 
 	if (error) {
@@ -626,7 +657,7 @@ export function CourseList({
 				onSave={handleCreate}
 				isLoading={createSaving}
 			/>
-			<DeleteCourseDialog
+<DeleteCourseDialog
 				open={!!deleteTarget}
 				course={deleteTarget}
 				onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -639,6 +670,13 @@ export function CourseList({
 					await handleDelete(targetId);
 				}}
 				isLoading={deleteSaving}
+			/>
+			<ReopenCourseDialog
+				open={!!reopenTarget}
+				course={reopenTarget}
+				onOpenChange={(open) => !open && setReopenTarget(null)}
+				onConfirm={handleReopenConfirm}
+				isLoading={reopenSaving}
 			/>
 		</div>
 	);
