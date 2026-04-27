@@ -104,6 +104,10 @@ class HODController
         try {
             if (!$this->requireHOD()) return;
             
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            
+            // Filter to only include high-level actions for HOD view
+            // Exclude granular updates like marks entries, co_po updates
             $filters = [
                 'user_id' => $_GET['user_id'] ?? null,
                 'action' => $_GET['action'] ?? null,
@@ -111,12 +115,13 @@ class HODController
                 'entity_id' => $_GET['entity_id'] ?? null,
                 'date_from' => $_GET['date_from'] ?? null,
                 'date_to' => $_GET['date_to'] ?? null,
+                'excluded_actions' => ['marks_update', 'co_po_update', 'co_update', 'po_update', 'attainment_update'],
             ];
             
             $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
             $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
 
-            $result = $this->auditLogRepository->findAll($filters, $page, $limit);
+            $result = $this->auditLogRepository->findAllForHOD($departmentId, $filters, $page, $limit);
 
             $items = $result['data'];
             
@@ -1102,7 +1107,7 @@ class HODController
             if (isset($updates['student_status'])) $student->setStudentStatus($updates['student_status']);
             if (isset($updates['batch_year']))    $student->setBatchYear((int)$updates['batch_year']);
 
-            $this->studentRepository->save($student);
+            $this->studentRepository->update($student);
 
             http_response_code(200);
             header('Content-Type: application/json');

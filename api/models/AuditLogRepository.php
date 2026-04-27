@@ -108,4 +108,67 @@ class AuditLogRepository {
             ]
         ];
     }
+
+    /**
+     * Get filtered audit logs for HOD view (excludes granular updates)
+     */
+    public function findAllForHOD(int $departmentId, array $filters = [], int $page = 1, int $limit = 50) {
+        // Only fetch high-level actions: user creation, course creation, faculty assignments, etc.
+        // Exclude marks updates, CO-PO updates to reduce noise
+        $includedEntityTypes = ['User', 'Course', 'CourseOffering', 'FacultyAssignment', 'Dean', 'HOD'];
+        $excludedActions = $filters['excluded_actions'] ?? ['marks_update', 'co_po_update'];
+        
+        $query = "SELECT a.*, u.username 
+                  FROM audit_logs a 
+                  LEFT JOIN users u ON a.user_id = u.employee_id 
+                  WHERE a.entity_type IN ('" . implode("','", $includedEntityTypes) . "')";
+        
+        $params = [];
+        
+        if (!empty($excludedActions)) {
+            $excludedList = implode("','", array_map(function($a) {
+                return preg_replace('/[^a-z_]/i', '', $a);
+            }, $excludedActions));
+            $query .= " AND a.action NOT IN ('$excludedList')";
+        }
+        
+        if (!empty($filters['user_id'])) {
+            $query .= " AND a.user_id = :user_id";
+            $params[':user_id'] = $filters['user_id'];
+        }
+        
+        if (!empty($filters['action'])) {
+            $query .= " AND a.action = :action";
+            $params[':action'] = $filters['action'];
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query .= " AND DATE(a.created_at) >= :date_from";
+            $params[':date_from'] = $filters['date_from'];
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query .= " AND DATE(a.created_at) <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
+        }
+
+        $query .= " ORDER BY a.created_at DESC";
+
+        $offset = ($page - 1) * $limit;
+        
+        $countQuery = str_replace("SELECT a.*, u.username", "SELECT COUNT(*)", $query);
+        $countStmt = $this->db->prepare($countQuery);
+        $countStmt->execute($params);
+        $total = $countStmt->fetchColumn();
+
+        $query .= " LIMIT $limit OFFSET $offset";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'data' => $rows,
+            'total' => (int)$total,
+        ];
+    }
 }

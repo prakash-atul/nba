@@ -19,6 +19,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { DeleteStudentDialog } from "./DeleteStudentDialog";
+import { EditStudentDialog } from "./EditStudentDialog";
 import { createStudentColumns, type StudentListColumnConfig } from "./utils";
 import { toast } from "sonner";
 import { coursesApi } from "@/services/api/courses";
@@ -88,11 +89,13 @@ export function StudentList({
 	courses: passedCourses,
 
 	onStudentDelete,
+	onStudentUpdate,
 	onRefresh,
 	department_id,
 }: StudentListProps) {
 	// Dialog state
 	const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+	const [editTarget, setEditTarget] = useState<Student | null>(null);
 	const [deleteSaving, setDeleteSaving] = useState(false);
 
 	// Filter state
@@ -232,7 +235,9 @@ export function StudentList({
 		() =>
 			createStudentColumns(
 				columnConfig,
-				() => {},
+				(student) => {
+					if (student) setEditTarget(student);
+				},
 				(rollNo) => {
 					const student = students.find((s) => s.roll_no === rollNo);
 					if (student) setDeleteTarget(student);
@@ -468,6 +473,16 @@ export function StudentList({
 				onOpenChange={(open) => !open && setDeleteTarget(null)}
 				onConfirm={handleDelete}
 				isLoading={deleteSaving}
+			/>
+
+			<EditStudentDialog
+				open={!!editTarget}
+				student={editTarget}
+				onOpenChange={(open) => !open && setEditTarget(null)}
+				onSave={async (data) => {
+					if (!editTarget || !onStudentUpdate) return;
+					await onStudentUpdate(editTarget.roll_no, data);
+				}}
 			/>
 		</div>
 	);
