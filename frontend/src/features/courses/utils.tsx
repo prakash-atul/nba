@@ -2,7 +2,7 @@ import { sortableHeader } from "../shared/tableUtils";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Pencil, Trash2, Target, Unlock } from "lucide-react";
+import { ArrowUpDown, Pencil, Trash2, Eye, Unlock } from "lucide-react";
 import type { AdminCourse } from "@/services/api";
 import type { VariantProps } from "class-variance-authority";
 import { badgeVariants } from "@/components/ui/badge";
@@ -277,7 +277,7 @@ export function createCourseColumns(
 			id: "actions",
 			header: "Actions",
 			cell: ({ row }) => (
-				<div className="flex gap-2">
+				<div className="flex gap-2 justify-between">
 					{config.canViewCOPO && onViewCOPO && (
 						<Button
 							variant="outline"
@@ -286,7 +286,7 @@ export function createCourseColumns(
 							className="h-8 w-8 text-blue-600 hover:text-blue-700"
 							onClick={() => onViewCOPO(row.original)}
 						>
-							<Target className="h-4 w-4" />
+							<Eye className="h-4 w-4" />
 						</Button>
 					)}
 					{config.canEdit && onEdit && (
@@ -299,7 +299,7 @@ export function createCourseColumns(
 							<Pencil className="h-4 w-4" />
 						</Button>
 					)}
-{config.canDelete && onDelete && (
+					{config.canDelete && onDelete && (
 						<Button
 							variant="destructive"
 							size="icon"
@@ -309,17 +309,19 @@ export function createCourseColumns(
 							<Trash2 className="h-4 w-4" />
 						</Button>
 					)}
-					{config.canReopen && onReopen && (row.original.cfa_is_active ?? 1) === 0 && (
-						<Button
-							variant="outline"
-							size="icon"
-							title="Reopen for Faculty Review"
-							className="h-8 w-8 text-amber-600 hover:text-amber-700"
-							onClick={() => onReopen(row.original)}
-						>
-							<Unlock className="h-4 w-4" />
-						</Button>
-					)}
+					{config.canReopen &&
+						onReopen &&
+						(row.original.cfa_is_active ?? 1) === 0 && (
+							<Button
+								variant="outline"
+								size="icon"
+								title="Reopen for Faculty Review"
+								className="h-8 w-8 text-amber-600 hover:text-amber-700"
+								onClick={() => onReopen(row.original)}
+							>
+								<Unlock className="h-4 w-4" />
+							</Button>
+						)}
 				</div>
 			),
 		});

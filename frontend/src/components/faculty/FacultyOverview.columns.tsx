@@ -132,18 +132,18 @@ export function getFacultyOverviewColumns(
 
 				if (course.is_active === 0 || course.cfa_is_active === 0) {
 					return (
-						<div className="flex gap-2">
+						<div className="flex justify-center gap-2">
 							<Button
 								variant="outline"
 								size="sm"
+								title="View CO-PO Mapping"
 								onClick={() =>
 									navigate(
 										`/faculty/copo?offering_id=${offeringId}`,
 									)
 								}
 							>
-								<Eye className="h-4 w-4 mr-2" />
-								<span className="relative -top-px">CO-PO</span>
+								<Eye className="h-4 w-4" />
 							</Button>
 						</div>
 					);

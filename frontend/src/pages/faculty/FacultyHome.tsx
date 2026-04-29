@@ -18,6 +18,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { debugLogger } from "@/lib/debugLogger";
 
 export function FacultyHome() {
 	const navigate = useNavigate();
@@ -26,6 +27,8 @@ export function FacultyHome() {
 		sidebarOpen: boolean;
 		setSidebarOpen: (open: boolean) => void;
 	}>();
+
+	debugLogger.info("FacultyHome", "Component mounted", { user: user?.username });
 
 	const {
 		data: courses,
@@ -36,8 +39,20 @@ export function FacultyHome() {
 		limit: 100,
 	});
 
+	debugLogger.debug("FacultyHome", "Courses fetched", {
+		count: courses.length,
+		loading: isLoadingCourses,
+		courses: courses.map(c => ({ id: c.offering_id, code: c.course_code, active: c.is_active }))
+	});
+
 	// Filter out concluded courses for the dropdown only
-	const activeCourses = courses.filter(c => c.cfa_is_active === 1);
+	const activeCourses = courses.filter(c => c.is_active !== 0);
+
+	debugLogger.debug("FacultyHome", "Active courses filtered", {
+		totalCourses: courses.length,
+		activeCount: activeCourses.length,
+		activeCourses: activeCourses.map(c => ({ id: c.offering_id, code: c.course_code }))
+	});
 
 	const [selectedCourse, setSelectedCourseState] = useState<Course | null>(
 		null,
@@ -64,10 +79,21 @@ export function FacultyHome() {
 	}, []);
 
 	useEffect(() => {
+		debugLogger.debug("FacultyHome", "Course selection useEffect triggered", {
+			activeCoursesCount: activeCourses.length,
+			hasSelectedCourse: !!selectedCourse,
+			selectedCourseId: selectedCourse?.offering_id
+		});
+
 		if (activeCourses.length > 0 && !selectedCourse) {
 			let activeCourse =
 				activeCourses.find((c) => c.is_active !== 0) || activeCourses[0];
 			const savedCourseId = localStorage.getItem("faculty_last_course");
+
+			debugLogger.debug("FacultyHome", "Selecting course", {
+				savedCourseId,
+				selectedCourseCode: activeCourse?.course_code
+			});
 
 			if (savedCourseId) {
 				const foundCourse = activeCourses.find(
@@ -76,18 +102,34 @@ export function FacultyHome() {
 				);
 				if (foundCourse) {
 					activeCourse = foundCourse;
+					debugLogger.info("FacultyHome", "Restored course from localStorage", {
+						courseId: foundCourse.offering_id,
+						courseCode: foundCourse.course_code
+					});
 				}
 			}
 			setSelectedCourse(activeCourse);
+			debugLogger.info("FacultyHome", "Course selected", {
+				courseId: activeCourse?.offering_id,
+				courseCode: activeCourse?.course_code
+			});
 		}
 	}, [activeCourses, selectedCourse]);
 
 	const loadStats = async () => {
+		debugLogger.debug("FacultyHome", "Loading faculty stats...");
 		setStatsLoading(true);
 		try {
 			const statsData = await apiService.getFacultyStats();
+			debugLogger.info("FacultyHome", "Faculty stats loaded", {
+				stats: statsData,
+				totalCourses: statsData.totalCourses,
+				totalAssessments: statsData.totalAssessments,
+				totalStudents: statsData.totalStudents
+			});
 			setStats(statsData);
 		} catch (error) {
+			debugLogger.error("FacultyHome", "Failed to load faculty stats", error);
 			console.error("Failed to load faculty stats:", error);
 			setStats({
 				totalCourses: courses.length,
@@ -97,6 +139,7 @@ export function FacultyHome() {
 			});
 		} finally {
 			setStatsLoading(false);
+			debugLogger.debug("FacultyHome", "Stats loading completed");
 		}
 	};
 

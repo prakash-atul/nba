@@ -13,12 +13,15 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, RefreshCw } from "lucide-react";
+import { debugLogger } from "@/lib/debugLogger";
 
 export function FacultyAssessments() {
 	const { sidebarOpen, setSidebarOpen } = useOutletContext<{
 		sidebarOpen: boolean;
 		setSidebarOpen: (open: boolean) => void;
 	}>();
+
+	debugLogger.info("FacultyAssessments", "Component mounted");
 
 	const {
 		data: courses,
@@ -29,8 +32,24 @@ export function FacultyAssessments() {
 		limit: 100,
 	});
 
+	debugLogger.debug("FacultyAssessments", "Courses fetch state", {
+		loading: isLoadingCourses,
+		count: courses.length,
+		courses: courses.map(c => ({
+			id: c.offering_id,
+			code: c.course_code,
+			isActive: c.is_active
+		}))
+	});
+
 	// Filter out concluded courses for the dropdown only
-	const activeCourses = courses.filter(c => c.cfa_is_active === 1);
+	const activeCourses = courses.filter(c => c.is_active !== 0);
+
+	debugLogger.debug("FacultyAssessments", "Active courses filtered", {
+		totalCourses: courses.length,
+		activeCount: activeCourses.length,
+		activeCourses: activeCourses.map(c => ({ id: c.offering_id, code: c.course_code }))
+	});
 
 	const [selectedCourse, setSelectedCourseState] = useState<Course | null>(null);
 	const setSelectedCourse = (course: Course | null) => {
@@ -41,17 +60,36 @@ export function FacultyAssessments() {
 	};
 
 	useEffect(() => {
+		debugLogger.debug("FacultyAssessments", "Course selection useEffect triggered", {
+			activeCoursesCount: activeCourses.length,
+			hasSelectedCourse: !!selectedCourse,
+			selectedCourseId: selectedCourse?.offering_id
+		});
+
 		if (activeCourses.length > 0 && !selectedCourse) {
 			let activeCourse = activeCourses.find((c) => c.is_active !== 0) || activeCourses[0];
 			const savedCourseId = localStorage.getItem("faculty_last_course");
 			
+			debugLogger.debug("FacultyAssessments", "Selecting course", {
+				savedCourseId,
+				selectedCourseCode: activeCourse?.course_code
+			});
+
 			if (savedCourseId) {
 				const foundCourse = activeCourses.find(c => String(c.offering_id || c.course_id) === savedCourseId);
 				if (foundCourse) {
 					activeCourse = foundCourse;
+					debugLogger.info("FacultyAssessments", "Restored course from localStorage", {
+						courseId: foundCourse.offering_id,
+						courseCode: foundCourse.course_code
+					});
 				}
 			}
 			setSelectedCourse(activeCourse);
+			debugLogger.info("FacultyAssessments", "Course selected", {
+				courseId: activeCourse?.offering_id,
+				courseCode: activeCourse?.course_code
+			});
 		}
 	}, [activeCourses, selectedCourse]);
 

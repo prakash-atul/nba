@@ -580,8 +580,9 @@ class CourseOfferingRepository
                 }
             }
 
-            $rawSort = ltrim($params["sort"] ?? "offering_id", "co.");
-            $rawSort = ltrim($rawSort, "c.");
+            $rawSort = $params["sort"] ?? "offering_id";
+            if (strpos($rawSort, "co.") === 0) $rawSort = substr($rawSort, 3);
+            if (strpos($rawSort, "c.") === 0) $rawSort = substr($rawSort, 2);
             $sortCol = "co." . $rawSort;
             if ($rawSort === "course_code" || $rawSort === "course_name" || $rawSort === "department_id") {
                 $sortCol = "c." . $rawSort;
@@ -733,8 +734,9 @@ class CourseOfferingRepository
                 }
             }
 
-            $rawSort = ltrim($params["sort"] ?? "offering_id", "co.");
-            $rawSort = ltrim($rawSort, "c.");
+            $rawSort = $params["sort"] ?? "offering_id";
+            if (strpos($rawSort, "co.") === 0) $rawSort = substr($rawSort, 3);
+            if (strpos($rawSort, "c.") === 0) $rawSort = substr($rawSort, 2);
             $sortCol = "co." . $rawSort;
             if ($rawSort === "course_code" || $rawSort === "course_name" || $rawSort === "department_id") {
                 $sortCol = "c." . $rawSort;
