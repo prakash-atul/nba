@@ -245,7 +245,10 @@ export function useCOPOMappingData({
 				apiService
 					.getTestMarks(test.id)
 					.then((data) => ({ test, marksData: data }))
-					.catch(() => ({ test, marksData: null })),
+					.catch((error) => {
+						console.error(`Failed to fetch marks for test ${test.id}:`, error);
+						return { test, marksData: null };
+					}),
 			);
 
 			const allMarksResults = await Promise.all(allMarksPromises);
@@ -573,7 +576,12 @@ export function useCOPOMappingData({
 		return getAttainmentCriteria(attainmentThresholds, zeroLevelThreshold);
 	}, [attainmentThresholds, zeroLevelThreshold]);
 
-	const handleExportAttainment = async () => {
+	const handleExportAttainment = async (headerOverrides?: {
+		programme?: string;
+		year?: string;
+		semester?: string;
+		session?: string;
+	}) => {
 		try {
 			const exportStudentsData = studentsData.map((student, index) => {
 				const assessmentMarks: {
@@ -637,11 +645,11 @@ export function useCOPOMappingData({
 				courseCode,
 				facultyName,
 				branch: departmentName,
-				programme: "B. Tech",
-				year: String(year),
-				semester: String(semester),
+				programme: headerOverrides?.programme || "B. Tech",
+				year: headerOverrides?.year || String(year),
+				semester: headerOverrides?.semester || String(semester),
 				courseName,
-				session: String(year),
+				session: headerOverrides?.session || String(year),
 				studentsData: exportStudentsData,
 				assessments: exportAssessments,
 				copoMatrix: copoMatrix,

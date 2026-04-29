@@ -61,9 +61,9 @@ class MarksController
      */
     private function isOfferingAccessAllowed($userData, $offeringId): bool
     {
-        // 1. Direct faculty/HOD assignment
+        // 1. Direct faculty/HOD assignment (allow checking concluded courses too via $allowInactive = true)
         if ($this->assignmentRepository &&
-            $this->assignmentRepository->isFacultyAssignedToOffering($offeringId, $userData['employee_id'])) {
+            $this->assignmentRepository->isFacultyAssignedToOffering($offeringId, $userData['employee_id'], true)) {
             return true;
         }
         // 2. HOD department fallback

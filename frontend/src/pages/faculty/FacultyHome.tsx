@@ -36,6 +36,9 @@ export function FacultyHome() {
 		limit: 100,
 	});
 
+	// Filter out concluded courses for the dropdown only
+	const activeCourses = courses.filter(c => c.cfa_is_active === 1);
+
 	const [selectedCourse, setSelectedCourseState] = useState<Course | null>(
 		null,
 	);
@@ -61,13 +64,13 @@ export function FacultyHome() {
 	}, []);
 
 	useEffect(() => {
-		if (courses.length > 0 && !selectedCourse) {
+		if (activeCourses.length > 0 && !selectedCourse) {
 			let activeCourse =
-				courses.find((c) => c.is_active !== 0) || courses[0];
+				activeCourses.find((c) => c.is_active !== 0) || activeCourses[0];
 			const savedCourseId = localStorage.getItem("faculty_last_course");
 
 			if (savedCourseId) {
-				const foundCourse = courses.find(
+				const foundCourse = activeCourses.find(
 					(c) =>
 						String(c.offering_id || c.course_id) === savedCourseId,
 				);
@@ -77,7 +80,7 @@ export function FacultyHome() {
 			}
 			setSelectedCourse(activeCourse);
 		}
-	}, [courses, selectedCourse]);
+	}, [activeCourses, selectedCourse]);
 
 	const loadStats = async () => {
 		setStatsLoading(true);
@@ -114,7 +117,7 @@ export function FacultyHome() {
 				}}
 			>
 				<div className="flex items-center gap-2">
-					{courses.length > 0 && (
+					{activeCourses.length > 0 && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
@@ -129,7 +132,7 @@ export function FacultyHome() {
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end">
-								{courses.map((course) => (
+								{activeCourses.map((course) => (
 									<DropdownMenuItem
 										key={
 											course.offering_id ||

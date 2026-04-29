@@ -77,6 +77,7 @@ export interface Course {
 	year: number;
 	semester: string;
 	is_active?: number;
+	cfa_is_active?: number | null;
 	enrollment_count?: number;
 	test_count?: number;
 	avg_score_pct?: number | null;

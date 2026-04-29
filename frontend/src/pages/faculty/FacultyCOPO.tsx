@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import { facultyApi } from "@/services/api/faculty";
 import { apiService } from "@/services/api";
 import type { Course, User } from "@/services/api";
@@ -22,6 +22,8 @@ export function FacultyCOPO() {
 	}>();
 
 	const [user, setUser] = useState<User | null>(null);
+	const [searchParams] = useSearchParams();
+	const urlOfferingId = searchParams.get("offering_id");
 
 	const {
 		data: courses,
@@ -31,6 +33,9 @@ export function FacultyCOPO() {
 		fetchFn: facultyApi.getCourses,
 		limit: 100,
 	});
+
+	// Filter out concluded courses for the dropdown only
+	const activeCourses = courses.filter(c => c.cfa_is_active === 1);
 
 	const [selectedCourse, setSelectedCourseState] = useState<Course | null>(null);
 	const setSelectedCourse = (course: Course | null) => {
@@ -48,19 +53,30 @@ export function FacultyCOPO() {
 	}, []);
 
 	useEffect(() => {
-		if (courses.length > 0 && !selectedCourse) {
-			let activeCourse = courses.find((c) => c.is_active !== 0) || courses[0];
+		// Handle URL parameter for viewing concluded courses
+		if (urlOfferingId && courses.length > 0) {
+			const foundCourse = courses.find(
+				c => String(c.offering_id || c.course_id) === urlOfferingId
+			);
+			if (foundCourse) {
+				setSelectedCourse(foundCourse);
+				return;
+			}
+		}
+
+		if (activeCourses.length > 0 && !selectedCourse) {
+			let activeCourse = activeCourses.find((c) => c.is_active !== 0) || activeCourses[0];
 			const savedCourseId = localStorage.getItem("faculty_last_course");
 			
 			if (savedCourseId) {
-				const foundCourse = courses.find(c => String(c.offering_id || c.course_id) === savedCourseId);
+				const foundCourse = activeCourses.find(c => String(c.offering_id || c.course_id) === savedCourseId);
 				if (foundCourse) {
 					activeCourse = foundCourse;
 				}
 			}
 			setSelectedCourse(activeCourse);
 		}
-	}, [courses, selectedCourse]);
+	}, [courses, activeCourses, selectedCourse, urlOfferingId]);
 
 	return (
 		<div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -73,7 +89,7 @@ export function FacultyCOPO() {
 				}}
 			>
 				<div className="flex items-center gap-2">
-					{courses.length > 0 && (
+					{activeCourses.length > 0 && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button variant="outline" size="sm">
@@ -84,7 +100,7 @@ export function FacultyCOPO() {
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end">
-								{courses.map((course) => (
+								{activeCourses.map((course) => (
 									<DropdownMenuItem
 										key={
 											course.offering_id ||

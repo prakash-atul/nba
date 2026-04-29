@@ -53,7 +53,12 @@ export interface MatrixViewProps {
 	poComputations: any;
 	handleCSVDataParsed: (data: any[]) => void;
 	saveMatrix: () => void;
-	handleExportAttainment: () => void;
+	handleExportAttainment: (headerOverrides?: {
+		programme?: string;
+		year?: string;
+		semester?: string;
+		session?: string;
+	}) => void;
 }
 
 export function MatrixView({
@@ -207,7 +212,12 @@ export function MatrixView({
 						</>
 					)}
 					<Button
-						onClick={handleExportAttainment}
+						onClick={() => handleExportAttainment({
+							programme: editableProgramme,
+							year: editableYear,
+							semester: editableSemester,
+							session: editableSession
+						})}
 						variant="ghost"
 						size="sm"
 						className="flex items-center gap-2"

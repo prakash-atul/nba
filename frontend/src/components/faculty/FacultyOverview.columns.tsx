@@ -2,8 +2,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { Course } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Archive } from "lucide-react";
+import { ChevronRight, Archive, Eye } from "lucide-react";
 import { sortableHeader } from "../../features/shared/tableUtils";
+import { useNavigate } from "react-router-dom";
 
 export function getFacultyOverviewColumns(
 	openConcludeDialog: (course: Course) => void,
@@ -124,24 +125,40 @@ export function getFacultyOverviewColumns(
 		{
 			id: "actions",
 			header: "Actions",
-			cell: ({ row }) =>
-				row.original.is_active === 0 ? (
-					<Badge
-						variant="outline"
-						className="text-muted-foreground bg-muted"
-					>
-						Concluded
-					</Badge>
-				) : (
+			cell: ({ row }) => {
+				const navigate = useNavigate();
+				const course = row.original;
+				const offeringId = course.offering_id || course.course_id;
+
+				if (course.is_active === 0 || course.cfa_is_active === 0) {
+					return (
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() =>
+									navigate(
+										`/faculty/copo?offering_id=${offeringId}`,
+									)
+								}
+							>
+								<Eye className="h-4 w-4 mr-2" />
+								<span className="relative -top-px">CO-PO</span>
+							</Button>
+						</div>
+					);
+				}
+				return (
 					<Button
 						variant="destructive"
 						size="sm"
-						onClick={() => openConcludeDialog(row.original)}
+						onClick={() => openConcludeDialog(course)}
 					>
 						<Archive className="h-4 w-4 mr-2" />
 						Conclude
 					</Button>
-				),
+				);
+			},
 		},
 	];
 }
