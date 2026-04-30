@@ -1,24 +1,14 @@
-import { useState } from "react";
-import { useMemo } from "react";
+import { ConcludeCourseDialog } from "./ConcludeCourseDialog";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, TrendingUp, ArrowUpDown, Archive } from "lucide-react";
+import { BookOpen, TrendingUp } from "lucide-react";
 import type { Course } from "@/services/api";
-import { DataTable } from "@/components/shared/DataTable";
-import type { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+import { DataTable } from "@/features/shared/DataTable";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { facultyApi } from "@/services/api/faculty";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { OfferingTestAverages } from "./OfferingTestAverages";
+import { getFacultyOverviewColumns } from "./FacultyOverview.columns";
 
 interface FacultyOverviewProps {
 	courses: Course[];
@@ -26,111 +16,92 @@ interface FacultyOverviewProps {
 	onRefresh?: () => void;
 }
 
-export function FacultyOverview({ courses, isLoading, onRefresh }: FacultyOverviewProps) {
-	const [concludeData, setConcludeData] = useState<{ isOpen: boolean; course: Course | null; isConcluding: boolean }>({
+export function FacultyOverview({
+	courses,
+	isLoading,
+	onRefresh,
+}: FacultyOverviewProps) {
+	const [concludeData, setConcludeData] = useState<{
+		isOpen: boolean;
+		course: Course | null;
+		isConcluding: boolean;
+		canConclude: boolean;
+		incompleteTests: string[];
+	}>({
 		isOpen: false,
 		course: null,
-		isConcluding: false
+		isConcluding: false,
+		canConclude: true,
+		incompleteTests: [],
 	});
 
 	const handleConcludeCourse = async () => {
-		if (!concludeData.course) return;
-		const offeringId = concludeData.course.offering_id || concludeData.course.course_id;
+		if (!concludeData.course || !concludeData.canConclude) return;
+		const offeringId =
+			concludeData.course.offering_id || concludeData.course.course_id;
 
 		setConcludeData((prev) => ({ ...prev, isConcluding: true }));
-		
+
 		try {
 			await facultyApi.concludeCourse(offeringId);
 			toast.success("Course session concluded successfully", {
-				description: "Rollbacks are not possible. Raw marks purged and session deactivated.",
+				description: "Rollbacks are not possible. Session deactivated.",
 			});
-			setConcludeData({ isOpen: false, course: null, isConcluding: false });
+			setConcludeData({
+				isOpen: false,
+				course: null,
+				isConcluding: false,
+				canConclude: true,
+				incompleteTests: [],
+			});
 			if (onRefresh) onRefresh();
 		} catch (error) {
 			console.error("Failed to conclude course", error);
 			toast.error("Failed to conclude course", {
-				description: "You might not be authorized or the server encountered an error."
+				description:
+					"You might not be authorized or the server encountered an error.",
 			});
 			setConcludeData((prev) => ({ ...prev, isConcluding: false }));
 		}
 	};
-	const columns = useMemo<ColumnDef<Course>[]>(
-		() => [
-			{
-				accessorKey: "course_code",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Code
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				cell: ({ row }) => (
-					<Badge variant="outline">{row.original.course_code}</Badge>
-				),
-			},
-			{
-				accessorKey: "course_name",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Course Name
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				cell: ({ row }) => (
-					<div
-						className="max-w-60 truncate"
-						title={row.original.course_name}
-					>
-						{row.original.course_name}
-					</div>
-				),
-			},
-			{
-				accessorKey: "credit",
-				header: "Credits",
-				cell: ({ row }) => (
-					<Badge variant="secondary">{row.original.credit} Cr</Badge>
-				),
-			},
-			{
-				accessorKey: "year",
-				header: "Year",
-				cell: ({ row }) => `Year ${row.original.year}`,
-			},
-			{
-				accessorKey: "semester",
-				header: "Semester",
-				cell: ({ row }) => (
-					<Badge variant="outline">{row.original.semester}</Badge>
-				),
-			},
-			{
-				id: "actions",
-				header: "Actions",
-				cell: ({ row }) => (
-					<Button
-						variant="destructive"
-						size="sm"
-						onClick={() => setConcludeData({ isOpen: true, course: row.original, isConcluding: false })}
-					>
-						<Archive className="h-4 w-4 mr-2" />
-						Conclude
-					</Button>
-				),
-			}
-		],
-		[],
+
+	const openConcludeDialog = async (course: Course) => {
+		const offeringId = course.offering_id || course.course_id;
+		try {
+			const status =
+				await facultyApi.checkCourseCompletionStatus(offeringId);
+			setConcludeData({
+				isOpen: true,
+				course,
+				isConcluding: false,
+				canConclude: status.can_conclude,
+				incompleteTests: status.incomplete_tests,
+			});
+		} catch (error) {
+			console.error("Failed to check course status", error);
+			toast.error("Failed to check course status");
+		}
+	};
+
+	const columns = useMemo(
+		() => getFacultyOverviewColumns(openConcludeDialog),
+		[openConcludeDialog],
 	);
+
+	const activeCourses = useMemo(
+		() => courses.filter((c) => c.is_active !== 0),
+		[courses],
+	);
+	const pastCourses = useMemo(
+		() => courses.filter((c) => c.is_active === 0),
+		[courses],
+	);
+
+	const renderSubRow = (row: any) => {
+		const offeringId = row.original.offering_id;
+		if (!offeringId) return null;
+		return <OfferingTestAverages offeringId={offeringId} />;
+	};
 
 	return (
 		<div className="space-y-6">
@@ -143,11 +114,32 @@ export function FacultyOverview({ courses, isLoading, onRefresh }: FacultyOvervi
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<DataTable
-						columns={columns}
-						data={courses}
-						refreshing={isLoading}
-					/>
+					<Tabs defaultValue="active" className="w-full">
+						<TabsList className="mb-4">
+							<TabsTrigger value="active">
+								Active Courses ({activeCourses.length})
+							</TabsTrigger>
+							<TabsTrigger value="past">
+								Course History ({pastCourses.length})
+							</TabsTrigger>
+						</TabsList>
+						<TabsContent value="active">
+							<DataTable
+								columns={columns}
+								data={activeCourses}
+								refreshing={isLoading}
+								renderSubRow={renderSubRow}
+							/>
+						</TabsContent>
+						<TabsContent value="past">
+							<DataTable
+								columns={columns}
+								data={pastCourses}
+								refreshing={isLoading}
+								renderSubRow={renderSubRow}
+							/>
+						</TabsContent>
+					</Tabs>
 				</CardContent>
 			</Card>
 
@@ -189,32 +181,18 @@ export function FacultyOverview({ courses, isLoading, onRefresh }: FacultyOvervi
 				</CardContent>
 			</Card>
 
-			<AlertDialog open={concludeData.isOpen} onOpenChange={(open) => !concludeData.isConcluding && setConcludeData(prev => ({ ...prev, isOpen: open }))}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This action cannot be undone. This will permanently conclude the session for <span className="font-bold">{concludeData.course?.course_name}</span>.
-							<br />
-							<br />
-							All raw mark drafts will be securely purged to save space (since aggregated insights are safely submitted) and you will no longer have active faculty assignments to this specific offering. Enrolled students will also be marked as Completed.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={concludeData.isConcluding}>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={(e) => {
-								e.preventDefault();
-								handleConcludeCourse();
-							}}
-							disabled={concludeData.isConcluding}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						>
-							{concludeData.isConcluding ? "Concluding Session..." : "Yes, Conclude Session"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			<ConcludeCourseDialog
+				open={concludeData.isOpen}
+				onOpenChange={(open: boolean) =>
+					!concludeData.isConcluding &&
+					setConcludeData((prev) => ({ ...prev, isOpen: open }))
+				}
+				canConclude={concludeData.canConclude}
+				isConcluding={concludeData.isConcluding}
+				course={concludeData.course}
+				incompleteTests={concludeData.incompleteTests}
+				onConclude={handleConcludeCourse}
+			/>
 		</div>
 	);
 }

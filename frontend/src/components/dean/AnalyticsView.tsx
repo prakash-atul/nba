@@ -1,8 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import {
-	ArrowUpDown,
 	BarChart3,
 	Building2,
 	BookOpen,
@@ -10,9 +9,9 @@ import {
 	GraduationCap,
 	Users,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { DepartmentAnalytics } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 interface AnalyticsViewProps {
 	analytics: DepartmentAnalytics[];
@@ -22,19 +21,7 @@ interface AnalyticsViewProps {
 const columns: ColumnDef<DepartmentAnalytics>[] = [
 	{
 		accessorKey: "department_code",
-		header: ({ column }) => (
-			<Button
-				variant="ghost"
-				size="sm"
-				className="-ml-3 h-8"
-				onClick={() =>
-					column.toggleSorting(column.getIsSorted() === "asc")
-				}
-			>
-				Department
-				<ArrowUpDown className="ml-2 h-4 w-4" />
-			</Button>
-		),
+		header: sortableHeader("Department"),
 		cell: ({ row }) => (
 			<div className="flex items-baseline gap-2">
 				<Badge
@@ -51,21 +38,7 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		accessorKey: "total_courses",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-8"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Courses
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Courses"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -79,21 +52,7 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		accessorKey: "total_tests",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-8"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Tests
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Tests"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -107,21 +66,7 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		accessorKey: "total_students",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-8"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Students
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Students"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -135,21 +80,7 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 	},
 	{
 		accessorKey: "total_enrollments",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-8"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Enrollments
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Enrollments"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -167,21 +98,7 @@ const columns: ColumnDef<DepartmentAnalytics>[] = [
 			row.total_courses > 0
 				? row.total_enrollments / row.total_courses
 				: 0,
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-8"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Avg Enrollment/Course
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Avg Enrollment/Course"),
 		cell: ({ row }) => {
 			const courses = row.original.total_courses;
 			const enrollments = row.original.total_enrollments;

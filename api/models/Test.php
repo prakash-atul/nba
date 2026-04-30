@@ -14,6 +14,7 @@ class Test
     private $questionPaperPdf;
     private $test_type;
     private $test_date;
+    private $max_marks;
     private $weightage;
     private $courseCode; // For filename generation
     private $year; // For information
@@ -190,7 +191,8 @@ class Test
 
         return [
             'id' => $this->test_id,
-            'course_id' => $this->offeringId,
+            'offering_id' => $this->offeringId,
+            'course_id' => $this->offeringId, // legacy alias
             'name' => $this->test_name,
             'full_marks' => $this->fullMarks,
             'pass_marks' => $this->passMarks,

@@ -1,9 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-	StatsGrid,
-	StatsGridSkeleton,
-	type StatItem,
-} from "@/components/shared";
+import { StatsGrid, StatsGridSkeleton, type StatItem } from "@/features/shared";
 import {
 	Building2,
 	Users,

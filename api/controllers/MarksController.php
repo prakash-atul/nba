@@ -6,6 +6,8 @@
  */
 class MarksController
 {
+    protected $auditService;
+
     private $studentRepository;
     private $rawMarksRepository;
     private $marksRepository;
@@ -26,7 +28,9 @@ class MarksController
         ?CourseRepository $courseRepository = null,
         ?CourseOfferingRepository $courseOfferingRepository = null,
         ?CourseFacultyAssignmentRepository $assignmentRepository = null
-    ) {
+    , ?AuditService $auditService = null) {
+        $this->auditService = $auditService;
+
         $this->studentRepository = $studentRepository;
         $this->rawMarksRepository = $rawMarksRepository;
         $this->marksRepository = $marksRepository;
@@ -57,9 +61,9 @@ class MarksController
      */
     private function isOfferingAccessAllowed($userData, $offeringId): bool
     {
-        // 1. Direct faculty/HOD assignment
+        // 1. Direct faculty/HOD assignment (allow checking concluded courses too via $allowInactive = true)
         if ($this->assignmentRepository &&
-            $this->assignmentRepository->isFacultyAssignedToOffering($offeringId, $userData['employee_id'])) {
+            $this->assignmentRepository->isFacultyAssignedToOffering($offeringId, $userData['employee_id'], true)) {
             return true;
         }
         // 2. HOD department fallback
@@ -106,9 +110,11 @@ class MarksController
             $testId = $data['test_id'];
             $studentId = $data['student_id'];
             $marksData = $data['marks'];
+            $validateMarks = isset($data['validate_marks']) ? (bool)$data['validate_marks'] : true;
 
             // Validate test exists
             $test = $this->testRepository->findById($testId);
+            $GLOBALS['audit_old_state'] = (isset($test) && is_object($test) && method_exists($test, 'toArray')) ? $test->toArray() : (isset($test) ? clone $test : null);
             if (!$test) {
                 $this->sendError("Test not found", 404);
                 return;
@@ -148,7 +154,7 @@ class MarksController
                 $question = $questionMap[$identifier];
 
                 // Validate marks <= max_marks
-                if ($marks > $question->getMaxMarks()) {
+                if ($validateMarks && $marks > $question->getMaxMarks()) {
                     $this->sendError(
                         "Marks for question '$identifier' exceed maximum ({$question->getMaxMarks()})",
                         400
@@ -183,6 +189,14 @@ class MarksController
             $this->marksRepository->save($marks);
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'MarksByQuestion', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'MarksController', 'UPDATE operation successful in saveMarksByQuestion');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Marks saved successfully',
@@ -234,6 +248,7 @@ class MarksController
 
             // Validate test exists
             $test = $this->testRepository->findById($testId);
+            $GLOBALS['audit_old_state'] = (isset($test) && is_object($test) && method_exists($test, 'toArray')) ? $test->toArray() : (isset($test) ? clone $test : null);
             if (!$test) {
                 $this->sendError("Test not found", 404);
                 return;
@@ -267,6 +282,14 @@ class MarksController
             $this->marksRepository->save($marks);
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'MarksByCO', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'MarksController', 'UPDATE operation successful in saveMarksByCO');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Marks saved successfully',
@@ -323,6 +346,7 @@ class MarksController
             http_response_code(200);
             echo json_encode($response);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('MarksController', 'getMarks prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -356,12 +380,14 @@ class MarksController
             // Get authenticated user
             $user = isset($_REQUEST['authenticated_user']) ? $_REQUEST['authenticated_user'] : null;
             if (!$user) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('MarksController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 $this->sendError("Unauthorized", 401);
                 return;
             }
 
             // Check if user is faculty/HOD for this course offering
             if (!$this->isOfferingAccessAllowed($user, $test->getOfferingId())) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('MarksController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 $this->sendError("You are not authorized to view marks for this test", 403);
                 return;
             }
@@ -466,6 +492,7 @@ class MarksController
             http_response_code(200);
             echo json_encode($response);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('MarksController', 'getTestMarks prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -524,9 +551,11 @@ class MarksController
 
             $testId = $data['test_id'];
             $marksEntries = $data['marks_entries'];
+            $validateMarks = isset($data['validate_marks']) ? (bool)$data['validate_marks'] : true;
 
             // Validate test exists
             $test = $this->testRepository->findById($testId);
+            $GLOBALS['audit_old_state'] = (isset($test) && is_object($test) && method_exists($test, 'toArray')) ? $test->toArray() : (isset($test) ? clone $test : null);
             if (!$test) {
                 $this->sendError("Test not found", 404);
                 return;
@@ -629,7 +658,7 @@ class MarksController
                         continue;
                     }
 
-                    if ($marksObtained > $question->getMaxMarks()) {
+                    if ($validateMarks && $marksObtained > $question->getMaxMarks()) {
                         $results['failed'][] = [
                             'index' => $index,
                             'entry' => $entry,
@@ -681,6 +710,14 @@ class MarksController
 
             // Return results
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'bulkSaveMarks', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'MarksController', 'UPDATE operation successful in bulkSaveMarks');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => "Marks entry completed: {$results['success_count']} successful, {$results['failure_count']} failed",
@@ -722,6 +759,7 @@ class MarksController
 
             // Find existing raw marks
             $rawMarks = $this->rawMarksRepository->findById($rawMarksId);
+            $GLOBALS['audit_old_state'] = (isset($rawMarks) && is_object($rawMarks) && method_exists($rawMarks, 'toArray')) ? $rawMarks->toArray() : (isset($rawMarks) ? clone $rawMarks : null);
             if (!$rawMarks) {
                 $this->sendError("Marks entry not found", 404);
                 return;
@@ -747,12 +785,13 @@ class MarksController
             }
 
             $marksObtained = $data['marks_obtained'];
+            $validateMarks = isset($data['validate_marks']) ? (bool)$data['validate_marks'] : true;
             if (!is_numeric($marksObtained) || $marksObtained < 0) {
                 $this->sendError("Marks must be a non-negative number", 400);
                 return;
             }
 
-            if ($marksObtained > $question->getMaxMarks()) {
+            if ($validateMarks && $marksObtained > $question->getMaxMarks()) {
                 $this->sendError("Marks obtained ($marksObtained) exceeds maximum marks ({$question->getMaxMarks()})", 400);
                 return;
             }
@@ -765,6 +804,14 @@ class MarksController
             $this->marksRepository->aggregateFromRawMarks($rawMarks->getTestId(), $rawMarks->getStudentId());
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'RawMarks', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'MarksController', 'UPDATE operation successful in updateRawMarks');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Marks updated successfully',
@@ -802,6 +849,7 @@ class MarksController
 
             // Find existing raw marks
             $rawMarks = $this->rawMarksRepository->findById($rawMarksId);
+            $GLOBALS['audit_old_state'] = (isset($rawMarks) && is_object($rawMarks) && method_exists($rawMarks, 'toArray')) ? $rawMarks->toArray() : (isset($rawMarks) ? clone $rawMarks : null);
             if (!$rawMarks) {
                 $this->sendError("Marks entry not found", 404);
                 return;
@@ -829,6 +877,14 @@ class MarksController
             $this->marksRepository->aggregateFromRawMarks($testId, $studentId);
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('DELETE', 'RawMarks', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'MarksController', 'DELETE operation successful in deleteRawMarks');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Marks entry deleted successfully'
@@ -862,6 +918,7 @@ class MarksController
 
             // Verify authorization
             $test = $this->testRepository->findById($testId);
+            $GLOBALS['audit_old_state'] = (isset($test) && is_object($test) && method_exists($test, 'toArray')) ? $test->toArray() : (isset($test) ? clone $test : null);
             if (!$test) {
                 $this->sendError("Test not found", 404);
                 return;
@@ -879,6 +936,14 @@ class MarksController
             $this->marksRepository->deleteByTestAndStudent($testId, $studentId);
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('DELETE', 'StudentMarks', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'MarksController', 'DELETE operation successful in deleteStudentMarks');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'All marks for student deleted successfully'

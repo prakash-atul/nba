@@ -2,7 +2,7 @@
 
 **Base URL:** `http://localhost/nba/api/`  
 **Authentication:** All endpoints (except login) require: `Authorization: Bearer <jwt_token>`
-**Version:** 5.0 (Schema Update with Offerings & Stats)
+**Version:** 5.1 (Offering-Scoped CO-PO & Attainment)
 
 ---
 
@@ -481,14 +481,14 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 ## Assessment Management
 
-### 23. Create Assessment
+### 23. Create Assessment (v5.0+)
 
 **POST** `/assessment`
 
 ```json
 // REQUEST
 {
-  "course_id": 1, 
+  "offering_id": 1,
   "name": "Mid Semester Exam",
   "test_type": "Mid Sem",
   "full_marks": 50,
@@ -499,7 +499,7 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
   ]
 }
 
-// NOTE: check `course_id`: This refers to the Offering ID (retrieved from /courses), NOT the generic course template ID. 
+// NOTE: `offering_id` refers to the specific Course Offering (year/sem), NOT the generic course template ID.
 // RESPONSE (201)
 {
   "success": true,
@@ -519,7 +519,7 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 	"success": true,
 	"data": {
 		"test_id": 1,
-		"offering_id": 5, // References specific offering
+		"offering_id": 5,
         "test_name": "Mid Sem",
         "questions": [...]
 	}
@@ -528,18 +528,18 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 ---
 
-### 22. Get Course Tests
+### 22. Get Course Tests (v5.0+)
 
-**GET** `/course-tests?course_id=1`
+**GET** `/course-tests?offering_id=1`
 
-**Note:** `course_id` param actually accepts `offering_id`.
+**Note:** `offering_id` param (v5.0+). Legacy alias `course_id` accepted for backward compatibility but deprecated.
 
 ```json
 // RESPONSE (200)
 {
 	"success": true,
 	"data": [
-		{ "test_id": 1, "test_name": "Mid Sem", ... }
+		{ "test_id": 1, "offering_id": 1, "test_name": "Mid Sem", ... }
 	]
 }
 ```
@@ -777,18 +777,18 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 ---
 
-## Attainment Configuration
+## Attainment Configuration (v5.0+ - Offering Scoped)
 
-### 37. Get Attainment Config
+### 37. Get Attainment Config (v5.0+)
 
-**GET** `/courses/{courseId}/attainment-config`
+**GET** `/offerings/{offeringId}/attainment-config`
 
-**Note:** `courseId` here is the **Course Template ID**, NOT the offering ID. Attainment Scales are configured globally per course template.
+**Note:** `offeringId` is the specific **Course Offering ID** (year/sem). Attainment Scales are now configured per offering (not globally per course template).
 
 ```json
 // RESPONSE (200)
 {
-	"course_id": 1,
+	"offering_id": 1,
 	"scales": [
 		{ "level": 1, "min_percentage": 40 },
         { "level": 2, "min_percentage": 60 },
@@ -799,14 +799,13 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 ---
 
-### 38. Save Attainment Config
+### 38. Save Attainment Config (v5.0+)
 
-**POST** `/courses/{courseId}/attainment-config`
+**POST** `/offerings/{offeringId}/attainment-config`
 
 ```json
 // REQUEST
 {
-  "co_threshold": 40.0,
   "scales": [
       { "level": 1, "min_percentage": 40 },
       { "level": 2, "min_percentage": 60 },
@@ -820,34 +819,34 @@ JWT tokens now include these flags. The frontend should check `user.is_hod` and 
 
 ---
 
-### 39. Get CO-PO Matrix
+### 39. Get CO-PO Matrix (v5.0+)
 
-**GET** `/courses/{courseId}/copo-matrix`
+**GET** `/offerings/{offeringId}/copo-matrix`
 
-**Note:** `courseId` here is the **Course Template ID**.
+**Note:** `offeringId` is the specific **Course Offering ID**. CO-PO mappings are now per offering.
 
 ```json
 // RESPONSE (200)
 {
 	"success": true,
 	"data": [
-		{ "co_name": "CO1", "po_name": "PO1", "value": 3 }
+		{ "co_number": 1, "po_name": "PO1", "value": 3 }
 	]
 }
 ```
 
 ---
 
-### 40. Save CO-PO Matrix
+### 40. Save CO-PO Matrix (v5.0+)
 
-**POST** `/courses/{courseId}/copo-matrix`
+**POST** `/offerings/{offeringId}/copo-matrix`
 
 ```json
 // REQUEST
 {
   "matrix": [
-    { "co_name": "CO1", "po_name": "PO1", "value": 3 },
-    { "co_name": "CO1", "po_name": "PO2", "value": 1 }
+    { "co_number": 1, "po_name": "PO1", "value": 3 },
+    { "co_number": 1, "po_name": "PO2", "value": 1 }
   ]
 }
 

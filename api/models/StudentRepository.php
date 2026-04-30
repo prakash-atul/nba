@@ -229,7 +229,14 @@ class StudentRepository
             $sql = "
                 SELECT s.roll_no, s.student_name, s.department_id,
                        s.batch_year, s.student_status, s.email, s.phone,
-                       d.department_name, d.department_code
+                       d.department_name, d.department_code,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
                 LEFT JOIN departments d ON s.department_id = d.department_id
                 WHERE 1=1
@@ -255,6 +262,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             // String PK cursor (roll_no)
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
@@ -298,6 +310,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
@@ -316,7 +333,14 @@ class StudentRepository
             $sql = "
                 SELECT s.roll_no, s.student_name, s.department_id,
                        s.batch_year, s.student_status, s.email, s.phone,
-                       d.department_name, d.department_code
+                       d.department_name, d.department_code,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
                 JOIN departments d ON s.department_id = d.department_id
                 WHERE d.school_id = ?
@@ -341,6 +365,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
 
@@ -387,6 +416,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
@@ -408,7 +442,14 @@ class StudentRepository
         try {
             $sql = "
                 SELECT s.roll_no, s.student_name, s.department_id,
-                       s.batch_year, s.student_status, s.email, s.phone
+                       s.batch_year, s.student_status, s.email, s.phone,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
                 WHERE s.department_id = ?
             ";
@@ -429,6 +470,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
 
@@ -466,6 +512,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
+
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);

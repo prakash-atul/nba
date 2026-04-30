@@ -1,6 +1,6 @@
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Users, X } from "lucide-react";
+import { Users, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 const getRoleBadgeColor = (role: string) => {
 	switch (role.toLowerCase()) {
@@ -62,17 +63,7 @@ export function UsersView() {
 	const columns: ColumnDef<DeanUser>[] = [
 		{
 			accessorKey: "employee_id",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Employee ID
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Employee ID"),
 			cell: ({ row }) => (
 				<Badge variant="outline" className="font-mono">
 					{row.getValue("employee_id")}
@@ -81,18 +72,7 @@ export function UsersView() {
 		},
 		{
 			accessorKey: "username",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Name"),
 			cell: ({ row }) => (
 				<div className="font-medium flex">
 					{row.getValue("username")}
@@ -101,18 +81,7 @@ export function UsersView() {
 		},
 		{
 			accessorKey: "email",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Email
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Email"),
 			cell: ({ row }) => (
 				<Badge variant="outline" className="flex">
 					{row.getValue("email")}
@@ -121,18 +90,7 @@ export function UsersView() {
 		},
 		{
 			accessorKey: "designation",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Designation
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Designation"),
 			cell: ({ row }) => (
 				<Badge variant="secondary" className="flex italic">
 					{row.getValue("designation") || "—"}
@@ -140,28 +98,17 @@ export function UsersView() {
 			),
 		},
 		{
-			accessorKey: "phone",
-			header: "Phone",
+			accessorKey: "phones",
+			header: "Phones",
 			cell: ({ row }) => (
 				<div className="text-muted-foreground font-mono flex">
-					{row.getValue("phone") || "—"}
+					{(row.original.phones && row.original.phones.length > 0) ? (row.original.phones.map((p, i) => <Badge variant="secondary" key={i} className="mr-1 font-mono">{p}</Badge>)) : "�"}
 				</div>
 			),
 		},
 		{
 			accessorKey: "role",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="mr-auto"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Role
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Role"),
 			cell: ({ row }) => {
 				const role = row.getValue("role") as string;
 				const user = row.original;
@@ -198,17 +145,7 @@ export function UsersView() {
 		},
 		{
 			accessorKey: "department_name",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Department
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			),
+			header: sortableHeader("Department"),
 			cell: ({ row }) => {
 				const deptCode = row.original.department_code;
 				return deptCode ? (

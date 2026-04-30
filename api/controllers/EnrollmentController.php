@@ -9,6 +9,8 @@ require_once __DIR__ . '/../models/UserRepository.php';
 
 class EnrollmentController
 {
+    protected $auditService;
+
     private $enrollmentRepo;
     private $courseRepo;
     private $offeringRepo;
@@ -17,8 +19,10 @@ class EnrollmentController
     private $userRepo;
     private $pdo;
 
-    public function __construct($pdo)
+    public function __construct($pdo, ?AuditService $auditService = null)
     {
+        $this->auditService = $auditService;
+
         $this->pdo = $pdo;
         $this->enrollmentRepo = new EnrollmentRepository($pdo);
         $this->courseRepo = new CourseRepository($pdo);
@@ -103,6 +107,7 @@ class EnrollmentController
 
             // Check if the authenticated user is authorized for this offering
             if (!$this->isOfferingAccessAllowed($offeringId, $userId)) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('EnrollmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -177,6 +182,14 @@ class EnrollmentController
 
             // Return results
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('CREATE', 'bulkEnroll', null, null, $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'EnrollmentController', 'CREATE operation successful in bulkEnroll');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => "Enrollment completed: {$results['success_count']} successful, {$results['failure_count']} failed",
@@ -211,6 +224,7 @@ class EnrollmentController
 
             // Check if the authenticated user is authorized for this offering
             if (!$this->isOfferingAccessAllowed($offeringId, $userId)) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('EnrollmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -318,6 +332,7 @@ class EnrollmentController
 
             // Check if the authenticated user is authorized for this offering
             if (!$this->isOfferingAccessAllowed($offeringId, $userId)) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('EnrollmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -340,6 +355,14 @@ class EnrollmentController
             $this->enrollmentRepo->removeEnrollment($offeringId, $rollno);
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('CREATE', 'removeEnrollment', null, null, $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'EnrollmentController', 'CREATE operation successful in removeEnrollment');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Student removed from course offering successfully'

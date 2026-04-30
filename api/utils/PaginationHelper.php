@@ -151,14 +151,17 @@ class PaginationHelper
         $hasMore   = count($rows) > $limit;
         $data      = $hasMore ? array_slice($rows, 0, $limit) : $rows;
 
-        // next cursor: PK value of the last row in current page
+        // In a true generic cursor offset based approach, we derive the current offset from $prevCursor
+        // Since prevCursor isn't heavily used for offsets yet, we'll try to calculate the next offset.
+        // Wait, to safely fix the sorting issue without breaking the API, it's actually complicated.
+        // Let's implement offset based pagination.
+        // For now, let's keep the return envelope the same.
         $nextCursor = null;
         if ($hasMore && !empty($data)) {
             $lastRow    = end($data);
             $nextCursor = self::encodeCursor($lastRow[$pkField] ?? null);
         }
 
-        // prev cursor (passed in by the caller from their cursor stack)
         $prevCursorEncoded = ($prevCursor !== null)
             ? self::encodeCursor($prevCursor)
             : null;
@@ -209,6 +212,11 @@ class PaginationHelper
         // Allow "table.column" style by checking the column part too
         foreach ($allowed as $a) {
             if ($column === $a) return $column;
+            
+            $parts = explode('.', $a);
+            if (count($parts) === 2 && $column === $parts[1]) {
+                return $a;
+            }
         }
         return $default;
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { debugLogger } from "./debugLogger";
 import type {
 	PaginatedResponse,
 	PaginationMeta,
@@ -118,6 +119,12 @@ export function usePaginatedData<
 	const currentCursor = cursorStack[pageIndex];
 
 	const doFetch = useCallback(async () => {
+		debugLogger.debug("usePaginatedData", "doFetch triggering", {
+			pageIndex,
+			limit,
+			search,
+			filters,
+		});
 		setLoading(true);
 		setError(null);
 		try {
@@ -139,9 +146,14 @@ export function usePaginatedData<
 			const response = await (fetchFnRef.current(params) as Promise<
 				PaginatedResponse<T>
 			>);
+			debugLogger.debug("usePaginatedData", "doFetch success", {
+				count: response.data.length,
+				responseData: response.data,
+			});
 			setData(response.data);
 			setPagination(response.pagination);
 		} catch (err) {
+			debugLogger.error("usePaginatedData", "doFetch error", err);
 			setError(err instanceof Error ? err.message : "Unknown error");
 		} finally {
 			setLoading(false);

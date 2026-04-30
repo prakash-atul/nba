@@ -6,6 +6,8 @@
  */
 class AssessmentController
 {
+    protected $auditService;
+
     private $courseRepository;
     private $courseOfferingRepository;
     private $assignmentRepository;
@@ -22,7 +24,9 @@ class AssessmentController
         ValidationMiddleware $validationMiddleware,
         $db = null,
         ?CourseFacultyAssignmentRepository $assignmentRepository = null
-    ) {
+    , ?AuditService $auditService = null) {
+        $this->auditService = $auditService;
+
         $this->courseRepository = $courseRepository;
         $this->courseOfferingRepository = $courseOfferingRepository;
         $this->testRepository = $testRepository;
@@ -80,42 +84,48 @@ class AssessmentController
     /**
      * Get courses (offerings) for faculty
      */
-    public function getFacultyCourses()
+            public function getFacultyCourses()
     {
         try {
-            $userData = $_REQUEST['authenticated_user'];
+            $userData = $_REQUEST["authenticated_user"];
 
-            // Faculty can access their courses (HODs/Deans are faculty with role check)
-            if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean') {
+            if ($userData["role"] !== "faculty" && $userData["role"] !== "hod" && $userData["role"] !== "dean") {
+                if (isset($GLOBALS["fileLogger"])) { $GLOBALS["fileLogger"]->warn("AssessmentController", "Unauthorized access attempt", ["user" => $_REQUEST["authenticated_user"] ?? "anonymous"]); }
                 http_response_code(403);
                 echo json_encode([
-                    'success' => false,
-                    'message' => 'Access denied. Only faculty can access courses.'
+                    "success" => false,
+                    "message" => "Access denied. Only faculty can access courses."
                 ]);
                 return;
             }
 
-            $facultyId = $userData['employee_id'];
+            $facultyId = $userData["employee_id"];
 
-            if ($userData['role'] === 'hod') {
-                // HOD sees all offerings in their department
-                $offerings = $this->courseOfferingRepository->findByDepartment($userData['department_id']);
+            // Parse pagination parameters
+            $params = PaginationHelper::parseParams($_GET, "offering_id", "year", ["year", "semester", "course_code", "course_name", "offering_id"], ["course_id", "department_id", "semester", "year", "is_active"]);
+
+            $isHod = ($userData["role"] === "hod");
+
+            if ($isHod) {
+                $departmentId = $userData["department_id"];
+                $totalCount = $this->courseOfferingRepository->countByDepartmentPaginated($departmentId, $params);
+                $offerings = $this->courseOfferingRepository->findByDepartmentPaginated($departmentId, $params);
             } else {
-                $offerings = $this->courseOfferingRepository->findByFacultyId($facultyId);
+                $totalCount = $this->courseOfferingRepository->countByFacultyPaginated($facultyId, $params);
+                $offerings = $this->courseOfferingRepository->findByFacultyPaginated($facultyId, $params);
             }
 
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Course offerings retrieved successfully',
-                'data' => $offerings // Note: repositories already return processed arrays from findByFacultyId
-            ]);
+            $result = PaginationHelper::buildResponse($offerings, 'offering_id', $params['limit'], $totalCount);
+
+              http_response_code(200);
+              echo json_encode(array_merge(['success' => true, 'message' => 'Course offerings retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS["fileLogger"])) { $GLOBALS["fileLogger"]->error("AssessmentController", "getFacultyCourses prompt", ["error" => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
-                'success' => false,
-                'message' => 'Failed to retrieve courses',
-                'error' => $e->getMessage()
+                "success" => false,
+                "message" => "Failed to retrieve courses",
+                "error" => $e->getMessage()
             ]);
         }
     }
@@ -129,6 +139,7 @@ class AssessmentController
             $userData = $_REQUEST['authenticated_user'];
 
             if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -144,8 +155,10 @@ class AssessmentController
             }
 
             // Validate required fields
+            $offeringId = isset($data['offering_id']) ? (int)$data['offering_id'] : (isset($data['course_id']) ? (int)$data['course_id'] : 0);
+
             if (
-                empty($data['course_id']) || empty($data['name']) ||
+                empty($offeringId) || empty($data['name']) ||
                 empty($data['full_marks']) || !isset($data['pass_marks']) ||
                 empty($data['questions'])
             ) {
@@ -153,13 +166,14 @@ class AssessmentController
                 echo json_encode([
                     'success' => false,
                     'message' => 'Missing required fields',
-                    'required' => ['course_id', 'name', 'full_marks', 'pass_marks', 'questions']
+                    'required' => ['offering_id', 'name', 'full_marks', 'pass_marks', 'questions']
                 ]);
                 return;
             }
 
             // Verify offering belongs to faculty
-            $offering = $this->courseOfferingRepository->findById($data['course_id']); // course_id from legacy frontend is offering_id
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            $GLOBALS['audit_old_state'] = (isset($offering) && is_object($offering) && method_exists($offering, 'toArray')) ? $offering->toArray() : (isset($offering) ? clone $offering : null);
             if (!$offering) {
                 http_response_code(404);
                 echo json_encode([
@@ -170,8 +184,9 @@ class AssessmentController
             }
 
             // Verify access (faculty assignment or HOD department ownership)
-            $access = $this->checkOfferingAccess($userData, $data['course_id']);
+            $access = $this->checkOfferingAccess($userData, $offeringId);
             if (!$access['allowed']) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -196,7 +211,7 @@ class AssessmentController
             // Create test (pass offering info for filename generation)
             $test = new Test(
                 null,
-                $data['course_id'], // offering_id
+                $offeringId,
                 $data['name'],
                 $data['full_marks'],
                 $data['pass_marks'],
@@ -268,6 +283,14 @@ class AssessmentController
             $savedQuestions = $this->questionRepository->findByTestId($testId);
 
             http_response_code(201);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('CREATE', 'Assessment', null, null, $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AssessmentController', 'CREATE operation successful in createAssessment');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Assessment created successfully',
@@ -277,6 +300,7 @@ class AssessmentController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AssessmentController', 'createAssessment prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -295,6 +319,7 @@ class AssessmentController
             $userData = $_REQUEST['authenticated_user'];
 
             if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -338,7 +363,8 @@ class AssessmentController
 
             // Verify access (faculty assignment or HOD department ownership)
             $access = $this->checkOfferingAccess($userData, $offering->getOfferingId());
-            if (!$access['allowed']) {
+            if ($access['allowed'] === false) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -369,6 +395,7 @@ class AssessmentController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AssessmentController', 'getAssessment prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -387,6 +414,7 @@ class AssessmentController
             $userData = $_REQUEST['authenticated_user'];
 
             if ($userData['role'] !== 'faculty' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -395,9 +423,10 @@ class AssessmentController
                 return;
             }
 
-            $offeringId = isset($_GET['course_id']) ? (int)$_GET['course_id'] : null;
+            $offeringId = isset($_GET['offering_id']) ? (int)$_GET['offering_id'] : (isset($_GET['course_id']) ? (int)$_GET['course_id'] : null);
 
             if (!$offeringId) {
+                if (isset($GLOBALS['fileLogger'])) $GLOBALS['fileLogger']->debug('AssessmentController', 'getCourseTests invoked without offering_id', ['role' => $userData['role']]);
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -406,19 +435,65 @@ class AssessmentController
                 return;
             }
 
-            // Verify access (faculty assignment or HOD department ownership)
-            $access = $this->checkOfferingAccess($userData, $offeringId);
-            if (!$access['allowed']) {
-                http_response_code(403);
+            $offering = $this->courseOfferingRepository->findById($offeringId);
+            if (!$offering) {
+                http_response_code(404);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Course offering not found or access denied'
+                    'message' => 'Course offering not found'
                 ]);
                 return;
             }
-            $offeringData = $access;
+
+            $course = $this->courseRepository->findById($offering->getCourseId());
+            if (!$course) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Course not found for offering'
+                ]);
+                return;
+            }
+
+            $accessAllowed = false;
+            if ($userData['role'] === 'admin' || $userData['role'] === 'dean') {
+                $accessAllowed = true;
+            } elseif ($userData['role'] === 'hod') {
+                $accessAllowed = ($course->getDepartmentId() == $userData['department_id']);
+            } else {
+                $assignments = $this->courseOfferingRepository->findByFacultyId($userData['employee_id']);
+                foreach ($assignments as $a) {
+                    if ($a['offering_id'] == $offeringId) {
+                        $accessAllowed = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$accessAllowed) {
+                if (isset($GLOBALS['fileLogger'])) {
+                    $GLOBALS['fileLogger']->warn('AssessmentController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']);
+                }
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Access denied to this course offering'
+                ]);
+                return;
+            }
 
             $tests = $this->testRepository->findByOfferingId($offeringId);
+
+            $offeringData = [
+                'allowed' => true,
+                'offering_id' => $offering->getOfferingId(),
+                'course_id' => $course->getCourseId(),
+                'course_code' => $course->getCourseCode(),
+                'course_name' => $course->getCourseName(),
+                'credit' => $course->getCredit(),
+                'year' => $offering->getYear(),
+                'semester' => $offering->getSemester()
+            ];
 
             http_response_code(200);
             echo json_encode([
@@ -464,6 +539,7 @@ class AssessmentController
 
             // Find existing question
             $question = $this->questionRepository->findById($questionId);
+            $GLOBALS['audit_old_state'] = (isset($question) && is_object($question) && method_exists($question, 'toArray')) ? $question->toArray() : (isset($question) ? clone $question : null);
             if (!$question) {
                 http_response_code(404);
                 echo json_encode([
@@ -510,6 +586,14 @@ class AssessmentController
             $this->questionRepository->save($question);
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'Question', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AssessmentController', 'UPDATE operation successful in updateQuestion');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Question updated successfully',
@@ -544,6 +628,7 @@ class AssessmentController
 
             // Find existing question
             $question = $this->questionRepository->findById($questionId);
+            $GLOBALS['audit_old_state'] = (isset($question) && is_object($question) && method_exists($question, 'toArray')) ? $question->toArray() : (isset($question) ? clone $question : null);
             if (!$question) {
                 http_response_code(404);
                 echo json_encode([
@@ -578,6 +663,14 @@ class AssessmentController
             $this->questionRepository->delete($questionId);
 
             http_response_code(200);
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('DELETE', 'Question', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AssessmentController', 'DELETE operation successful in deleteQuestion');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Question deleted successfully'
@@ -591,3 +684,6 @@ class AssessmentController
         }
     }
 }
+
+
+

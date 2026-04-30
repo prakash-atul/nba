@@ -1,4 +1,4 @@
-import { QuickAccessGrid, type QuickAccessItem } from "@/components/shared";
+import { QuickAccessGrid, type QuickAccessItem } from "@/features/shared";
 import { BookOpen, UserPlus } from "lucide-react";
 
 type StaffPage = "courses" | "enrollments";

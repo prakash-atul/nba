@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "nba-api-collection-2026",
-		"name": "NBA Assessment API - Phase 2",
-		"description": "Complete API collection for NBA Assessment System with Phase 2 schema updates",
+		"name": "NBA Assessment API - v5.1",
+		"description": "API collection for NBA Assessment System v5.1 (Offering-Scoped CO-PO & Attainment)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -947,21 +947,25 @@
 					},
 					"response": []
 				},
-				{
+{
 					"name": "Get Course Tests",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/course-tests?course_id=1",
+							"raw": "{{base_url}}/course-tests?offering_id=1",
 							"host": ["{{base_url}}"],
 							"path": ["course-tests"],
 							"query": [
 								{
-									"key": "course_id",
-									"value": "1",
-									"description": "Actually offering_id (backward compatibility)"
+									"key": "offering_id",
+									"value": "1"
 								}
+							]
+						}
+					},
+					"response": []
+				}
 							]
 						},
 						"description": "Note: course_id parameter is actually the offering_id (backward compatibility)"
@@ -1224,21 +1228,21 @@
 			"name": "Attainment & CO-PO",
 			"item": [
 				{
-					"name": "Get Attainment Config",
+					"name": "Get Attainment Config (v5.1+)",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/courses/1/attainment-config",
+							"raw": "{{base_url}}/offerings/1/attainment-config",
 							"host": ["{{base_url}}"],
-							"path": ["courses", "1", "attainment-config"]
+							"path": ["offerings", "1", "attainment-config"]
 						},
-						"description": "Refers to Course Template ID (e.g., CS101), not offering ID"
+						"description": "v5.1+ - Refers to offering_id (specific course offering)"
 					},
 					"response": []
 				},
 				{
-					"name": "Save Attainment Config",
+					"name": "Save Attainment Config (v5.1+)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1249,32 +1253,32 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"co_threshold\": 40.0,\n  \"passing_threshold\": 60.0,\n  \"attainment_thresholds\": [\n    {\"id\": 1, \"percentage\": 40},\n    {\"id\": 2, \"percentage\": 60},\n    {\"id\": 3, \"percentage\": 75}\n  ]\n}"
+							"raw": "{\n  \"scales\": [\n    {\"level": 1, \"min_percentage\": 40},\n    {\"level\": 2, \"min_percentage\": 60},\n    {\"level\": 3, \"min_percentage\": 75}\n  ]\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/courses/1/attainment-config",
+							"raw": "{{base_url}}/offerings/1/attainment-config",
 							"host": ["{{base_url}}"],
-							"path": ["courses", "1", "attainment-config"]
+							"path": ["offerings", "1", "attainment-config"]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get CO-PO Matrix",
+					"name": "Get CO-PO Matrix (v5.1+)",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/courses/1/copo-matrix",
+							"raw": "{{base_url}}/offerings/1/copo-matrix",
 							"host": ["{{base_url}}"],
-							"path": ["courses", "1", "copo-matrix"]
+							"path": ["offerings", "1", "copo-matrix"]
 						},
-						"description": "Refers to Course Template ID (e.g., CS101), not offering ID"
+						"description": "v5.1+ - Refers to offering_id"
 					},
 					"response": []
 				},
 				{
-					"name": "Save CO-PO Matrix",
+					"name": "Save CO-PO Matrix (v5.1+)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1285,12 +1289,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"mappings\": [\n    {\"co\": \"CO1\", \"po\": \"PO1\", \"value\": 3},\n    {\"co\": \"CO1\", \"po\": \"PO2\", \"value\": 2},\n    {\"co\": \"CO1\", \"po\": \"PO3\", \"value\": 1},\n    {\"co\": \"CO2\", \"po\": \"PO1\", \"value\": 2},\n    {\"co\": \"CO2\", \"po\": \"PO3\", \"value\": 3},\n    {\"co\": \"CO3\", \"po\": \"PO2\", \"value\": 3},\n    {\"co\": \"CO3\", \"po\": \"PO4\", \"value\": 2}\n  ]\n}"
+							"raw": "{\n  \"matrix\": [\n    {\"co_number": 1, \"po_name\": \"PO1\", \"value\": 3},\n    {\"co_number\": 1, \"po_name\": \"PO2\", \"value\": 2},\n    {\"co_number\": 2, \"po_name\": \"PO1\", \"value\": 2},\n    {\"co_number\": 2, \"po_name\": \"PO3\", \"value\": 3}\n  ]\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/courses/1/copo-matrix",
+							"raw": "{{base_url}}/offerings/1/copo-matrix",
 							"host": ["{{base_url}}"],
-							"path": ["courses", "1", "copo-matrix"]
+							"path": ["offerings", "1", "copo-matrix"]
 						}
 					},
 					"response": []

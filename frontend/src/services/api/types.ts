@@ -38,7 +38,8 @@ export interface User {
 	email: string;
 	role: string;
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
 	department_id: number | null;
 	department_name?: string;
 	department_code?: string;
@@ -75,6 +76,11 @@ export interface Course {
 	faculty_id: number;
 	year: number;
 	semester: string;
+	is_active?: number;
+	cfa_is_active?: number | null;
+	enrollment_count?: number;
+	test_count?: number;
+	avg_score_pct?: number | null;
 }
 
 export interface CoursesResponse {
@@ -106,14 +112,16 @@ export interface QuestionResponse extends Question {
 
 export interface Test {
 	id: number;
-	course_id: number;
+	offering_id: number;
+	course_id?: number; // legacy alias
 	name: string;
 	full_marks: number;
 	pass_marks: number;
 }
 
 export interface CreateAssessmentRequest {
-	course_id: number;
+	offering_id: number;
+	course_id?: number; // legacy alias
 	name: string;
 	full_marks: number;
 	pass_marks: number;
@@ -139,6 +147,7 @@ export interface SaveMarksByQuestionRequest {
 	test_id: number;
 	student_id: string;
 	marks: QuestionMarks[];
+	validate_marks?: boolean;
 }
 
 export interface SaveMarksByCORequest {
@@ -150,6 +159,7 @@ export interface SaveMarksByCORequest {
 	CO4?: number;
 	CO5?: number;
 	CO6?: number;
+	validate_marks?: boolean;
 }
 
 export interface COTotals {
@@ -194,6 +204,7 @@ export interface BulkMarksEntry {
 export interface BulkMarksSaveRequest {
 	test_id: number;
 	marks_entries: BulkMarksEntry[];
+	validate_marks?: boolean;
 }
 
 export interface BulkMarksSaveResponse {
@@ -216,9 +227,10 @@ export interface Student {
 	batch_year: number;
 	student_status: string;
 	email: string | null;
-	phone: string | null;
+	phones: string[];
 	department_name: string;
 	department_code: string;
+	enrolled_courses?: string; // comma-separated "code: name (year/sem)" entries
 
 	// Legacy support
 	rollno?: string;
@@ -233,6 +245,7 @@ export interface EnrolledStudent extends Student {
 export interface UpdateStudentRequest {
 	student_name?: string;
 	email?: string | null;
+	phones?: string[];
 	phone?: string | null;
 	student_status?: string;
 	batch_year?: number;
@@ -247,6 +260,7 @@ export interface Enrollment {
 export interface CourseEnrollmentsResponse {
 	success: boolean;
 	data: {
+		offering_id: number;
 		course_id: number;
 		course_code: string;
 		enrollment_count: number;
@@ -307,6 +321,7 @@ export interface AdminCourse {
 	passing_threshold?: number | null;
 	faculty_id?: number | null;
 	faculty_name?: string | null;
+	cfa_is_active?: number | null;
 	enrollment_count?: number;
 	test_count?: number;
 	// Legacy/Compat
@@ -333,15 +348,17 @@ export interface CreateUserRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "admin" | "faculty" | "hod" | "staff";
+	role: "admin" | "faculty" | "hod" | "staff" | "dean";
 	designation?: string | null;
-	phone?: string | null;
+	phones: string[];
 	department_id?: number | null;
+	school_id?: number | null;
 }
 
 // Attainment Types
 export interface AttainmentConfig {
-	course_id: number;
+	offering_id: number;
+	course_id?: number;
 	co_threshold: number;
 	passing_threshold: number;
 	attainment_thresholds: Array<{
@@ -352,7 +369,7 @@ export interface AttainmentConfig {
 }
 
 export interface SaveAttainmentConfigRequest {
-	course_id: number;
+	offering_id: number;
 	co_threshold: number;
 	passing_threshold: number;
 	attainment_thresholds: Array<{
@@ -396,6 +413,7 @@ export interface DepartmentCourse {
 	course_name: string;
 	credit: number;
 	department_id?: number | null;
+	department_code?: string | null;
 	course_type?: string;
 	course_level?: string;
 	is_active?: number;
@@ -428,7 +446,8 @@ export interface DepartmentFaculty {
 	username: string;
 	email: string;
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
 	role: string;
 	department_id: number;
 	is_hod?: boolean;
@@ -468,6 +487,8 @@ export interface HODHistoryRecord {
 	username: string;
 	email: string;
 	designation: string | null;
+	phones?: string[];
+	phone?: string | null;
 	start_date: string;
 	end_date: string | null;
 	is_current: number;
@@ -483,7 +504,8 @@ export interface HODCreateUserRequest {
 	password: string;
 	role: "faculty" | "staff";
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
 }
 
 export interface HODUpdateUserRequest {
@@ -491,6 +513,18 @@ export interface HODUpdateUserRequest {
 	email?: string;
 	password?: string;
 	role?: "faculty" | "staff";
+	designation?: string | null;
+	phones?: string[];
+	phone?: string | null;
+}
+
+export interface AdminUpdateUserRequest {
+	username?: string;
+	email?: string;
+	password?: string;
+	role?: "admin" | "dean" | "hod" | "faculty" | "staff";
+	department_id?: number | null;
+	school_id?: number | null;
 	designation?: string | null;
 	phone?: string | null;
 }
@@ -527,8 +561,8 @@ export interface CreateDeanRequest extends AppointDeanRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "faculty";
-	department_id: number;
+	role: "dean";
+	department_id?: number | null;
 }
 
 // Admin Department Management Types
@@ -619,7 +653,9 @@ export interface DeanUser {
 	username: string;
 	email: string;
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
+
 	role: string;
 	department_id: number | null;
 	department_name: string | null;
@@ -660,7 +696,7 @@ export interface DeanStudent {
 	batch_year: number | null;
 	student_status: string;
 	email: string | null;
-	phone: string | null;
+	phones: string[];
 }
 
 export interface DeanTest {

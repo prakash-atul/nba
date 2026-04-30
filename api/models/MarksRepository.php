@@ -45,7 +45,7 @@ class MarksRepository
                 $row['CO4'],
                 $row['CO5'],
                 $row['CO6'],
-                $row['id']
+                null
             );
         }
         return null;

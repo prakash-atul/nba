@@ -17,13 +17,18 @@ ob_start();
 $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 
-// Normalize path to remove base directory if present
-$basePath = '/nba/api/';
-if (strpos($path, $basePath) === 0) {
-    $path = substr($path, strlen($basePath));
-} else if (strpos($path, '/api/') === 0) {
-    $path = substr($path, 5);
+// Normalize path: strip everything up to and including '/api/' for any folder name.
+$apiWithTrailingSlashPos = strpos($path, '/api/');
+if ($apiWithTrailingSlashPos !== false) {
+    $path = substr($path, $apiWithTrailingSlashPos + 5);
+} else {
+    // Handle requests to '/api' without a trailing slash.
+    $apiWithoutTrailingSlashPos = strpos($path, '/api');
+    if ($apiWithoutTrailingSlashPos !== false) {
+        $path = substr($path, $apiWithoutTrailingSlashPos + 4);
+    }
 }
+
 $path = ltrim($path, '/');
 
 // Serve Landing Page for root/index
@@ -37,6 +42,9 @@ require_once __DIR__ . '/middleware/CorsMiddleware.php';
 $corsMiddleware = new CorsMiddleware();
 $corsMiddleware->setCorsHeaders();
 $corsMiddleware->handlePreflight();
+
+// Load File Logger for debugging
+require_once __DIR__ . '/utils/FileLogger.php';
 
 // Set headers for JSON API
 header('Content-Type: application/json');

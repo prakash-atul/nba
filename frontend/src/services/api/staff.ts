@@ -7,12 +7,14 @@ import type {
 	PaginationParams,
 } from "./types";
 import { apiGet, apiPost, apiPut, apiDelete, apiGetPaginated } from "./base";
+import { debugLogger } from "@/lib/debugLogger";
 
 export const staffApi = {
 	/**
 	 * Get staff dashboard statistics
 	 */
 	async getStats(): Promise<StaffStats> {
+		debugLogger.info("staffApi", "getStats called");
 		return apiGet<StaffStats>("/staff/stats");
 	},
 
@@ -35,29 +37,32 @@ export const staffApi = {
 	},
 
 	/**
-	 * Get enrollments for a specific course
+	 * Get enrollments for a specific course offering
 	 */
-	async getCourseEnrollments(courseId: number): Promise<{
+	async getCourseEnrollments(offeringId: number): Promise<{
+		offering_id: number;
 		course_id: number;
 		course_code: string;
 		course_name: string;
 		enrollment_count: number;
 		enrollments: Enrollment[];
 	}> {
+		debugLogger.info("staffApi", "getDepartmentCourses called");
 		return apiGet<{
+			offering_id: number;
 			course_id: number;
 			course_code: string;
 			course_name: string;
 			enrollment_count: number;
 			enrollments: Enrollment[];
-		}>(`/staff/courses/${courseId}/enrollments`);
+		}>(`/staff/courses/${offeringId}/enrollments`);
 	},
 
 	/**
-	 * Bulk enroll students in a course
+	 * Bulk enroll students in a course offering
 	 */
 	async bulkEnrollStudents(
-		courseId: number,
+		offeringId: number,
 		students: Array<{ rollno: string; name: string }>,
 	): Promise<{
 		success_count: number;
@@ -73,22 +78,21 @@ export const staffApi = {
 				successful: Array<{ rollno: string; name: string }>;
 				failed: Array<{ rollno: string; name: string; reason: string }>;
 			}
-		>(`/staff/courses/${courseId}/enroll`, { students });
+		>(`/staff/courses/${offeringId}/enrollments`, { students });
 	},
 
 	/**
-	 * Remove a student from a course
+	 * Remove a student from a course offering
 	 */
-	async removeEnrollment(courseId: number, rollno: string): Promise<void> {
-		return apiDelete(`/staff/courses/${courseId}/enroll/${rollno}`);
+	async removeEnrollment(offeringId: number, rollno: string): Promise<void> {
+		debugLogger.info("staffApi", "bulkEnrollStudents called");
+		return apiDelete(`/staff/courses/${offeringId}/enrollments/${rollno}`);
 	},
 
 	/**
 	 * Get department faculty list — paginated
 	 */
-	async getDepartmentFaculty(
-		params?: PaginationParams,
-	): Promise<
+	async getDepartmentFaculty(params?: PaginationParams): Promise<
 		PaginatedResponse<{
 			employee_id: string;
 			username: string;
@@ -117,6 +121,7 @@ export const staffApi = {
 		co_threshold?: number;
 		passing_threshold?: number;
 	}): Promise<StaffCourse> {
+		debugLogger.info("staffApi", "getDepartmentFaculty called");
 		return apiPost<
 			{
 				course_code: string;
@@ -136,7 +141,7 @@ export const staffApi = {
 	 * Update an existing course
 	 */
 	async updateCourse(
-		courseId: number,
+		offeringId: number,
 		courseData: {
 			course_code?: string;
 			name?: string;
@@ -146,6 +151,7 @@ export const staffApi = {
 			semester?: string;
 		},
 	): Promise<StaffCourse> {
+		debugLogger.info("staffApi", "updateCourse called");
 		return apiPut<
 			{
 				course_code?: string;
@@ -156,13 +162,14 @@ export const staffApi = {
 				semester?: string;
 			},
 			StaffCourse
-		>(`/staff/courses/${courseId}`, courseData);
+		>(`/staff/courses/${offeringId}`, courseData);
 	},
 
 	/**
 	 * Delete a course
 	 */
-	async deleteCourse(courseId: number): Promise<void> {
-		return apiDelete(`/staff/courses/${courseId}`);
+	async deleteCourse(offeringId: number): Promise<void> {
+		debugLogger.info("staffApi", "deleteCourse called");
+		return apiDelete(`/staff/courses/${offeringId}`);
 	},
 };

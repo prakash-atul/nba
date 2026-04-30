@@ -2,15 +2,13 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { AlertCircle } from "lucide-react";
 
 interface LoginFormProps {
 	onSubmit: (identifier: string, password: string) => Promise<void>;
 	loading: boolean;
-	error: string;
 }
 
-export function LoginForm({ onSubmit, loading, error }: LoginFormProps) {
+export function LoginForm({ onSubmit, loading }: LoginFormProps) {
 	const [identifier, setIdentifier] = useState("");
 	const [password, setPassword] = useState("");
 
@@ -51,18 +49,6 @@ export function LoginForm({ onSubmit, loading, error }: LoginFormProps) {
 						Sign in with your university credentials
 					</p>
 				</div>
-
-				{/* Error Message */}
-				{error && (
-					<div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 p-4">
-						<div className="flex items-center gap-2">
-							<AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-							<p className="text-sm text-red-600 dark:text-red-400">
-								{error}
-							</p>
-						</div>
-					</div>
-				)}
 
 				{/* Form */}
 				<form onSubmit={handleSubmit} className="space-y-6">

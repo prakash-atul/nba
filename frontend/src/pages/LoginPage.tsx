@@ -7,14 +7,13 @@ import { LoginForm } from "@/components/login/LoginForm";
 import { LoginHero } from "@/components/login/LoginHero";
 import { cn } from "@/lib/utils";
 import { apiService } from "@/services/api";
+import { toast } from "sonner";
 
 export function LoginPage() {
-	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
 
 	const handleSubmit = async (identifier: string, password: string) => {
-		setError("");
 		setLoading(true);
 
 		try {
@@ -42,7 +41,7 @@ export function LoginPage() {
 				}
 			}
 		} catch (err) {
-			setError(
+			toast.error(
 				err instanceof Error
 					? err.message
 					: "Login failed. Please try again.",
@@ -76,11 +75,7 @@ export function LoginPage() {
 				<Card className="overflow-hidden border-slate-200 bg-white backdrop-blur-xl shadow-2xl dark:border-slate-700/50 dark:bg-slate-900/90">
 					<CardContent className="grid p-0 md:grid-cols-2">
 						{/* Login Form Section */}
-						<LoginForm
-							onSubmit={handleSubmit}
-							loading={loading}
-							error={error}
-						/>
+						<LoginForm onSubmit={handleSubmit} loading={loading} />
 
 						{/* Image Section */}
 						<LoginHero />

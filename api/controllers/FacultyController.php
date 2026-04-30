@@ -6,6 +6,9 @@
  */
 class FacultyController
 {
+    protected $auditService;
+    protected $auditLogRepository;
+
     private $courseRepository;
     private $courseOfferingRepository;
     private $courseFacultyAssignmentRepository;
@@ -22,7 +25,10 @@ class FacultyController
         EnrollmentRepository $enrollmentRepository,
         MarksRepository $marksRepository,
         $db
-    ) {
+    , ?AuditService $auditService = null, ?AuditLogRepository $auditLogRepository = null) {
+        $this->auditService = $auditService;
+        $this->auditLogRepository = $auditLogRepository;
+
         $this->courseRepository = $courseRepository;
         $this->courseOfferingRepository = $courseOfferingRepository;
         $this->courseFacultyAssignmentRepository = $courseFacultyAssignmentRepository;
@@ -30,6 +36,61 @@ class FacultyController
         $this->enrollmentRepository = $enrollmentRepository;
         $this->marksRepository = $marksRepository;
         $this->db = $db;
+    }
+
+    /**
+     * Get recent audit logs for Faculty context (similar layout to HOD/Admin)
+     */
+    public function getLogs($request) {
+        try {
+            // Validate user is logged in
+            $userData = $_REQUEST['authenticated_user'] ?? null;
+            if (!$userData || ($userData['role'] !== 'faculty' && $userData['role'] !== 'admin' && $userData['role'] !== 'hod' && $userData['role'] !== 'dean')) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('FacultyController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                return;
+            }
+
+            $filters = [
+                'user_id' => $_GET['user_id'] ?? null,
+                'action' => $_GET['action'] ?? null,
+                'entity_type' => $_GET['entity_type'] ?? null,
+                'entity_id' => $_GET['entity_id'] ?? null,
+                'date_from' => $_GET['date_from'] ?? null,
+                'date_to' => $_GET['date_to'] ?? null,
+            ];
+            
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+
+            $result = $this->auditLogRepository->findAll($filters, $page, $limit);
+
+            $items = $result['data'];
+            
+            http_response_code(200);
+            header("Content-Type: application/json");
+            echo json_encode([
+                "success" => true,
+                "data" => $items,
+                "pagination" => [
+                    "current_page" => $page,
+                    "per_page" => $limit,
+                    "total_records" => $result['total'],
+                    "total_pages" => ceil($result['total'] / $limit)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getLogs prompt', ['error' => $e->getMessage()]); }
+            error_log("Error in FacultyController@getLogs: " . $e->getMessage());
+            http_response_code(500);
+            header("Content-Type: application/json");
+            echo json_encode([
+                "success" => false,
+                "message" => "An error occurred while fetching audit logs for Faculty.",
+                "error" => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -99,6 +160,7 @@ class FacultyController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getStats prompt', ['error' => $e->getMessage()]); }
             error_log("Error getting faculty stats: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -113,53 +175,122 @@ class FacultyController
     /**
      * Get all students enrolled in any of the faculty's courses
      */
-    public function getEnrolledStudents($facultyId)
+        public function getEnrolledStudents($facultyId)
     {
         try {
             $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
 
             if (empty($assignments)) {
                 http_response_code(200);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'data' => []]);
+                header("Content-Type: application/json");
+                echo json_encode(array_merge(["success" => true, "message" => "Enrolled students retrieved successfully"], PaginationHelper::buildResponse([], 'roll_no', 10, 0)));
                 return;
             }
 
-            $offeringIds = array_column($assignments, 'offering_id');
-            $placeholders = implode(',', array_fill(0, count($offeringIds), '?'));
+            $offeringIds = array_column($assignments, "offering_id");
+            $placeholders = implode(",", array_fill(0, count($offeringIds), "?"));
 
-            $stmt = $this->db->prepare("
-                SELECT DISTINCT
-                    s.roll_no,
-                    s.student_name,
-                    s.department_id,
-                    s.batch_year,
-                    s.student_status,
-                    s.email,
-                    s.phone,
-                    d.department_name,
-                    d.department_code,
-                    GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ') AS enrolled_courses
+            // Parse pagination params
+            $params = PaginationHelper::parseParams($_GET, "roll_no", "roll_no", ["roll_no", "student_name", "batch_year"], ["batch_year", "department_id", "student_status"]);
+            
+            $whereConditions = ["e.offering_id IN ($placeholders)"];
+            $queryParams = $offeringIds;
+
+            if (!empty($params["search"])) {
+                $whereConditions[] = "(s.student_name LIKE ? OR s.roll_no LIKE ? OR s.email LIKE ?)";
+                $searchParam = "%{$params["search"]}%";
+                array_push($queryParams, $searchParam, $searchParam, $searchParam);
+            }
+            if (!empty($params["filters"])) {
+                foreach ($params["filters"] as $key => $value) {
+                    $dbKey = "s." . ltrim($key, "s.");
+                    $whereConditions[] = "$dbKey = ?";
+                    $queryParams[] = $value;
+                }
+            }
+
+            $rawSort = ltrim($params["sort"], "s.");
+            $sortCol = "s." . $rawSort;
+            $op = ($params["sortDir"] === "ASC") ? ">" : "<";
+
+            // Count Query — run BEFORE adding cursor conditions so the total
+            // reflects all matching rows, not just those after the cursor.
+            // Must use the same JOINs as the data query so the count is consistent
+            // with the rows that will actually be returned (avoids orphaned-record inflation).
+            $countWhereClause = implode(" AND ", $whereConditions);
+            $countQuery = "
+                SELECT COUNT(DISTINCT s.roll_no)
+                FROM enrollments e
+                JOIN students s ON e.student_rollno = s.roll_no
+                JOIN course_offerings co ON e.offering_id = co.offering_id
+                JOIN courses c ON co.course_id = c.course_id
+                WHERE $countWhereClause
+            ";
+            $stmtCount = $this->db->prepare($countQuery);
+            $stmtCount->execute($queryParams);
+            $totalCount = (int)$stmtCount->fetchColumn();
+
+            if ($params["cursor"] !== null) {
+                $cursorVal = $params["cursor"];
+
+                if ($rawSort === "roll_no") {
+                    $whereConditions[] = "s.roll_no $op ?";
+                    $queryParams[] = $cursorVal;
+                } else {
+                    $parts = explode("|", $cursorVal, 2);
+                    if (count($parts) === 2) {
+                        $cond1 = "$sortCol $op ?";
+                        $cond2 = "($sortCol = ? AND s.roll_no > ?)";
+                        $whereConditions[] = "($cond1 OR $cond2)";
+                        array_push($queryParams, $parts[0], $parts[0], $parts[1]);
+                    } else {
+                        // fallback
+                        $whereConditions[] = "s.roll_no > ?";
+                        $queryParams[] = $cursorVal;
+                    }
+                }
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            if ($rawSort !== "roll_no") {
+                $orderBy = "$sortCol {$params["sortDir"]}, s.roll_no ASC";
+            } else {
+                $orderBy = "s.roll_no {$params["sortDir"]}";
+            }
+
+            $limit = (int)$params["limit"];
+            $fetchLimit = $limit + 1;
+
+            $dataQuery = "
+                SELECT s.roll_no, s.student_name, s.department_id, s.batch_year, s.student_status,
+                       s.email, s.phone, d.department_name, d.department_code,
+                       GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ') AS enrolled_courses
                 FROM enrollments e
                 JOIN students s ON e.student_rollno = s.roll_no
                 JOIN course_offerings co ON e.offering_id = co.offering_id
                 JOIN courses c ON co.course_id = c.course_id
                 LEFT JOIN departments d ON s.department_id = d.department_id
-                WHERE e.offering_id IN ($placeholders)
-                GROUP BY s.roll_no
-                ORDER BY s.roll_no
-            ");
-            $stmt->execute($offeringIds);
+                WHERE $whereClause
+                GROUP BY s.roll_no, s.student_name, s.department_id, s.batch_year, 
+                         s.student_status, s.email, s.phone, d.department_name, d.department_code
+                ORDER BY $orderBy
+                LIMIT $fetchLimit
+            ";
+
+            $stmt = $this->db->prepare($dataQuery);
+            $stmt->execute($queryParams);
             $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             http_response_code(200);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'data' => $students]);
+            header("Content-Type: application/json");
+            echo json_encode(array_merge(['success' => true, 'message' => 'Enrolled students retrieved successfully'], PaginationHelper::buildResponse($students, 'roll_no', $params['limit'], $totalCount)));
         } catch (Exception $e) {
+            if (isset($GLOBALS["fileLogger"])) { $GLOBALS["fileLogger"]->error("FacultyController", "getEnrolledStudents", ["error" => $e->getMessage()]); }
             error_log("Error getting enrolled students: " . $e->getMessage());
             http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
+            header("Content-Type: application/json");
+            echo json_encode(["success" => false, "message" => "Failed to retrieve students", "error" => $e->getMessage()]);
         }
     }
 
@@ -183,6 +314,7 @@ class FacultyController
                 $params = array_merge([$rollNo], $offeringIds);
                 $stmt->execute($params);
                 if ($stmt->fetchColumn() == 0) {
+                    if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('FacultyController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                     http_response_code(403);
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'message' => 'Student not found in your courses']);
@@ -224,8 +356,17 @@ class FacultyController
 
             http_response_code(200);
             header('Content-Type: application/json');
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'Student', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'FacultyController', 'UPDATE operation successful in updateStudent');
+            }
             echo json_encode(['success' => true, 'message' => 'Student updated successfully']);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'updateStudent prompt', ['error' => $e->getMessage()]); }
             error_log("Error updating student: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -267,11 +408,20 @@ class FacultyController
 
             http_response_code(200);
             header('Content-Type: application/json');
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('DELETE', 'removeStudentFromCourses', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'FacultyController', 'DELETE operation successful in removeStudentFromCourses');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => "Student removed from $deleted course enrollment(s)"
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'removeStudentFromCourses prompt', ['error' => $e->getMessage()]); }
             error_log("Error removing student from courses: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -300,6 +450,7 @@ class FacultyController
             $test = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$test) {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('FacultyController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -314,7 +465,7 @@ class FacultyController
                 SELECT 
                     (SELECT COUNT(*) FROM questions WHERE test_id = ?) as question_count,
                     (SELECT COUNT(DISTINCT student_roll_no) FROM marks WHERE test_id = ?) as student_count,
-                    (SELECT COUNT(*) FROM raw_marks WHERE test_id = ?) as raw_marks_count
+                    (SELECT COUNT(*) FROM raw_marks rm JOIN questions q ON rm.question_id = q.question_id WHERE q.test_id = ?) as raw_marks_count
             ");
             $stmt->execute([$testId, $testId, $testId]);
             $counts = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -325,6 +476,14 @@ class FacultyController
 
             http_response_code(200);
             header('Content-Type: application/json');
+            
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('DELETE', 'Test', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'FacultyController', 'DELETE operation successful in deleteTest');
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Test deleted successfully',
@@ -337,6 +496,7 @@ class FacultyController
                 ]
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'deleteTest prompt', ['error' => $e->getMessage()]); }
             error_log("Error deleting test: " . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
@@ -351,6 +511,39 @@ class FacultyController
     /**
      * Get stats for a single course offering (scoped to requesting faculty)
      */
+    public function getOfferingTestAverages($facultyId, $offeringId)
+    {
+        try {
+            // Check if user is HOD or Admin to bypass assignment check
+            $user = $_REQUEST['authenticated_user'] ?? null;
+            $hasOverride = $user && ($user['role'] === 'admin' || $user['is_hod'] || $user['is_dean']);
+
+            if (!$hasOverride) {
+                // Verify this offering belongs to the faculty
+                if (!$this->courseFacultyAssignmentRepository->isFacultyAssignedToOffering($offeringId, $facultyId, true)) {
+                    http_response_code(403);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Access denied to this course offering']);
+                    return;
+                }
+            }
+
+            $averages = $this->courseRepository->getOfferingTestAverages($offeringId);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test averages retrieved successfully',
+                'data' => $averages,
+            ]);
+        } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('FacultyController', 'getOfferingTestAverages prompt', ['error' => $e->getMessage()]); }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve test averages', 'error' => $e->getMessage()]);
+        }
+    }
+
     public function getCourseStats($facultyId, $offeringId)
     {
         try {
@@ -360,10 +553,7 @@ class FacultyController
 
             if (!$hasOverride) {
                 // Verify this offering belongs to the faculty
-                $assignments = $this->courseFacultyAssignmentRepository->getAssignmentsByFaculty($facultyId);
-                $offeringIds = array_column($assignments, 'offering_id');
-
-                if (!in_array($offeringId, $offeringIds)) {
+                if (!$this->courseFacultyAssignmentRepository->isFacultyAssignedToOffering($offeringId, $facultyId, true)) {
                     http_response_code(403);
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'message' => 'Access denied to this course offering']);
@@ -428,6 +618,73 @@ class FacultyController
         }
     }
 
+    public function checkCourseCompletionStatus($facultyId, $offeringId)
+    {
+        try {
+            // Verify faculty is assigned and active
+            if (!$this->courseFacultyAssignmentRepository->isFacultyAssignedToOffering($offeringId, $facultyId)) {
+                http_response_code(403);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Unauthorized or already concluded access to this course offering.']);
+                return;
+            }
+
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM tests WHERE offering_id = ?");
+            $stmt->execute([$offeringId]);
+            $totalTests = (int) $stmt->fetchColumn();
+
+            $incompleteTests = [];
+            $canConclude = true;
+
+            if ($totalTests === 0) {
+                // Technically can conclude if no tests exist, but might want to warn
+                $canConclude = true; // Assuming an empty course can be concluded
+            } else {
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM enrollments WHERE offering_id = ? AND enrollment_status != 'Dropped'");
+                $stmt->execute([$offeringId]);
+                $enrolledStudentsCount = (int) $stmt->fetchColumn();
+
+                if ($enrolledStudentsCount > 0) {
+                    $stmt = $this->db->prepare("
+                        SELECT t.test_id, t.test_name, COUNT(DISTINCT m.student_roll_no) as marked_students
+                        FROM tests t
+                        LEFT JOIN marks m ON t.test_id = m.test_id
+                        WHERE t.offering_id = ?
+                        GROUP BY t.test_id
+                    ");
+                    $stmt->execute([$offeringId]);
+                    $testCompletion = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    foreach ($testCompletion as $test) {
+                        if ($test['marked_students'] < $enrolledStudentsCount) {
+                            $incompleteTests[] = $test['test_name'];
+                        }
+                    }
+
+                    if (!empty($incompleteTests)) {
+                        $canConclude = false;
+                    }
+                }
+            }
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'can_conclude' => $canConclude,
+                    'incomplete_tests' => $incompleteTests,
+                    'total_tests' => $totalTests
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log("Error checking course completion status: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to check course status']);
+        }
+    }
+
     public function concludeCourse($facultyId, $offeringId)
     {
         try {
@@ -437,6 +694,44 @@ class FacultyController
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => 'Unauthorized or already concluded access to this course offering.']);
                 return;
+            }
+
+            // Verify if marks entry is complete
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM tests WHERE offering_id = ?");
+            $stmt->execute([$offeringId]);
+            $totalTests = (int) $stmt->fetchColumn();
+
+            if ($totalTests > 0) {
+                // Get enrolled students count
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM enrollments WHERE offering_id = ? AND enrollment_status != 'Dropped'");
+                $stmt->execute([$offeringId]);
+                $enrolledStudentsCount = (int) $stmt->fetchColumn();
+
+                if ($enrolledStudentsCount > 0) {
+                    $stmt = $this->db->prepare("
+                        SELECT t.test_id, t.test_name, COUNT(DISTINCT m.student_roll_no) as marked_students
+                        FROM tests t
+                        LEFT JOIN marks m ON t.test_id = m.test_id
+                        WHERE t.offering_id = ?
+                        GROUP BY t.test_id
+                    ");
+                    $stmt->execute([$offeringId]);
+                    $testCompletion = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $incompleteTests = [];
+                    foreach ($testCompletion as $test) {
+                        if ($test['marked_students'] < $enrolledStudentsCount) {
+                            $incompleteTests[] = $test['test_name'];
+                        }
+                    }
+
+                    if (!empty($incompleteTests)) {
+                        http_response_code(400);
+                        header('Content-Type: application/json');
+                        echo json_encode(['success' => false, 'message' => 'Marks entry incomplete for tests: ' . implode(', ', $incompleteTests) . '. All enrolled students must have marks entered before concluding the course.']);
+                        return;
+                    }
+                }
             }
 
             // Begin Transaction
@@ -460,21 +755,21 @@ class FacultyController
             ");
             $stmt->execute([$offeringId]);
 
-            // 3. Purge raw marks to save space, safely since aggregation exists
-            $stmt = $this->db->prepare("
-                DELETE rm FROM raw_marks rm
-                INNER JOIN questions q ON rm.question_id = q.question_id
-                INNER JOIN tests t ON q.test_id = t.test_id
-                WHERE t.offering_id = ?
-            ");
-            $stmt->execute([$offeringId]);
+            // 3. (Temporarily disabled based on user request) Purge raw marks to save space
+            // $stmt = $this->db->prepare("
+            //     DELETE rm FROM raw_marks rm
+            //     INNER JOIN questions q ON rm.question_id = q.question_id
+            //     INNER JOIN tests t ON q.test_id = t.test_id
+            //     WHERE t.offering_id = ?
+            // ");
+            // $stmt->execute([$offeringId]);
 
             $this->db->commit();
 
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true, 
-                'message' => 'Course concluded successfully. Session finalized and obsolete raw records purged.'
+                'message' => 'Course concluded successfully. Session finalized.'
             ]);
 
         } catch (Exception $e) {
@@ -488,3 +783,4 @@ class FacultyController
         }
     }
 }
+

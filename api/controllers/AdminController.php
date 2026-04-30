@@ -6,6 +6,8 @@
  */
 class AdminController
 {
+    protected $auditService;
+
     private $userRepository;
     private $courseRepository;
     private $studentRepository;
@@ -22,7 +24,9 @@ class AdminController
         DepartmentRepository $departmentRepository,
         ?DeanAssignmentRepository $deanAssignmentRepository = null,
         ?SchoolRepository $schoolRepository = null
-    ) {
+    , ?AuditService $auditService = null) {
+        $this->auditService = $auditService;
+
         $this->userRepository = $userRepository;
         $this->courseRepository = $courseRepository;
         $this->studentRepository = $studentRepository;
@@ -42,6 +46,7 @@ class AdminController
 
             // Check if user is admin
             if ($userData['role'] !== 'admin') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AdminController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -65,6 +70,7 @@ class AdminController
                 'data' => $stats
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getStats prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -86,8 +92,8 @@ class AdminController
                 $_GET,
                 'c.course_id',
                 'c.course_id',
-                ['c.course_id', 'c.course_code', 'c.course_name', 'c.course_type', 'c.credit', 'co.year', 'co.semester', 'u.username'],
-                ['department_id', 'is_active', 'course_type']
+                ['c.course_id', 'c.course_code', 'c.course_name', 'c.course_type', 'c.credit', 'co.year', 'co.semester', 'faculty_name', 'department_code'],
+                ['department_id', 'is_active', 'course_type', 'year', 'semester']
             );
 
             $total = $this->courseRepository->countPaginated($params);
@@ -98,6 +104,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Courses retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllCourses prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve courses', 'error' => $e->getMessage()]);
         }
@@ -127,6 +134,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Departments retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllDepartments prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve departments', 'error' => $e->getMessage()]);
         }
@@ -145,7 +153,7 @@ class AdminController
                 's.roll_no',
                 's.roll_no',
                 ['s.roll_no', 's.student_name', 's.batch_year', 's.student_status'],
-                ['department_id', 'batch_year', 'student_status']
+                ['department_id', 'batch_year', 'student_status', 'course_code']
             );
 
             $total = $this->studentRepository->countPaginated($params);
@@ -156,6 +164,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Students retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllStudents prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve students', 'error' => $e->getMessage()]);
         }
@@ -185,6 +194,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode(array_merge(['success' => true, 'message' => 'Tests retrieved successfully'], $result));
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllTests prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to retrieve tests', 'error' => $e->getMessage()]);
         }
@@ -198,6 +208,7 @@ class AdminController
         $userData = $_REQUEST['authenticated_user'];
 
         if ($userData['role'] !== 'admin') {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AdminController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
             http_response_code(403);
             echo json_encode([
                 'success' => false,
@@ -218,6 +229,7 @@ class AdminController
             
             // Start of Selection
             if ($userData['role'] !== 'admin') {
+                if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AdminController', 'Unauthorized access attempt', ['user' => $_REQUEST['authenticated_user'] ?? 'anonymous']); }
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -255,6 +267,7 @@ class AdminController
                 'data' => $schools
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getAllSchools prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -294,16 +307,58 @@ class AdminController
 
             if ($schoolId) {
                 $school->setSchoolId($schoolId);
+
+                // Auto-create a dean login account for this school
+                try {
+                    $deanUsername = 'dean_' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $input['school_code']));
+                    $deanEmail = $deanUsername . '@tezu.ernet.in';
+                    $deanPassword = password_hash('password123', PASSWORD_BCRYPT);
+                    
+                    $newEmpId = $this->userRepository->generateSystemAccountId('dean');
+                    
+                    if ($this->userRepository->findByUsername($deanUsername)) {
+                        $deanUsername .= '_' . rand(10, 99);
+                        $deanEmail = $deanUsername . '@tezu.ernet.in';
+                    }
+
+                    $deanUser = new User(
+                        $newEmpId,
+                        'Dean ' . strtoupper($input['school_code']),
+                        $deanEmail,
+                        $deanPassword,
+                        'dean',
+                        null,
+                        'Dean',
+                        null,
+                        null,
+                        null,
+                        $schoolId
+                    );
+                    
+                    $this->userRepository->save($deanUser);
+                } catch (Exception $userEx) {
+                    error_log("Failed to create default dean account for school: " . $userEx->getMessage());
+                }
+
                 http_response_code(201);
-                echo json_encode([
+                
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('CREATE', 'School', null, null, $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AdminController', 'CREATE operation successful in createSchool');
+            }
+            echo json_encode([
                     'success' => true,
-                    'message' => 'School created successfully',
+                    'message' => 'School and Dean account created successfully',
                     'data' => $school->toArray()
                 ]);
             } else {
                 throw new Exception("Failed to create school");
             }
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'createSchool prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -324,6 +379,7 @@ class AdminController
             $input = json_decode(file_get_contents('php://input'), true);
             
             $existingSchool = $this->schoolRepository->findById($schoolId);
+            $GLOBALS['audit_old_state'] = (isset($existingSchool) && is_object($existingSchool) && method_exists($existingSchool, 'toArray')) ? $existingSchool->toArray() : (isset($existingSchool) ? clone $existingSchool : null);
             if (!$existingSchool) {
                 http_response_code(404);
                 echo json_encode([
@@ -345,7 +401,15 @@ class AdminController
 
             if ($this->schoolRepository->update($existingSchool)) {
                 http_response_code(200);
-                echo json_encode([
+                
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'School', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AdminController', 'UPDATE operation successful in updateSchool');
+            }
+            echo json_encode([
                     'success' => true,
                     'message' => 'School updated successfully',
                     'data' => $existingSchool->toArray()
@@ -353,13 +417,22 @@ class AdminController
             } else {
                 // If no rows updated, it might mean no changes were made, but distinct from failure
                 http_response_code(200);
-                 echo json_encode([
+                 
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'School', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AdminController', 'UPDATE operation successful in updateSchool');
+            }
+            echo json_encode([
                     'success' => true,
                     'message' => 'School updated successfully (no changes detected)',
                     'data' => $existingSchool->toArray()
                 ]);
             }
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'updateSchool prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -379,6 +452,7 @@ class AdminController
 
             // Check if school exists
             $school = $this->schoolRepository->findById($schoolId);
+            $GLOBALS['audit_old_state'] = (isset($school) && is_object($school) && method_exists($school, 'toArray')) ? $school->toArray() : (isset($school) ? clone $school : null);
             if (!$school) {
                 http_response_code(404);
                 echo json_encode([
@@ -388,10 +462,27 @@ class AdminController
                 return;
             }
 
+            // Get auto-generated dean accounts to clean up
+            $deanIds = $this->userRepository->getSystemAccessorIdsBySchool($schoolId);
+
             // Attempt delete (will fail if constraints exist, caught by catch block)
             if ($this->schoolRepository->delete($schoolId)) {
+                
+                // Clean up auto-generated Dean accounts associated with this school
+                foreach ($deanIds as $empId) {
+                    $this->userRepository->delete($empId);
+                }
+
                 http_response_code(200);
-                echo json_encode([
+                
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('DELETE', 'School', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AdminController', 'DELETE operation successful in deleteSchool');
+            }
+            echo json_encode([
                     'success' => true,
                     'message' => 'School deleted successfully'
                 ]);
@@ -399,6 +490,7 @@ class AdminController
                 throw new Exception("Failed to delete school");
             }
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'deleteSchool prompt', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -462,11 +554,51 @@ class AdminController
             $result = $this->departmentRepository->save($department);
 
             if ($result) {
+                // Auto-create an HOD login account for this department
+                try {
+                    $hodUsername = 'hod_' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $departmentCode));
+                    $hodEmail = $hodUsername . '@tezu.ernet.in';
+                    $hodPassword = password_hash('password123', PASSWORD_BCRYPT);
+                    
+                    $newEmpId = $this->userRepository->generateSystemAccountId('hod');
+                    
+                    if ($this->userRepository->findByUsername($hodUsername)) {
+                        $hodUsername .= '_' . rand(10, 99);
+                        $hodEmail = $hodUsername . '@tezu.ernet.in';
+                    }
+
+                    $hodUser = new User(
+                        $newEmpId,
+                        'HOD ' . $departmentCode,
+                        $hodEmail,
+                        $hodPassword,
+                        'hod',
+                        $department->getDepartmentId(),
+                        'Professor',
+                        null,
+                        null,
+                        null,
+                        null
+                    );
+                    
+                    $this->userRepository->save($hodUser);
+                } catch (Exception $userEx) {
+                    error_log("Failed to create default HOD account for department: " . $userEx->getMessage());
+                }
+
                 http_response_code(201);
                 header('Content-Type: application/json');
-                echo json_encode([
+                
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('CREATE', 'Department', null, null, $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AdminController', 'CREATE operation successful in createDepartment');
+            }
+            echo json_encode([
                     'success' => true,
-                    'message' => 'Department created successfully',
+                    'message' => 'Department and HOD account created successfully',
                     'data' => [
                         'department_id' => $department->getDepartmentId(),
                         'department_name' => $department->getDepartmentName(),
@@ -498,6 +630,7 @@ class AdminController
 
             // Find existing department
             $department = $this->departmentRepository->findById($departmentId);
+            $GLOBALS['audit_old_state'] = (isset($department) && is_object($department) && method_exists($department, 'toArray')) ? $department->toArray() : (isset($department) ? clone $department : null);
             if (!$department) {
                 http_response_code(404);
                 echo json_encode([
@@ -568,7 +701,15 @@ class AdminController
             if ($result) {
                 http_response_code(200);
                 header('Content-Type: application/json');
-                echo json_encode([
+                
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('UPDATE', 'Department', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AdminController', 'UPDATE operation successful in updateDepartment');
+            }
+            echo json_encode([
                     'success' => true,
                     'message' => 'Department updated successfully',
                     'data' => [
@@ -600,6 +741,7 @@ class AdminController
 
             // Find existing department
             $department = $this->departmentRepository->findById($departmentId);
+            $GLOBALS['audit_old_state'] = (isset($department) && is_object($department) && method_exists($department, 'toArray')) ? $department->toArray() : (isset($department) ? clone $department : null);
             if (!$department) {
                 http_response_code(404);
                 echo json_encode([
@@ -609,23 +751,39 @@ class AdminController
                 return;
             }
 
-            // Check if department has users
-            $userCount = $this->userRepository->countByDepartment($departmentId);
+            // Check if department has real non-system users
+            $userCount = $this->userRepository->countByDepartment($departmentId, true);
             if ($userCount > 0) {
                 http_response_code(409);
                 echo json_encode([
                     'success' => false,
-                    'message' => "Cannot delete department. It has {$userCount} user(s) assigned."
+                    'message' => "Cannot delete department. It has {$userCount} real user(s) assigned."
                 ]);
                 return;
             }
 
+            // Get auto-generated HOD accounts to clean up
+            $hodIds = $this->userRepository->getSystemAccessorIdsByDepartment($departmentId);
+
             $result = $this->departmentRepository->delete($departmentId);
 
             if ($result) {
+                // Clean up auto-generated HOD accounts associated with this department
+                foreach ($hodIds as $empId) {
+                    $this->userRepository->delete($empId);
+                }
+
                 http_response_code(200);
                 header('Content-Type: application/json');
-                echo json_encode([
+                
+            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            if (isset($this->auditService)) {
+                $this->auditService->log('DELETE', 'Department', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
+            }
+            if (isset($GLOBALS['fileLogger'])) {
+                $GLOBALS['fileLogger']->log('INFO', 'AdminController', 'DELETE operation successful in deleteDepartment');
+            }
+            echo json_encode([
                     'success' => true,
                     'message' => 'Department deleted successfully'
                 ]);
@@ -713,11 +871,11 @@ class AdminController
                 }
 
                 // Validate user is faculty or staff
-                if (!in_array($user->getRole(), ['faculty', 'staff'])) {
+                if (!in_array($user->getRole(), ['faculty', 'staff', 'dean'])) {
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
-                        'message' => 'Only faculty or staff members can be appointed as Dean'
+                        'message' => 'Only faculty, staff, or dean members can be appointed as Dean'
                     ]);
                     return;
                 }
@@ -768,11 +926,11 @@ class AdminController
                 }
 
                 // Validate role is faculty or staff
-                if (!in_array($data['role'], ['faculty', 'staff'])) {
+                if (!in_array($data['role'], ['faculty', 'staff', 'dean'])) {
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
-                        'message' => 'Dean must have role of faculty or staff'
+                        'message' => 'Dean must have role of faculty, staff, or dean'
                     ]);
                     return;
                 }
@@ -925,4 +1083,31 @@ class AdminController
             ]);
         }
     }
+
+    public function getDeanHistory() {
+        if (!$this->requireAdmin()) return;
+        try {
+            $schools = $this->schoolRepository->findAll();
+            $history = [];
+            foreach ($schools as $school) {
+                if ($this->deanAssignmentRepository) {
+                    $records = $this->deanAssignmentRepository->getHistoryBySchool($school['school_id']);
+                    foreach ($records as $record) {
+                        $record['school_name'] = $school['school_name'];
+                        $record['school_code'] = $school['school_code'];
+                        $history[] = $record;
+                    }
+                }
+            }
+            usort($history, function ($a, $b) {
+                return strtotime($b['start_date']) - strtotime($a['start_date']);
+            });
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Dean history retrieved successfully', 'data' => $history]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
 }

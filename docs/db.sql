@@ -15,11 +15,13 @@ USE `nba_db`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `audit_logs`;
 DROP TABLE IF EXISTS `raw_marks`;
 DROP TABLE IF EXISTS `marks`;
 DROP TABLE IF EXISTS `enrollments`;
 DROP TABLE IF EXISTS `questions`;
 DROP TABLE IF EXISTS `tests`;
+DROP TABLE IF EXISTS `user_phones`;
 DROP TABLE IF EXISTS `co_po_mapping`;
 DROP TABLE IF EXISTS `attainment_scale`;
 DROP TABLE IF EXISTS `course_faculty_assignments`;
@@ -29,6 +31,7 @@ DROP TABLE IF EXISTS `students`;
 DROP TABLE IF EXISTS `hod_assignments`;
 DROP TABLE IF EXISTS `dean_assignments`;
 DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `department_stats`;
 DROP TABLE IF EXISTS `departments`;
 DROP TABLE IF EXISTS `schools`;
 
@@ -69,24 +72,50 @@ CREATE TABLE `departments` (
     FOREIGN KEY (`school_id`) REFERENCES `schools`(`school_id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Users (Admin, Faculty, HOD, Staff)
--- Note: HOD has its own role with a dedicated login credential per department.
--- Dean roles are still managed via assignment tables.
+-- Department Statistics (Materialized summary view)
+CREATE TABLE `department_stats` (
+    `department_id` INT(11) NOT NULL,
+    `faculty_count` INT(11) NOT NULL DEFAULT 0,
+    `student_count` INT(11) NOT NULL DEFAULT 0,
+    `course_count` INT(11) NOT NULL DEFAULT 0,
+    `active_offerings_count` INT(11) NOT NULL DEFAULT 0,
+    `last_updated` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`department_id`),
+    FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Users (Admin, Faculty, HOD, Dean, Staff)
+-- Note: HOD and Dean have their own roles for dedicated login credentials per department/school.
+-- Faculty/staff acting as HOD/Dean are tracked via assignment tables.
 CREATE TABLE `users` (
     `employee_id` INT(11) NOT NULL,
     `username` VARCHAR(64) NOT NULL,
     `email` VARCHAR(64) NOT NULL,
     `password_hash` VARCHAR(255) NOT NULL,
-    `role` ENUM('admin', 'faculty', 'hod', 'staff') NOT NULL,
+    `role` ENUM('admin', 'faculty', 'hod', 'dean', 'staff') NOT NULL,
     `department_id` INT(11) NULL,
+    `school_id` INT(11) NULL,
     `designation` VARCHAR(50) NULL,
-    `phone` VARCHAR(15) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`employee_id`),
     UNIQUE KEY (`email`),
     INDEX (`department_id`),
-    FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE SET NULL
+    INDEX (`school_id`),
+    FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE SET NULL,
+    FOREIGN KEY (`school_id`) REFERENCES `schools`(`school_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- User Phone Numbers (normalized multi-phone storage)
+CREATE TABLE `user_phones` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `employee_id` INT(11) NOT NULL,
+    `phone_number` VARCHAR(15) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_emp_phone` (`employee_id`, `phone_number`),
+    INDEX `idx_user_phone` (`employee_id`),
+    FOREIGN KEY (`employee_id`) REFERENCES `users`(`employee_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- HOD Assignments (Historical tracking of HOD appointments)
@@ -209,13 +238,13 @@ CREATE TABLE `course_faculty_assignments` (
 -- Attainment Scale (configurable thresholds per course)
 CREATE TABLE `attainment_scale` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `course_id` BIGINT NOT NULL,
+    `offering_id` BIGINT NOT NULL,
     `level` SMALLINT NOT NULL CHECK (`level` >= 0 AND `level` <= 10),
     `min_percentage` DECIMAL(5, 2) NOT NULL CHECK (`min_percentage` >= 0 AND `min_percentage` <= 100),
     PRIMARY KEY (`id`),
-    UNIQUE KEY (`course_id`, `level`),
-    INDEX (`course_id`),
-    FOREIGN KEY (`course_id`) REFERENCES `courses`(`course_id`) ON DELETE CASCADE
+    UNIQUE KEY (`offering_id`, `level`),
+    INDEX (`offering_id`),
+    FOREIGN KEY (`offering_id`) REFERENCES `course_offerings`(`offering_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CO-PO Mapping Table
@@ -223,13 +252,13 @@ CREATE TABLE `attainment_scale` (
 -- Repository returns CONCAT('CO', co_number) AS co_name for API backward compatibility.
 CREATE TABLE `co_po_mapping` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `course_id` BIGINT NOT NULL,
+    `offering_id` BIGINT NOT NULL,
     `co_number` TINYINT NOT NULL CHECK (`co_number` BETWEEN 1 AND 6),
     `po_name` VARCHAR(5) NOT NULL,  -- PO1..PO12, PSO1..PSO3
     `value` TINYINT NOT NULL DEFAULT 0 CHECK (`value` BETWEEN 0 AND 3),
     PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_mapping` (`course_id`, `co_number`, `po_name`),
-    FOREIGN KEY (`course_id`) REFERENCES `courses`(`course_id`) ON DELETE CASCADE
+    UNIQUE KEY `unique_mapping` (`offering_id`, `co_number`, `po_name`),
+    FOREIGN KEY (`offering_id`) REFERENCES `course_offerings`(`offering_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tests (references offering_id — a test belongs to a specific offering, not the template)
@@ -315,6 +344,28 @@ CREATE TABLE `marks` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
+-- AUDIT LOGS
+-- =============================================
+
+CREATE TABLE `audit_logs` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` INT(11) NULL,
+    `action` ENUM('CREATE', 'UPDATE', 'DELETE', 'LOGIN') NOT NULL,
+    `entity_type` VARCHAR(50) NOT NULL,
+    `entity_id` VARCHAR(50) NOT NULL,
+    `old_values` JSON NULL,
+    `new_values` JSON NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_entity` (`entity_type`, `entity_id`),
+    INDEX `idx_user` (`user_id`),
+    INDEX `idx_action` (`action`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`employee_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- =============================================
 -- VIEWS
 -- =============================================
 
@@ -386,27 +437,42 @@ VALUES
     (1, 'Computer Science & Engineering', 'CSE', 'Department of Computer Science & Engineering'),
     (1, 'Electronics & Communication Engineering', 'ECE', 'Department of Electronics & Communication Engineering');
 
+-- Department Stats
+INSERT INTO `department_stats` (`department_id`, `faculty_count`, `student_count`, `course_count`, `active_offerings_count`)
+VALUES
+    (1, 8, 70, 8, 7),
+    (2, 4, 5, 2, 2);
+
 -- Users (password: password123, bcrypt hash)
-INSERT INTO `users` (`employee_id`, `username`, `email`, `password_hash`, `role`, `department_id`, `designation`)
+INSERT INTO `users` (`employee_id`, `username`, `email`, `password_hash`, `role`, `department_id`, `school_id`, `designation`)
 VALUES 
-    (1001, 'Admin One', 'admin_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'admin', NULL, 'System Administrator'),
-    (2001, 'HOD CSE', 'hod_cse@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 1, 'Professor'),
-    (2002, 'HOD ECE', 'hod_ece@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 2, 'Professor'),
-    (3001, 'Faculty One', 'faculty_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Associate Professor'),
-    (3002, 'Faculty Two', 'faculty_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Associate Professor'),
-    (3003, 'Faculty Three', 'faculty_03@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Assistant Professor'),
-    (3004, 'Faculty Four', 'faculty_04@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, 'Assistant Professor'),
-    (3005, 'Faculty Five', 'faculty_05@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, 'Assistant Professor'),
-    (3006, 'Faculty Six', 'faculty_06@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, 'Assistant Professor'),
-    (4001, 'Staff One', 'staff_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 1, 'Lab Assistant'),
-    (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, 'Lab Assistant'),
-    -- Dean of SoE (managed via assignment table; uses faculty role)
-    (6001, 'Dean SoE', 'dean_soe@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', NULL, 'Dean');
+    (9000001, 'Admin One', 'admin_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'admin', NULL, NULL, 'System Administrator'),
+    (7000001, 'HOD CSE', 'hod_cse@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 1, NULL, 'Professor'),
+    (7000002, 'HOD ECE', 'hod_ece@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'hod', 2, NULL, 'Professor'),
+    (3001, 'Faculty One', 'faculty_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Associate Professor'),
+    (3002, 'Faculty Two', 'faculty_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Associate Professor'),
+    (3003, 'Faculty Three', 'faculty_03@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Assistant Professor'),
+    (3004, 'Faculty Four', 'faculty_04@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 1, NULL, 'Assistant Professor'),
+    (3005, 'Faculty Five', 'faculty_05@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, NULL, 'Assistant Professor'),
+    (3006, 'Faculty Six', 'faculty_06@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'faculty', 2, NULL, 'Assistant Professor'),
+    (4001, 'Staff One', 'staff_01@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 1, NULL, 'Lab Assistant'),
+    (4002, 'Staff Two', 'staff_02@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'staff', 2, NULL, 'Lab Assistant'),
+    -- Dedicated login for Dean of SoE
+    (8000001, 'Dean SoE', 'dean_soe@tezu.ac.in', '$2y$10$nlejuSHfBoAun490JDUHCuB4ZudU/4YR7eSh0OGuCV50poRy1NGUe', 'dean', NULL, 1, 'Dean');
+
+-- User Phone Numbers
+INSERT INTO `user_phones` (`employee_id`, `phone_number`)
+VALUES
+    (9000001, '9876543210'), (9000001, '9876543211'),
+    (7000001, '9876543212'),
+    (3001, '9876543213'), (3001, '9876543214'),
+    (3002, '9876543215'),
+    (8000001, '9876543216');
 
 -- Dean Assignment for School of Engineering
 INSERT INTO `dean_assignments` (`school_id`, `employee_id`, `start_date`, `appointment_order`)
 VALUES
-    (1, 6001, '2026-01-01', 'APT/2026/DEAN/SOE/001');
+    (1, 8000001, '2026-01-01', 'APT/2026/DEAN/SOE/001');
 
 -- HOD Assignments (record of which faculty serves as HOD — does NOT affect login role)
 -- The dedicated HOD accounts (hod_cse, hod_ece) are permanent; these records track
@@ -639,34 +705,34 @@ VALUES
     ('2024CSE005', 5, 9.50),
     ('2024CSE005', 6, 10.00);
 
--- CO-PO Mappings (for course templates)
+-- CO-PO Mappings (for specific offerings)
 -- co_name strings replaced with co_number integers to match questions.co type.
-INSERT INTO `co_po_mapping` (`course_id`, `co_number`, `po_name`, `value`)
+INSERT INTO `co_po_mapping` (`offering_id`, `co_number`, `po_name`, `value`)
 VALUES 
-    -- CS101: Introduction to Programming
+    -- Offering 1 (CS101: Introduction to Programming)
     (1, 1, 'PO1', 3), (1, 1, 'PO2', 2), (1, 1, 'PO5', 1),
     (1, 2, 'PO1', 2), (1, 2, 'PO2', 3), (1, 2, 'PO3', 1),
     (1, 3, 'PO2', 2), (1, 3, 'PO3', 3), (1, 3, 'PO5', 2),
     (1, 4, 'PO1', 1), (1, 4, 'PO3', 2), (1, 4, 'PO5', 3),
-    -- CS201: Data Structures
+    -- Offering 2 (CS201: Data Structures)
     (2, 1, 'PO1', 3), (2, 1, 'PO2', 2),
     (2, 2, 'PO1', 2), (2, 2, 'PO2', 3), (2, 2, 'PO3', 2),
     (2, 3, 'PO2', 2), (2, 3, 'PO3', 3),
     (2, 4, 'PO3', 2), (2, 4, 'PO5', 2),
-    -- CS301: DBMS
+    -- Offering 3 (CS301: DBMS)
     (3, 1, 'PO1', 3), (3, 1, 'PO2', 1),
     (3, 2, 'PO1', 2), (3, 2, 'PO2', 3), (3, 2, 'PO3', 1),
     (3, 3, 'PO2', 2), (3, 3, 'PO3', 3), (3, 3, 'PO5', 1),
     (3, 4, 'PO3', 2), (3, 4, 'PO5', 3);
 
--- Attainment Scale (per course template)
-INSERT INTO `attainment_scale` (`course_id`, `level`, `min_percentage`)
+-- Attainment Scale (per offering)
+INSERT INTO `attainment_scale` (`offering_id`, `level`, `min_percentage`)
 VALUES 
-    -- CS101
+    -- Offering 1 (CS101)
     (1, 1, 40.00), (1, 2, 60.00), (1, 3, 80.00),
-    -- CS201
+    -- Offering 2 (CS201)
     (2, 1, 40.00), (2, 2, 60.00), (2, 3, 80.00),
-    -- CS301
+    -- Offering 3 (CS301)
     (3, 1, 40.00), (3, 2, 60.00), (3, 3, 80.00);
 
 -- =============================================
@@ -675,8 +741,11 @@ VALUES
 
 SELECT 'schools' AS `table`, COUNT(*) AS `rows` FROM `schools`
 UNION ALL SELECT 'departments', COUNT(*) FROM `departments`
+UNION ALL SELECT 'department_stats', COUNT(*) FROM `department_stats`
 UNION ALL SELECT 'users', COUNT(*) FROM `users`
-UNION ALL SELECT 'hod_assignments', COUNT(*) FROM `hod_assignments`UNION ALL SELECT 'dean_assignments', COUNT(*) FROM `dean_assignments`UNION ALL SELECT 'students', COUNT(*) FROM `students`
+UNION ALL SELECT 'hod_assignments', COUNT(*) FROM `hod_assignments`
+UNION ALL SELECT 'dean_assignments', COUNT(*) FROM `dean_assignments`
+UNION ALL SELECT 'students', COUNT(*) FROM `students`
 UNION ALL SELECT 'courses', COUNT(*) FROM `courses`
 UNION ALL SELECT 'course_offerings', COUNT(*) FROM `course_offerings`
 UNION ALL SELECT 'faculty_assignments', COUNT(*) FROM `course_faculty_assignments`
@@ -685,7 +754,8 @@ UNION ALL SELECT 'tests', COUNT(*) FROM `tests`
 UNION ALL SELECT 'questions', COUNT(*) FROM `questions`
 UNION ALL SELECT 'raw_marks', COUNT(*) FROM `raw_marks`
 UNION ALL SELECT 'co_po_mapping', COUNT(*) FROM `co_po_mapping`
-UNION ALL SELECT 'attainment_scale', COUNT(*) FROM `attainment_scale`;
+UNION ALL SELECT 'attainment_scale', COUNT(*) FROM `attainment_scale`
+UNION ALL SELECT 'audit_logs', COUNT(*) FROM `audit_logs`;
 
 -- =============================================
 -- END OF SCHEMA
