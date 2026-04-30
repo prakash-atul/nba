@@ -14,8 +14,9 @@ export const getLevelColor = (level: number, maxLevel: number): string => {
 	];
 
 	// Map level to color index (reverse: highest level gets first color)
-	const colorIndex = Math.min(maxLevel - level, colors.length - 1);
-	return colors[colorIndex] || "bg-gray-500 text-white";
+	const colorIndex = Math.min(Math.floor(maxLevel - level), colors.length - 1);
+	const safeIndex = Math.max(0, colorIndex);
+	return colors[safeIndex] || "bg-gray-500 text-white";
 };
 
 export const getPercentageColor = (
@@ -65,27 +66,24 @@ export const getAttainmentCriteria = (
 export const getAttainmentLevel = (
 	percentage: number,
 	attainmentThresholds: AttainmentThreshold[],
-	zeroLevelThreshold: number,
+	_zeroLevelThreshold?: number,
 ): number => {
-	// Check if below zero level threshold first
-	if (percentage < zeroLevelThreshold) {
-		return 0;
-	}
+	const sorted = [...attainmentThresholds].sort(
+		(a, b) => b.percentage - a.percentage,
+	);
 
-	const criteria = getAttainmentCriteria(
-		attainmentThresholds,
-		zeroLevelThreshold,
-	).filter((c) => c.level > 0); // Exclude Level 0, already checked
+	if (sorted.length === 0) return 0;
+	if (percentage >= sorted[0].percentage) return sorted.length;
 
-	for (const c of criteria) {
-		if (c.maxPercentage === null) {
-			if (percentage >= c.minPercentage) return c.level;
-		} else {
-			if (percentage >= c.minPercentage && percentage < c.maxPercentage) {
-				return c.level;
-			}
+	for (let i = 1; i < sorted.length; i++) {
+		if (percentage >= sorted[i].percentage) {
+			const baseLevel = sorted.length - i;
+			const basePct = sorted[i].percentage;
+			const nextPct = sorted[i - 1].percentage;
+			const diff = nextPct - basePct;
+			if (diff === 0) return baseLevel;
+			return baseLevel + (percentage - basePct) / diff;
 		}
 	}
-	// If no criteria matched but >= zeroLevelThreshold, return level 1
-	return percentage >= zeroLevelThreshold ? 1 : 0;
+	return 0;
 };

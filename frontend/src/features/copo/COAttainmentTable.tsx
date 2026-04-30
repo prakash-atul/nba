@@ -27,6 +27,11 @@ export function COAttainmentTable({
 		if (attainmentData.presentStudents === 0) return 0;
 		return (attainmentData.coStats[_co as keyof typeof attainmentData.coStats][field] / attainmentData.presentStudents) * 100;
 	};
+	
+	const getAveragePercentage = (_co: string) => {
+		if (attainmentData.presentStudents === 0) return 0;
+		return attainmentData.coStats[_co as keyof typeof attainmentData.coStats].averagePercentage || 0;
+	};
 
 	return (
 		<>
@@ -104,17 +109,17 @@ export function COAttainmentTable({
 						cellClass: (co) => !isCOAssessed(co) ? "text-gray-500" : ""
 					},
 					{
-						label: "CO Attainment (% of Students Above Passing Marks)",
-						getValue: (co, isAssessed) => isAssessed ? getPercentage(co, 'abovePass').toFixed(2) : "NA",
+						label: "CO Attainment (AVERAGE OF PERCENTAGE ATTAINMENTS)",
+						getValue: (co, isAssessed) => isAssessed ? getAveragePercentage(co).toFixed(2) : "NA",
 						cellClass: (co) => {
 							if (!isCOAssessed(co)) return "text-gray-500 bg-gray-100 dark:bg-gray-800";
-							return `font-bold ${getPercentageColor(getPercentage(co, 'abovePass'))}`;
+							return `font-bold ${getPercentageColor(getAveragePercentage(co))}`;
 						}
 					},
 					{
 						label: "Final attainment level CO (IN ABSOLUTE SCALE):",
 						rowClass: "bg-orange-100 dark:bg-orange-950 font-bold",
-						getValue: (co, isAssessed) => isAssessed ? getPercentage(co, 'abovePass').toFixed(2) + "%" : "NA",
+						getValue: (co, isAssessed) => isAssessed ? getAveragePercentage(co).toFixed(2) + "%" : "NA",
 						cellClass: (co) => !isCOAssessed(co) ? "text-gray-500" : "font-bold text-lg"
 					}
 				]}

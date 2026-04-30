@@ -20,6 +20,8 @@ export const calculateCOAttainment = (
 			above50: 0,
 			abovePass: 0,
 			aboveCOThreshold: 0,
+			sumPercentage: 0,
+			averagePercentage: 0,
 		},
 		CO2: {
 			above70: 0,
@@ -27,6 +29,8 @@ export const calculateCOAttainment = (
 			above50: 0,
 			abovePass: 0,
 			aboveCOThreshold: 0,
+			sumPercentage: 0,
+			averagePercentage: 0,
 		},
 		CO3: {
 			above70: 0,
@@ -34,6 +38,8 @@ export const calculateCOAttainment = (
 			above50: 0,
 			abovePass: 0,
 			aboveCOThreshold: 0,
+			sumPercentage: 0,
+			averagePercentage: 0,
 		},
 		CO4: {
 			above70: 0,
@@ -41,6 +47,8 @@ export const calculateCOAttainment = (
 			above50: 0,
 			abovePass: 0,
 			aboveCOThreshold: 0,
+			sumPercentage: 0,
+			averagePercentage: 0,
 		},
 		CO5: {
 			above70: 0,
@@ -48,6 +56,8 @@ export const calculateCOAttainment = (
 			above50: 0,
 			abovePass: 0,
 			aboveCOThreshold: 0,
+			sumPercentage: 0,
+			averagePercentage: 0,
 		},
 		CO6: {
 			above70: 0,
@@ -55,6 +65,8 @@ export const calculateCOAttainment = (
 			above50: 0,
 			abovePass: 0,
 			aboveCOThreshold: 0,
+			sumPercentage: 0,
+			averagePercentage: 0,
 		},
 	};
 
@@ -81,10 +93,22 @@ export const calculateCOAttainment = (
 			// Use configured CO threshold for 3-point scale attainment
 			if (roundedPercentage >= coThreshold)
 				coStats[co as keyof typeof coStats].aboveCOThreshold++;
+			
+			// Accumulate sum for average percentage calculation
+			coStats[co as keyof typeof coStats].sumPercentage += roundedPercentage;
 		});
 	});
 
 	const presentStudents = totalStudents - absentees;
+	
+	// Calculate average percentage for each CO
+	Object.keys(coStats).forEach((co) => {
+		if (presentStudents > 0) {
+			coStats[co as keyof typeof coStats].averagePercentage = 
+				Math.round((coStats[co as keyof typeof coStats].sumPercentage / presentStudents) * 100) / 100;
+		}
+	});
+	
 	return { totalStudents, absentees, presentStudents, coStats };
 };
 

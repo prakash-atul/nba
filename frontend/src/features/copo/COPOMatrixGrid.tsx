@@ -125,7 +125,7 @@ export function COPOMatrixGrid({
 							<TableCell className="border border-gray-300 dark:border-gray-700 text-center">
 								{assessed ? (
 									<Badge className={getLevelColor(coLevel)}>
-										{coLevel}
+										{(coLevel).toFixed(2)}
 									</Badge>
 								) : (
 									<span className="text-gray-500 font-medium">

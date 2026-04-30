@@ -552,9 +552,17 @@ export function useCOPOMappingData({
 			const sorted = [...attainmentThresholds].sort(
 				(a, b) => b.percentage - a.percentage,
 			);
-			for (let i = 0; i < sorted.length; i++) {
+			if (sorted.length === 0) return 0;
+			if (percentage >= sorted[0].percentage) return sorted.length;
+
+			for (let i = 1; i < sorted.length; i++) {
 				if (percentage >= sorted[i].percentage) {
-					return sorted.length - i;
+					const baseLevel = sorted.length - i;
+					const basePct = sorted[i].percentage;
+					const nextPct = sorted[i - 1].percentage;
+					const diff = nextPct - basePct;
+					if (diff === 0) return baseLevel;
+					return baseLevel + (percentage - basePct) / diff;
 				}
 			}
 			return 0;

@@ -40,6 +40,8 @@ export interface AttainmentData {
 			above50: number;
 			abovePass: number;
 			aboveCOThreshold: number;
+			sumPercentage: number;
+			averagePercentage: number;
 		};
 		CO2: {
 			above70: number;
@@ -47,6 +49,8 @@ export interface AttainmentData {
 			above50: number;
 			abovePass: number;
 			aboveCOThreshold: number;
+			sumPercentage: number;
+			averagePercentage: number;
 		};
 		CO3: {
 			above70: number;
@@ -54,6 +58,8 @@ export interface AttainmentData {
 			above50: number;
 			abovePass: number;
 			aboveCOThreshold: number;
+			sumPercentage: number;
+			averagePercentage: number;
 		};
 		CO4: {
 			above70: number;
@@ -61,6 +67,8 @@ export interface AttainmentData {
 			above50: number;
 			abovePass: number;
 			aboveCOThreshold: number;
+			sumPercentage: number;
+			averagePercentage: number;
 		};
 		CO5: {
 			above70: number;
@@ -68,6 +76,8 @@ export interface AttainmentData {
 			above50: number;
 			abovePass: number;
 			aboveCOThreshold: number;
+			sumPercentage: number;
+			averagePercentage: number;
 		};
 		CO6: {
 			above70: number;
@@ -75,6 +85,8 @@ export interface AttainmentData {
 			above50: number;
 			abovePass: number;
 			aboveCOThreshold: number;
+			sumPercentage: number;
+			averagePercentage: number;
 		};
 	};
 }
