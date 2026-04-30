@@ -89,7 +89,7 @@ export function POComputation3PointTable({
 						{/* Direct Attainment Average Row */}
 						<TableRow className="bg-blue-50/30 dark:bg-blue-900/10 font-bold border-t-2 dark:border-t-gray-700">
 							<TableCell className="border-r dark:border-gray-800 text-gray-900 dark:text-gray-100">
-								Direct PO Attainment
+								AVG
 							</TableCell>
 							{pos.map((po) => {
 								const val = data.averages[po];

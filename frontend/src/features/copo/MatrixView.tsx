@@ -8,6 +8,7 @@ import { PassingMarksCard } from "./PassingMarksCard";
 import { StudentMarksTable } from "./StudentMarksTable";
 import { COAttainmentTable } from "./COAttainmentTable";
 import { COPOMatrixTable } from "./COPOMatrixTable";
+import { PODirectAttainmentTable } from "./PODirectAttainmentTable";
 import { POComputation3PointTable } from "./POComputation3PointTable";
 import { POComputationPercentageTable } from "./POComputationPercentageTable";
 import type {
@@ -184,41 +185,26 @@ export function MatrixView({
 				</div>
 				<div className="flex items-center gap-2">
 					{!readOnly && (
-						<>
-							<CSVUploader
-								onDataParsed={handleCSVDataParsed}
-								accept=".csv"
-								buttonText="Import Matrix"
-							/>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={saveMatrix}
-								disabled={saving}
-								className="gap-2"
-							>
-								<Save className="h-4 w-4" />
-								{saving ? "Saving..." : "Save Matrix"}
-							</Button>
-							<Button
-								onClick={() => setShowSettings(!showSettings)}
-								variant="outline"
-								size="sm"
-								className="flex items-center gap-2"
-							>
-								<Settings className="h-4 w-4" />
-								Attainment Settings
-							</Button>
-						</>
+						<Button
+							onClick={() => setShowSettings(!showSettings)}
+							variant="outline"
+							size="sm"
+							className="flex items-center gap-2"
+						>
+							<Settings className="h-4 w-4" />
+							Attainment Settings
+						</Button>
 					)}
 					<Button
-						onClick={() => handleExportAttainment({
-							programme: editableProgramme,
-							year: editableYear,
-							semester: editableSemester,
-							session: editableSession
-						})}
-						variant="ghost"
+						onClick={() =>
+							handleExportAttainment({
+								programme: editableProgramme,
+								year: editableYear,
+								semester: editableSemester,
+								session: editableSession,
+							})
+						}
+						variant="outline"
 						size="sm"
 						className="flex items-center gap-2"
 					>
@@ -280,6 +266,27 @@ export function MatrixView({
 				/>
 			)}
 
+			{/* Action Buttons: Import & Save */}
+			{!readOnly && (
+				<div className="flex items-center gap-2 justify-end mt-4">
+					<CSVUploader
+						onDataParsed={handleCSVDataParsed}
+						accept=".csv"
+						buttonText="Import Matrix"
+					/>
+					<Button
+						variant="default"
+						size="sm"
+						onClick={saveMatrix}
+						disabled={saving}
+						className="gap-2"
+					>
+						<Save className="h-4 w-4" />
+						{saving ? "Saving..." : "Save Matrix"}
+					</Button>
+				</div>
+			)}
+
 			{/* CO-PO-PSO Matrix Table */}
 			<COPOMatrixTable
 				copoMatrix={copoMatrix}
@@ -302,6 +309,12 @@ export function MatrixView({
 				getAttainmentLevel={getLevel}
 				getLevelColor={getLevelColorFn}
 				attainmentThresholds={attainmentThresholds}
+				coMaxMarks={coMaxMarks}
+			/>
+
+			{/* PO Direct Attainment Table (Sum of Mappings) */}
+			<PODirectAttainmentTable
+				copoMatrix={copoMatrix}
 				coMaxMarks={coMaxMarks}
 			/>
 
