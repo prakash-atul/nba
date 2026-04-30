@@ -1,0 +1,31 @@
+{
+  "mcp": {
+    "jira": {
+      "type": "remote",
+      "url": "https://jira.example.com/mcp",
+      "enabled": true
+    },
+    "shadcn": {
+      "command": [
+        "npx",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": true,
+      "type": "local"
+    },
+    "@magicuidesign/mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@magicuidesign/mcp@latest"
+      ],
+      "enabled": true
+    }
+  },
+  "$schema": "https://opencode.ai/config.json"
+}
