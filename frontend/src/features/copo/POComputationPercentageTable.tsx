@@ -7,6 +7,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 
 interface POComputationPercentageTableProps {
 	data: {
@@ -18,7 +19,7 @@ interface POComputationPercentageTableProps {
 	};
 }
 
-export function POComputationPercentageTable({
+export const POComputationPercentageTable = React.memo(function POComputationPercentageTable({
 	data,
 }: POComputationPercentageTableProps) {
 	const pos = [
@@ -145,5 +146,5 @@ export function POComputationPercentageTable({
 				</Table>
 			</CardContent>
 		</Card>
-	);
-}
+		);
+});

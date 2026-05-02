@@ -306,27 +306,28 @@ export function useCOPOMappingData({
 				});
 			});
 
-			for (const test of testsData) {
-				try {
-					const assessmentData = await apiService.getAssessment(
-						test.id,
-					);
-					const questions = assessmentData.questions;
+			// Parallelize assessment loading
+			const assessmentPromises = testsData.map((test) =>
+				apiService
+					.getAssessment(test.id)
+					.then((assessmentData) => ({ test, questions: assessmentData.questions }))
+					.catch((error) => {
+						console.error(`Failed to load questions for test ${test.name}:`, error);
+						return { test, questions: [] };
+					}),
+			);
 
-					questions.forEach((q) => {
-						const coKey =
-							`CO${q.co}` as keyof (typeof maxMarksMap)[string];
-						if (maxMarksMap[test.name][coKey] !== undefined) {
-							maxMarksMap[test.name][coKey] += q.max_marks;
-						}
-					});
-				} catch (error) {
-					console.error(
-						`Failed to load questions for test ${test.name}:`,
-						error,
-					);
-				}
-			}
+			const assessmentResults = await Promise.all(assessmentPromises);
+
+			assessmentResults.forEach(({ test, questions }) => {
+				questions.forEach((q) => {
+					const coKey =
+						`CO${q.co}` as keyof (typeof maxMarksMap)[string];
+					if (maxMarksMap[test.name][coKey] !== undefined) {
+						maxMarksMap[test.name][coKey] += q.max_marks;
+					}
+				});
+			});
 
 			studentMap.forEach((student) => {
 				let totalMarks = 0;

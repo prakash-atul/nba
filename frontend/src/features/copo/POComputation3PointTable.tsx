@@ -7,6 +7,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 
 interface POComputation3PointTableProps {
 	data: {
@@ -16,7 +17,7 @@ interface POComputation3PointTableProps {
 	};
 }
 
-export function POComputation3PointTable({
+export const POComputation3PointTable = React.memo(function POComputation3PointTable({
 	data,
 }: POComputation3PointTableProps) {
 	const pos = [
@@ -109,5 +110,5 @@ export function POComputation3PointTable({
 				</Table>
 			</CardContent>
 		</Card>
-	);
-}
+		);
+});

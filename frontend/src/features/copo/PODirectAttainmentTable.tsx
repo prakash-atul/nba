@@ -128,5 +128,5 @@ export function PODirectAttainmentTable({
 				</Table>
 			</CardContent>
 		</Card>
-	);
+		);
 }

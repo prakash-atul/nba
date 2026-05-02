@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { StudentMarksCardHeader } from "./StudentMarksCardHeader";
 import { StudentMarksTableHeaderRows } from "./StudentMarksTableHeaderRows";
 import type { StudentMarks } from "./types";
+import React from "react";
 
 interface StudentMarksTableProps {
 	studentsData: StudentMarks[];
@@ -19,7 +20,7 @@ interface StudentMarksTableProps {
 	coMaxMarks?: Record<string, number>; // Total max marks per CO across all tests
 }
 
-export function StudentMarksTable({
+export const StudentMarksTable = React.memo(function StudentMarksTable({
 	studentsData,
 	maxMarks,
 	facultyName,
@@ -185,4 +186,4 @@ export function StudentMarksTable({
 			</CardContent>
 		</Card>
 	);
-}
+});
