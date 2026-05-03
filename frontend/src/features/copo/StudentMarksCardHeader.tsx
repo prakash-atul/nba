@@ -6,8 +6,9 @@ interface StudentMarksCardHeaderProps {
 	courseName: string;
 	courseCode: string;
 	programme?: string;
-	year: string | number;
-	semester: string | number;
+	year?: string | number;
+	semester?: string | number;
+	session?: string;
 }
 
 export function StudentMarksCardHeader({
@@ -18,10 +19,11 @@ export function StudentMarksCardHeader({
 	programme,
 	year,
 	semester,
+	session,
 }: StudentMarksCardHeaderProps) {
-	const getAcademicYear = (yr: string | number) => String(yr);
-	const getSemesterDisplay = (sem: string | number) => String(sem);
-	const getCurrentSession = () => String(year);
+	const getAcademicYear = (yr: string | number | undefined) => String(yr || "");
+	const getSemesterDisplay = (sem: string | number | undefined) => String(sem || "");
+	const getCurrentSession = () => session || String(year || "");
 
 	return (
 		<CardHeader className="bg-orange-100 dark:bg-orange-950 border-b-4 border-orange-500">

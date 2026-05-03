@@ -13,8 +13,9 @@ interface StudentMarksTableProps {
 	courseName: string;
 	courseCode: string;
 	programme?: string;
-	year: string | number;
-	semester: string | number;
+	year?: string | number;
+	semester?: string | number;
+	session?: string;
 	loading: boolean;
 	getPercentageColor: (percentage: number) => string;
 	coMaxMarks?: Record<string, number>; // Total max marks per CO across all tests
@@ -30,6 +31,7 @@ export const StudentMarksTable = React.memo(function StudentMarksTable({
 	programme,
 	year,
 	semester,
+	session,
 	loading,
 	getPercentageColor,
 	coMaxMarks,
@@ -50,6 +52,7 @@ export const StudentMarksTable = React.memo(function StudentMarksTable({
 				programme={programme}
 				year={year}
 				semester={semester}
+				session={session}
 			/>
 			<CardContent className="p-0">
 				<div className="overflow-x-auto">

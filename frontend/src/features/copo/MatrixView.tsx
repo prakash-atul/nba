@@ -1,5 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Settings, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Settings } from "lucide-react";
 import { useState } from "react";
 import { CSVUploader } from "@/features/shared/CSVUploader";
 import { AttainmentSettingsPanel } from "./AttainmentSettingsPanel";
@@ -103,7 +106,7 @@ export function MatrixView({
 	const [editableProgramme, setEditableProgramme] = useState(programme);
 	const [editableYear, setEditableYear] = useState(String(year));
 	const [editableSemester, setEditableSemester] = useState(semester);
-	const [editableSession, setEditableSession] = useState(String(year));
+	const [editableSession, setEditableSession] = useState(String(year)); // default session = year
 
 	const handleProgrammeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setEditableProgramme(e.target.value);
@@ -123,95 +126,122 @@ export function MatrixView({
 
 	return (
 		<div className="space-y-6 pb-8">
-			{/* Header Section */}
-			<div className="flex justify-between items-center">
-				<div>
-					<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-						CO-PO Mapping
-					</h2>
-					<p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-						Course: {courseCode} - {courseName}
-					</p>
-					<div className="flex items-center gap-4 mt-2">
-						<div className="flex items-center gap-1">
-							<span className="text-xs text-gray-500 dark:text-gray-400">
+			{/* Header Section with Card */}
+			<Card className="border-0 shadow-none bg-transparent">
+				<CardHeader className="px-0">
+					<div className="flex justify-between items-start w-full">
+						<div>
+							<CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+								CO-PO Mapping
+							</CardTitle>
+							<p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+								Course: {courseCode} - {courseName}
+							</p>
+						</div>
+						<div className="flex items-center gap-2">
+							{!readOnly && (
+								<Button
+									onClick={() =>
+										setShowSettings(!showSettings)
+									}
+									variant="outline"
+									size="sm"
+									className="flex items-center gap-2"
+								>
+									<Settings className="h-4 w-4" />
+									Attainment Settings
+								</Button>
+							)}
+							<Button
+								onClick={() =>
+									handleExportAttainment({
+										programme: editableProgramme,
+										year: editableYear,
+										semester: editableSemester,
+										session: editableSession,
+									})
+								}
+								variant="outline"
+								size="sm"
+								className="flex items-center gap-2"
+							>
+								Export Attainment Excel
+							</Button>
+						</div>
+					</div>
+				</CardHeader>
+			</Card>
+
+			<Card className="w-full border-0 shadow-none bg-transparent">
+				<CardContent className="w-full px-0 pt-4">
+					<div className="flex flex-wrap justify-evenly items-center gap-4">
+						<div className="flex items-center gap-2">
+							<Label
+								htmlFor="programme"
+								className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
+							>
 								Programme:
-							</span>
-							<input
+							</Label>
+							<Input
+								id="programme"
 								type="text"
 								value={editableProgramme}
 								onChange={handleProgrammeChange}
-								className="w-20 text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-1 py-0.5 focus:outline-none focus:border-blue-500"
+								className=" text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-2 py-0.5 focus:outline-none focus:border-blue-500"
 								placeholder="Programme"
 							/>
 						</div>
-						<div className="flex items-center gap-1">
-							<span className="text-xs text-gray-500 dark:text-gray-400">
+						<div className="flex items-center gap-2">
+							<Label
+								htmlFor="year"
+								className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
+							>
 								Year:
-							</span>
-							<input
+							</Label>
+							<Input
+								id="year"
 								type="text"
 								value={editableYear}
 								onChange={handleYearChange}
-								className="w-14 text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-1 py-0.5 focus:outline-none focus:border-blue-500"
+								className=" text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-2 py-0.5 focus:outline-none focus:border-blue-500"
 								placeholder="Year"
 							/>
 						</div>
-						<div className="flex items-center gap-1">
-							<span className="text-xs text-gray-500 dark:text-gray-400">
+						<div className="flex items-center gap-2">
+							<Label
+								htmlFor="semester"
+								className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
+							>
 								SEM:
-							</span>
-							<input
+							</Label>
+							<Input
+								id="semester"
 								type="text"
 								value={editableSemester}
 								onChange={handleSemesterChange}
-								className="w-16 text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-1 py-0.5 focus:outline-none focus:border-blue-500"
+								className=" text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-2 py-0.5 focus:outline-none focus:border-blue-500"
 								placeholder="SEM"
 							/>
 						</div>
-						<div className="flex items-center gap-1">
-							<span className="text-xs text-gray-500 dark:text-gray-400">
+						<div className="flex items-center gap-2">
+							<Label
+								htmlFor="session"
+								className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
+							>
 								Session:
-							</span>
-							<input
+							</Label>
+							<Input
+								id="session"
 								type="text"
 								value={editableSession}
 								onChange={handleSessionChange}
-								className="w-24 text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-1 py-0.5 focus:outline-none focus:border-blue-500"
+								className=" text-xs border-b border-gray-300 dark:border-gray-600 bg-transparent px-2 py-0.5 focus:outline-none focus:border-blue-500"
 								placeholder="Session"
 							/>
 						</div>
 					</div>
-				</div>
-				<div className="flex items-center gap-2">
-					{!readOnly && (
-						<Button
-							onClick={() => setShowSettings(!showSettings)}
-							variant="outline"
-							size="sm"
-							className="flex items-center gap-2"
-						>
-							<Settings className="h-4 w-4" />
-							Attainment Settings
-						</Button>
-					)}
-					<Button
-						onClick={() =>
-							handleExportAttainment({
-								programme: editableProgramme,
-								year: editableYear,
-								semester: editableSemester,
-								session: editableSession,
-							})
-						}
-						variant="outline"
-						size="sm"
-						className="flex items-center gap-2"
-					>
-						Export Attainment Excel
-					</Button>
-				</div>
-			</div>
+				</CardContent>
+			</Card>
 
 			{/* Settings Panel */}
 			<AttainmentSettingsPanel
@@ -239,21 +269,22 @@ export function MatrixView({
 				passingThreshold={passingThreshold}
 			/>
 
-			{/* Student Marks Table */}
-			<StudentMarksTable
-				studentsData={studentsData}
-				maxMarks={maxMarks}
-				facultyName={facultyName}
-				departmentName={departmentName}
-				courseName={courseName}
-				courseCode={courseCode}
-				year={editableYear}
-				semester={editableSemester}
-				programme={editableProgramme}
-				loading={loading}
-				getPercentageColor={getPercentageColorFn}
-				coMaxMarks={coMaxMarks}
-			/>
+		{/* Student Marks Table */}
+		<StudentMarksTable
+			studentsData={studentsData}
+			maxMarks={maxMarks}
+			facultyName={facultyName}
+			departmentName={departmentName}
+			courseName={courseName}
+			courseCode={courseCode}
+			year={editableYear}
+			semester={editableSemester}
+			programme={editableProgramme}
+			session={editableSession}
+			loading={loading}
+			getPercentageColor={getPercentageColorFn}
+			coMaxMarks={coMaxMarks}
+		/>
 
 			{/* CO Attainment Tables */}
 			{attainmentData && (
@@ -275,14 +306,13 @@ export function MatrixView({
 						buttonText="Import Matrix"
 					/>
 					<Button
-						variant="default"
-						size="sm"
 						onClick={saveMatrix}
 						disabled={saving}
+						variant="default"
+						size="sm"
 						className="gap-2"
 					>
-						<Save className="h-4 w-4" />
-						{saving ? "Saving..." : "Save Matrix"}
+						Save Matrix
 					</Button>
 				</div>
 			)}
