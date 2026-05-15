@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/shared/DataTable";
-import { ArrowUpDown, ClipboardList, X } from "lucide-react";
+import { TestList, getBaseTestColumns } from "@/features/shared";
+import { ClipboardList, X } from "lucide-react";
 import type { DeanTest, DeanDepartment } from "@/services/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { deanApi } from "@/services/api/dean";
@@ -15,73 +15,40 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { formatOrdinal } from "@/lib/utils";
+import { sortableHeader } from "../../features/shared/tableUtils";
 
 const columns: ColumnDef<DeanTest>[] = [
-	{
-		accessorKey: "test_name",
-		header: ({ column }) => (
-			<Button
-				variant="ghost"
-				className="mr-auto"
-				onClick={() =>
-					column.toggleSorting(column.getIsSorted() === "asc")
-				}
-			>
-				Test Name
-				<ArrowUpDown className="ml-2 h-4 w-4" />
-			</Button>
-		),
-		cell: ({ row }) => (
-			<div className="font-medium flex">{row.getValue("test_name")}</div>
-		),
-	},
-	{
-		accessorKey: "course_code",
-		header: ({ column }) => (
-			<Button
-				variant="ghost"
-				onClick={() =>
-					column.toggleSorting(column.getIsSorted() === "asc")
-				}
-			>
-				Course
-				<ArrowUpDown className="ml-2 h-4 w-4" />
-			</Button>
-		),
-		cell: ({ row }) => (
-			<div className="flex gap-2 items-center">
-				<Badge variant="outline" className="font-mono shrink-0">
-					{row.getValue("course_code")}
-				</Badge>
-				<span
-					className="text-xs text-muted-foreground max-w-32"
-					title={row.original.course_name}
-				>
-					{row.original.course_name}
-				</span>
-			</div>
-		),
-	},
-	{
-		accessorKey: "faculty_name",
-		header: ({ column }) => (
-			<Button
-				variant="ghost"
-				className="mr-auto"
-				onClick={() =>
-					column.toggleSorting(column.getIsSorted() === "asc")
-				}
-			>
-				Faculty
-				<ArrowUpDown className="ml-2 h-4 w-4" />
-			</Button>
-		),
-		cell: ({ row }) => (
-			<div className="text-muted-foreground flex">
-				{(row.getValue("faculty_name") as string) || "—"}
-			</div>
-		),
-	},
+		...getBaseTestColumns<DeanTest>(),
+		{
+			accessorKey: "course_code",
+			header: "Course",
+			cell: ({ row }) => (
+				<div className="flex gap-2 items-center">
+					<Badge variant="outline" className="font-mono shrink-0">
+						{row.getValue("course_code")}
+					</Badge>
+					<span
+						className="text-xs text-muted-foreground max-w-32 truncate text-left"
+						title={row.original.course_name}
+					>
+						{row.original.course_name}
+					</span>
+				</div>
+			),
+		},
+		{
+			accessorKey: "test_type",
+			header: "Type",
+		},
+		{
+			accessorKey: "faculty_name",
+			header: sortableHeader("Faculty", "text-left"),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-left max-w-[160px] truncate">
+					{(row.getValue("faculty_name") as string) || "—"}
+				</div>
+			),
+		},
 	{
 		accessorKey: "department_code",
 		header: "Dept",
@@ -113,19 +80,7 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "semester",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Sem
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Sem"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge variant="secondary" className="font-medium">
@@ -136,19 +91,7 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "full_marks",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Full Marks
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Full Marks"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -162,19 +105,7 @@ const columns: ColumnDef<DeanTest>[] = [
 	},
 	{
 		accessorKey: "pass_marks",
-		header: ({ column }) => (
-			<div className="text-center">
-				<Button
-					variant="ghost"
-					onClick={() =>
-						column.toggleSorting(column.getIsSorted() === "asc")
-					}
-				>
-					Pass Marks
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		),
+		header: sortableHeader("Pass Marks"),
 		cell: ({ row }) => (
 			<div className="text-center">
 				<Badge
@@ -227,7 +158,7 @@ export function TestsView() {
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<DataTable
+				<TestList
 					columns={columns}
 					data={tests}
 					searchPlaceholder="Search tests..."
@@ -323,7 +254,7 @@ export function TestsView() {
 							)}
 						</>
 					)}
-				</DataTable>
+				</TestList>
 			</CardContent>
 		</Card>
 	);

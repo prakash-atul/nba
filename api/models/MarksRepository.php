@@ -45,7 +45,7 @@ class MarksRepository
                 $row['CO4'],
                 $row['CO5'],
                 $row['CO6'],
-                $row['id']
+                null
             );
         }
         return null;
@@ -65,11 +65,13 @@ class MarksRepository
                 MAX(CASE WHEN m.co_number = 3 THEN m.marks_obtained ELSE 0 END) AS CO3,
                 MAX(CASE WHEN m.co_number = 4 THEN m.marks_obtained ELSE 0 END) AS CO4,
                 MAX(CASE WHEN m.co_number = 5 THEN m.marks_obtained ELSE 0 END) AS CO5,
-                MAX(CASE WHEN m.co_number = 6 THEN m.marks_obtained ELSE 0 END) AS CO6
+                MAX(CASE WHEN m.co_number = 6 THEN m.marks_obtained ELSE 0 END) AS CO6,
+                p.programme_name
             FROM marks m
             JOIN students s ON m.student_roll_no = s.roll_no
+            LEFT JOIN programmes p ON s.programme_id = p.programme_id
             WHERE m.test_id = ?
-            GROUP BY m.student_roll_no, m.test_id, s.student_name
+            GROUP BY m.student_roll_no, m.test_id, s.student_name, p.programme_name
             ORDER BY m.student_roll_no
         ");
         $stmt->execute([$testId]);
@@ -88,7 +90,8 @@ class MarksRepository
             );
             $marksList[] = [
                 'marks' => $marks,
-                'student_name' => $row['student_name']
+                'student_name' => $row['student_name'],
+                'programme_name' => $row['programme_name'] ?? null
             ];
         }
         return $marksList;

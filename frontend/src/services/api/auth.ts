@@ -1,8 +1,15 @@
+import { debugLogger } from "@/lib/debugLogger";
 import { API_BASE_URL, tokenManager } from "./base";
 import type { LoginCredentials, LoginResponse, User } from "./types";
 
 export const authApi = {
 	async login(credentials: LoginCredentials): Promise<LoginResponse> {
+		debugLogger.info("Auth", "Attempting login", {
+			identifier:
+				credentials.employeeIdOrEmail ||
+				(credentials as any).email ||
+				(credentials as any).username,
+		});
 		const response = await fetch(`${API_BASE_URL}/login`, {
 			method: "POST",
 			headers: {
@@ -14,10 +21,16 @@ export const authApi = {
 		const data = await response.json();
 
 		if (!response.ok) {
+			debugLogger.error("Auth", "Login failed", {
+				message: data.message,
+			});
 			throw new Error(data.message || "Login failed");
 		}
 
 		if (data.success) {
+			debugLogger.info("Auth", "Login successful", {
+				user: data.data.user,
+			});
 			tokenManager.setToken(data.data.token);
 			localStorage.setItem("user", JSON.stringify(data.data.user));
 		}
@@ -27,6 +40,7 @@ export const authApi = {
 
 	async logout(): Promise<void> {
 		const token = tokenManager.getToken();
+		debugLogger.info("Auth", "Logging out");
 		if (token) {
 			try {
 				await fetch(`${API_BASE_URL}/logout`, {
@@ -36,6 +50,7 @@ export const authApi = {
 					},
 				});
 			} catch (error) {
+				debugLogger.error("Auth", "Logout API error", error);
 				console.error("Logout error:", error);
 			}
 		}

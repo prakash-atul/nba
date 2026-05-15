@@ -1,0 +1,1707 @@
+{
+  "info": {
+    "_postman_id": "3499cb8d-1801-400d-add9-f564b33a2918",
+    "name": "NBA Assessment API - Phase 2",
+    "description": "Complete API collection for NBA Assessment System with Phase 2 schema updates",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "39612760"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('jwt_token', response.data.token);",
+                  "        console.log('Token saved:', response.data.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeIdOrEmail\": \"faculty_01@tezu.ac.in\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Updated Name\",\n  \"email\": \"newemail@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department by Employee ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/department",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "department"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/departments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "departments"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 5001,\n  \"username\": \"New Faculty\",\n  \"email\": \"newfaculty@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"faculty\",\n  \"department_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users/123",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "123"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "students"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Tests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tests",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "tests"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/departments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "departments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"department_name\": \"Computer Science\",\n  \"department_code\": \"CS\",\n  \"school_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/departments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "departments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"department_name\": \"Updated Department Name\",\n  \"department_code\": \"UDN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/departments/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "departments",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/departments/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "departments",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Appoint Dean",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 3001,\n  \"appointment_order\": \"APT/2026/DEAN/001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/schools/1/dean",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "schools",
+                "1",
+                "dean"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create and Appoint Dean",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 5001,\n  \"username\": \"DEAN_SOE\",\n  \"email\": \"dean_soe@tezu.ac.in\",\n  \"password\": \"password123\",\n  \"role\": \"faculty\",\n  \"department_id\": 1,\n  \"designation\": \"Professor & Dean\",\n  \"phone\": \"9876543210\",\n  \"appointment_order\": \"APT/2026/DEAN/001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/schools/1/dean",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "schools",
+                "1",
+                "dean"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Demote Dean",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dean/5001",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "dean",
+                "5001"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "HOD",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hod/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hod/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_code\": \"CS101\",\n  \"name\": \"Introduction to Programming\",\n  \"department_id\": 1,\n  \"course_type\": \"Theory\",\n  \"credit\": 4,\n  \"faculty_id\": 101,\n  \"year\": 2026,\n  \"semester\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/hod/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Course",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Advanced Programming\",\n  \"credit\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/hod/courses/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "courses",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Course",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hod/courses/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "courses",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department Faculty",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hod/faculty",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "faculty"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 6001,\n  \"username\": \"New Faculty Member\",\n  \"email\": \"faculty@dept.com\",\n  \"password\": \"password123\",\n  \"role\": \"faculty\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/hod/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Updated Faculty Name\",\n  \"email\": \"updatedfaculty@dept.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/hod/users/101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "users",
+                "101"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hod/users/101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hod",
+                "users",
+                "101"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_code\": \"CS201\",\n  \"name\": \"Data Structures\",\n  \"department_id\": 1,\n  \"course_type\": \"Theory\",\n  \"credit\": 4,\n  \"faculty_id\": 101,\n  \"year\": 2026,\n  \"semester\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/staff/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Course",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Advanced Data Structures\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/staff/courses/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "courses",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Course",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff/courses/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "courses",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department Faculty",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff/faculty",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "faculty"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "students"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/offerings/1/enrollments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "offerings",
+                "1",
+                "enrollments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Enroll Students",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"students\": [\n    {\"roll_no\": \"2024CSE001\"},\n    {\"roll_no\": \"2024CSE002\"},\n    {\"roll_no\": \"2024CSE003\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/offerings/1/enroll",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "offerings",
+                "1",
+                "enroll"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Enrollment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/offerings/1/enroll/2024CSE001",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "offerings",
+                "1",
+                "enroll",
+                "2024CSE001"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Faculty",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/faculty/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faculty",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/faculty/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faculty",
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Courses (Alternate)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Test",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tests/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tests",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/faculty/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faculty",
+                "students"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dean",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/departments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "departments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/courses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "students"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Tests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/tests",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "tests"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "analytics"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department Faculty",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/departments/1/faculty",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "departments",
+                "1",
+                "faculty"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Appoint HOD",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 101\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/dean/departments/1/hod",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "departments",
+                "1",
+                "hod"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Demote HOD",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dean/hod/101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dean",
+                "hod",
+                "101"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assessment & Tests",
+      "item": [
+        {
+          "name": "Create Assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1,\n  \"name\": \"Mid Semester Exam\",\n  \"full_marks\": 50,\n  \"pass_marks\": 20,\n  \"test_type\": \"Mid-term\",\n  \"test_date\": \"2026-03-15\",\n  \"max_marks\": 50,\n  \"weightage\": 30,\n  \"questions\": [\n    {\n      \"question_number\": 1,\n      \"max_marks\": 10,\n      \"co\": 1\n    },\n    {\n      \"question_number\": 2,\n      \"max_marks\": 15,\n      \"co\": 2\n    },\n    {\n      \"question_number\": 3,\n      \"sub_question\": \"a\",\n      \"max_marks\": 8,\n      \"co\": 3,\n      \"is_optional\": false\n    },\n    {\n      \"question_number\": 3,\n      \"sub_question\": \"b\",\n      \"max_marks\": 7,\n      \"co\": 4,\n      \"is_optional\": false\n    },\n    {\n      \"question_number\": 4,\n      \"max_marks\": 10,\n      \"co\": 5,\n      \"is_optional\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/assessment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "assessment"
+              ]
+            },
+            "description": "Note: course_id is actually the offering_id (backward compatibility with legacy frontend)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assessment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/assessment?test_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "assessment"
+              ],
+              "query": [
+                {
+                  "key": "test_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course Tests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/course-tests?course_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "course-tests"
+              ],
+              "query": [
+                {
+                  "key": "course_id",
+                  "value": "1",
+                  "description": "Actually offering_id (backward compatibility)"
+                }
+              ]
+            },
+            "description": "Note: course_id parameter is actually the offering_id (backward compatibility)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"max_marks\": 12,\n  \"co\": 2,\n  \"is_optional\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questions/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "questions",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Question",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/questions/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "questions",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Marks",
+      "item": [
+        {
+          "name": "Save Marks by Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test_id\": 1,\n  \"student_id\": \"2024CSE001\",\n  \"marks\": [\n    {\n      \"question_identifier\": \"1\",\n      \"marks\": 8.5\n    },\n    {\n      \"question_identifier\": \"2\",\n      \"marks\": 12.0\n    },\n    {\n      \"question_identifier\": \"3a\",\n      \"marks\": 7.0\n    },\n    {\n      \"question_identifier\": \"3b\",\n      \"marks\": 6.5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marks/by-question",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks",
+                "by-question"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Marks by CO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test_id\": 1,\n  \"student_id\": \"2024CSE001\",\n  \"CO1\": 10,\n  \"CO2\": 8.5,\n  \"CO3\": 15,\n  \"CO4\": 12,\n  \"CO5\": 0,\n  \"CO6\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marks/by-co",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks",
+                "by-co"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Save Marks",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test_id\": 1,\n  \"marks_entries\": [\n    {\n      \"student_rollno\": \"2024CSE001\",\n      \"question_number\": 1,\n      \"sub_question\": null,\n      \"marks_obtained\": 8.5\n    },\n    {\n      \"student_rollno\": \"2024CSE001\",\n      \"question_number\": 2,\n      \"sub_question\": null,\n      \"marks_obtained\": 12.0\n    },\n    {\n      \"student_rollno\": \"2024CSE001\",\n      \"question_number\": 3,\n      \"sub_question\": \"a\",\n      \"marks_obtained\": 7.0\n    },\n    {\n      \"student_rollno\": \"2024CSE002\",\n      \"question_number\": 1,\n      \"sub_question\": null,\n      \"marks_obtained\": 9.0\n    },\n    {\n      \"student_rollno\": \"2024CSE002\",\n      \"question_number\": 2,\n      \"sub_question\": null,\n      \"marks_obtained\": 13.5\n    },\n    {\n      \"student_rollno\": \"2024CSE002\",\n      \"question_number\": 3,\n      \"sub_question\": \"a\",\n      \"marks_obtained\": 6.5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marks/bulk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks",
+                "bulk"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Marks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/marks?test_id=1&student_id=2024CSE001",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks"
+              ],
+              "query": [
+                {
+                  "key": "test_id",
+                  "value": "1"
+                },
+                {
+                  "key": "student_id",
+                  "value": "2024CSE001"
+                }
+              ]
+            },
+            "description": "Get aggregated marks (CO-wise) and raw marks (per question) for a specific student in a test"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Test Marks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/marks/test?test_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks",
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "test_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Raw Marks",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marks_obtained\": 9.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/marks/raw/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks",
+                "raw",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Raw Marks",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/marks/raw/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks",
+                "raw",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Student Marks",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/marks/student/1/2024CSE001",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "marks",
+                "student",
+                "1",
+                "2024CSE001"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Enrollment",
+      "item": [
+        {
+          "name": "Bulk Enroll Students",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"students\": [\n    {\"roll_no\": \"2024CSE001\"},\n    {\"roll_no\": \"2024CSE002\"},\n    {\"roll_no\": \"2024CSE003\"},\n    {\"roll_no\": \"2024CSE004\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/offerings/1/enroll",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "offerings",
+                "1",
+                "enroll"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Offering Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/offerings/1/enrollments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "offerings",
+                "1",
+                "enrollments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Enrollment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/offerings/1/enroll/2024CSE001",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "offerings",
+                "1",
+                "enroll",
+                "2024CSE001"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attainment & CO-PO",
+      "item": [
+        {
+          "name": "Get Attainment Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/courses/1/attainment-config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "courses",
+                "1",
+                "attainment-config"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Attainment Config",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"co_threshold\": 40.0,\n  \"passing_threshold\": 60.0,\n  \"attainment_thresholds\": [\n    {\"id\": 1, \"percentage\": 40},\n    {\"id\": 2, \"percentage\": 60},\n    {\"id\": 3, \"percentage\": 75}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/courses/1/attainment-config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "courses",
+                "1",
+                "attainment-config"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get CO-PO Matrix",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/courses/1/copo-matrix",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "courses",
+                "1",
+                "copo-matrix"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save CO-PO Matrix",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mappings\": [\n    {\"co\": \"CO1\", \"po\": \"PO1\", \"value\": 3},\n    {\"co\": \"CO1\", \"po\": \"PO2\", \"value\": 2},\n    {\"co\": \"CO1\", \"po\": \"PO3\", \"value\": 1},\n    {\"co\": \"CO2\", \"po\": \"PO1\", \"value\": 2},\n    {\"co\": \"CO2\", \"po\": \"PO3\", \"value\": 3},\n    {\"co\": \"CO3\", \"po\": \"PO2\", \"value\": 3},\n    {\"co\": \"CO3\", \"po\": \"PO4\", \"value\": 2}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/courses/1/copo-matrix",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "courses",
+                "1",
+                "copo-matrix"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/nba/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

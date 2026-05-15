@@ -271,15 +271,19 @@ class CourseRepository
                               SELECT MAX(co2.offering_id)
                               FROM course_offerings co2
                               WHERE co2.course_id = c.course_id
+                                AND (? = '' OR co2.year = ?)
+                                AND (? = '' OR co2.semester = ?)
                           )
                 LEFT JOIN course_faculty_assignments cfa
                        ON cfa.offering_id = co.offering_id
                       AND cfa.assignment_type = 'Primary'
-                      AND cfa.is_active = 1
                 LEFT JOIN users u ON u.employee_id = cfa.employee_id
                 WHERE 1=1
             ";
-            $bindings = [];
+            
+            $yFilter = !empty($params['filters']['year']) ? (int)$params['filters']['year'] : '';
+            $sFilter = !empty($params['filters']['semester']) ? $params['filters']['semester'] : '';
+            $bindings = [$yFilter, $yFilter, $sFilter, $sFilter];
 
             if ($params['search']) {
                 $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
@@ -298,6 +302,9 @@ class CourseRepository
             if (!empty($params['filters']['course_type'])) {
                 $sql .= " AND c.course_type = ?";
                 $bindings[] = $params['filters']['course_type'];
+            }
+            if (!empty($params['filters']['year']) || !empty($params['filters']['semester'])) {
+                $sql .= " AND co.offering_id IS NOT NULL";
             }
 
             PaginationHelper::applyCursor($sql, $bindings, 'c.course_id', $params['cursor'], $params['sortDir']);
@@ -340,6 +347,20 @@ class CourseRepository
                 $sql .= " AND c.course_type = ?";
                 $bindings[] = $params['filters']['course_type'];
             }
+            $hasYear = !empty($params['filters']['year']);
+            $hasSem  = !empty($params['filters']['semester']);
+            if ($hasYear || $hasSem) {
+                $sql .= " AND EXISTS (SELECT 1 FROM course_offerings co_f WHERE co_f.course_id = c.course_id";
+                if ($hasYear) {
+                    $sql .= " AND co_f.year = ?";
+                    $bindings[] = (int)$params['filters']['year'];
+                }
+                if ($hasSem) {
+                    $sql .= " AND co_f.semester = ?";
+                    $bindings[] = $params['filters']['semester'];
+                }
+                $sql .= ")";
+            }
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
@@ -375,6 +396,8 @@ class CourseRepository
                               SELECT MAX(co2.offering_id)
                               FROM course_offerings co2
                               WHERE co2.course_id = c.course_id
+                                AND (? = '' OR co2.year = ?)
+                                AND (? = '' OR co2.semester = ?)
                           )
                 LEFT JOIN course_faculty_assignments cfa
                        ON cfa.offering_id = co.offering_id
@@ -383,13 +406,31 @@ class CourseRepository
                 LEFT JOIN users u ON u.employee_id = cfa.employee_id
                 WHERE d.school_id = ?
             ";
-            $bindings = [$schoolId];
+            
+            $yFilter = !empty($params['filters']['year']) ? (int)$params['filters']['year'] : '';
+            $sFilter = !empty($params['filters']['semester']) ? $params['filters']['semester'] : '';
+            $bindings = [$yFilter, $yFilter, $sFilter, $sFilter, $schoolId];
 
             if ($params['search']) {
                 $sql .= " AND (c.course_code LIKE ? OR c.course_name LIKE ?)";
                 $like = '%' . $params['search'] . '%';
                 $bindings[] = $like;
                 $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (isset($params['filters']['is_active'])) {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+            if (!empty($params['filters']['year']) || !empty($params['filters']['semester'])) {
+                $sql .= " AND co.offering_id IS NOT NULL";
             }
 
             PaginationHelper::applyCursor($sql, $bindings, 'c.course_id', $params['cursor'], $params['sortDir']);
@@ -424,6 +465,33 @@ class CourseRepository
                 $like = '%' . $params['search'] . '%';
                 $bindings[] = $like;
                 $bindings[] = $like;
+            }
+            if (!empty($params['filters']['department_id'])) {
+                $sql .= " AND c.department_id = ?";
+                $bindings[] = (int)$params['filters']['department_id'];
+            }
+            if (isset($params['filters']['is_active'])) {
+                $sql .= " AND c.is_active = ?";
+                $bindings[] = (int)$params['filters']['is_active'];
+            }
+            if (!empty($params['filters']['course_type'])) {
+                $sql .= " AND c.course_type = ?";
+                $bindings[] = $params['filters']['course_type'];
+            }
+            
+            $hasYear = !empty($params['filters']['year']);
+            $hasSem  = !empty($params['filters']['semester']);
+            if ($hasYear || $hasSem) {
+                $sql .= " AND EXISTS (SELECT 1 FROM course_offerings co_f WHERE co_f.course_id = c.course_id";
+                if ($hasYear) {
+                    $sql .= " AND co_f.year = ?";
+                    $bindings[] = (int)$params['filters']['year'];
+                }
+                if ($hasSem) {
+                    $sql .= " AND co_f.semester = ?";
+                    $bindings[] = $params['filters']['semester'];
+                }
+                $sql .= ")";
             }
 
             $stmt = $this->db->prepare($sql);
@@ -709,6 +777,7 @@ class CourseRepository
                        u.employee_id AS faculty_id,
                        u.username    AS faculty_name,
                        cfa.is_active AS cfa_is_active,
+                       d.department_code,
                        (SELECT COUNT(*) FROM enrollments e
                         WHERE e.offering_id = co.offering_id) AS enrollment_count,
                        (SELECT COUNT(*) FROM tests t
@@ -724,6 +793,7 @@ class CourseRepository
                        ) AS avg_score_pct
                 FROM courses c
                 INNER JOIN course_offerings co ON co.course_id = c.course_id
+                INNER JOIN departments d ON d.department_id = c.department_id
                 LEFT JOIN course_faculty_assignments cfa
                        ON cfa.offering_id = co.offering_id
                       AND cfa.assignment_type = 'Primary'
@@ -751,9 +821,15 @@ class CourseRepository
                 $bindings[] = (int)$params['filters']['year'];
             }
             if (!empty($params['filters']['semester'])) {
-                $sql .= " AND co.semester = ?";
-                $bindings[] = $params['filters']['semester'];
-            }
+    if (strtolower(trim($params['filters']['semester'])) === 'autumn') {
+        $sql .= " AND co.semester = 'Autumn'";
+    } elseif (strtolower(trim($params['filters']['semester'])) === 'spring') {
+        $sql .= " AND co.semester = 'Spring'";
+    } else {
+        $sql .= " AND co.semester = ?";
+        $bindings[] = $params['filters']['semester'];
+    }
+}
 
             PaginationHelper::applyCursor($sql, $bindings, 'co.offering_id', $params['cursor'], $params['sortDir']);
 
@@ -796,9 +872,15 @@ class CourseRepository
                 $bindings[] = (int)$params['filters']['year'];
             }
             if (!empty($params['filters']['semester'])) {
-                $sql .= " AND co.semester = ?";
-                $bindings[] = $params['filters']['semester'];
-            }
+    if (strtolower(trim($params['filters']['semester'])) === 'autumn') {
+        $sql .= " AND co.semester = 'Autumn'";
+    } elseif (strtolower(trim($params['filters']['semester'])) === 'spring') {
+        $sql .= " AND co.semester = 'Spring'";
+    } else {
+        $sql .= " AND co.semester = ?";
+        $bindings[] = $params['filters']['semester'];
+    }
+}
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);

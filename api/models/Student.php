@@ -8,6 +8,7 @@ class Student
 {
     private $roll_no;
     private $student_name;
+    private $programme_id;
     private $department_id;
     private $batch_year;
     private $student_status;
@@ -17,14 +18,16 @@ class Student
     public function __construct(
         $roll_no, 
         $student_name, 
-        $department_id,
+        $programme_id,
         $batch_year = null,
         $student_status = 'Active',
         $email = null,
-        $phone = null
+        $phone = null,
+        $department_id = null
     ) {
         $this->roll_no = $roll_no;
         $this->student_name = $student_name;
+        $this->programme_id = $programme_id;
         $this->department_id = $department_id;
         $this->batch_year = $batch_year;
         $this->student_status = $student_status;
@@ -41,6 +44,11 @@ class Student
     public function getStudentName()
     {
         return $this->student_name;
+    }
+
+    public function getProgrammeId()
+    {
+        return $this->programme_id;
     }
 
     public function getDepartmentId()
@@ -72,6 +80,11 @@ class Student
     public function setStudentName($student_name)
     {
         $this->student_name = $student_name;
+    }
+
+    public function setProgrammeId($programme_id)
+    {
+        $this->programme_id = $programme_id;
     }
 
     public function setDepartmentId($department_id)
@@ -107,6 +120,7 @@ class Student
         return [
             'roll_no' => $this->roll_no,
             'student_name' => $this->student_name,
+            'programme_id' => $this->programme_id,
             'department_id' => $this->department_id,
             'batch_year' => $this->batch_year,
             'student_status' => $this->student_status,

@@ -14,14 +14,15 @@ class User
     private $role;
     private $departmentId;
     private $designation;
-    private $phone;
+    private $phones = [];
     private $createdAt;
     private $updatedAt;
+    private $schoolId;
 
-    // Valid roles (HOD has its own dedicated role; Dean is still assignment-based)
-    const ROLES = ['admin', 'faculty', 'hod', 'staff'];
+    // Valid roles (HOD has its own dedicated role; Dean now also has its own dedicated role)
+    const ROLES = ['admin', 'faculty', 'hod', 'dean', 'staff'];
 
-    public function __construct($employeeId, $username = null, $email = null, $password = null, $role = null, $departmentId = null, $designation = null, $phone = null, $createdAt = null, $updatedAt = null)
+    public function __construct($employeeId, $username = null, $email = null, $password = null, $role = null, $departmentId = null, $designation = null, $phones = [], $createdAt = null, $updatedAt = null, $schoolId = null)
     {
         $this->employeeId = $employeeId;
         $this->username = $username;
@@ -30,9 +31,10 @@ class User
         $this->role = $role;
         $this->departmentId = $departmentId;
         $this->designation = $designation;
-        $this->phone = $phone;
+        $this->phones = is_array($phones) ? $phones : (is_string($phones) ? array_filter(explode(',', $phones)) : []);
         $this->createdAt = $createdAt;
         $this->updatedAt = $updatedAt;
+        $this->schoolId = $schoolId;
     }
 
     // Getters
@@ -64,9 +66,13 @@ class User
     {
         return $this->designation;
     }
-    public function getPhone()
+    public function getPhones()
     {
-        return $this->phone;
+        return $this->phones;
+    }
+    public function getSchoolId()
+    {
+        return $this->schoolId;
     }
     public function getCreatedAt()
     {
@@ -126,17 +132,22 @@ class User
         $this->departmentId = $departmentId;
     }
 
+    public function setSchoolId($schoolId)
+    {
+        if ($schoolId !== null && (!is_numeric($schoolId) || $schoolId <= 0)) {
+            throw new InvalidArgumentException("School ID must be a positive number or null");
+        }
+        $this->schoolId = $schoolId;
+    }
+
     public function setDesignation($designation)
     {
         $this->designation = $designation;
     }
 
-    public function setPhone($phone)
+    public function setPhones(array $phones)
     {
-        if ($phone !== null && strlen($phone) > 15) {
-            throw new InvalidArgumentException("Phone number must not exceed 15 characters");
-        }
-        $this->phone = $phone;
+        $this->phones = $phones;
     }
 
     public function setCreatedAt($createdAt)
@@ -161,8 +172,9 @@ class User
             'email' => $this->email,
             'role' => $this->role,
             'department_id' => $this->departmentId,
+            'school_id' => $this->schoolId,
             'designation' => $this->designation,
-            'phone' => $this->phone,
+            'phones' => $this->phones,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt
         ];

@@ -1,5 +1,6 @@
-import { QuickAccessGrid, type QuickAccessItem } from "@/components/shared";
+import { QuickAccessGrid, type QuickAccessItem } from "@/features/shared";
 import { BookOpen, Users, GraduationCap } from "lucide-react";
+import { debugLogger } from "@/lib/debugLogger";
 
 type HODPage = "dashboard" | "courses" | "faculty" | "students";
 
@@ -8,6 +9,7 @@ interface HODQuickAccessProps {
 }
 
 export function HODQuickAccess({ onNavigate }: HODQuickAccessProps) {
+	debugLogger.info("HODQuickAccess", "Mounted");
 	const quickAccessItems: QuickAccessItem[] = [
 		{
 			id: "courses",

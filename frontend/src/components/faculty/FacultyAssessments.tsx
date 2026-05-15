@@ -9,9 +9,9 @@ import {
 	TrendingUp,
 	GraduationCap,
 } from "lucide-react";
-import { CreateAssessmentForm } from "@/components/assessments/CreateAssessmentForm";
-import { TestsList } from "@/components/assessments/TestsList";
-import { EnrollStudentsDialog } from "@/components/assessments/EnrollStudentsDialog";
+import { CreateAssessmentForm } from "@/features/assessments/CreateAssessmentForm";
+import { TestsList } from "@/features/assessments/TestsList";
+import { EnrollStudentsDialog } from "@/features/assessments/EnrollStudentsDialog";
 import { apiService } from "@/services/api";
 import type { Course, Test, CourseStats } from "@/services/api";
 

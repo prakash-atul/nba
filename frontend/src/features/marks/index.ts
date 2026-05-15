@@ -1,0 +1,11 @@
+export { BulkMarksTable } from "./BulkMarksTable";
+export { EmptyStateCard } from "./EmptyStateCard";
+export { MarksEntryByCO } from "./MarksEntryByCO";
+export { MarksEntryByQuestion } from "./MarksEntryByQuestion";
+export { MarksEntryHeader } from "./MarksEntryHeader";
+export { MarksEntrySelector } from "./MarksEntrySelector";
+export { StudentMarksTable } from "./StudentMarksTable";
+export { TestHeader } from "./TestHeader";
+export { TestInfoCard } from "./TestInfoCard";
+export { TestsListTable } from "./TestsListTable";
+export { ViewTestMarks } from "./ViewTestMarks";

@@ -1,31 +1,9 @@
+import { CourseDialog } from "./CourseDialog";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable } from "@/features/shared/DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -33,11 +11,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, BookOpen, ArrowUpDown, X } from "lucide-react";
-import { formatOrdinal } from "@/lib/utils";
+import { Plus, BookOpen, X } from "lucide-react";
 import { toast } from "sonner";
 import { staffApi, type StaffCourse } from "@/services/api";
 import { usePaginatedData } from "@/lib/usePaginatedData";
+import { getCourseColumns } from "./CourseManagement.columns";
 
 interface Faculty {
 	employee_id: string;
@@ -111,151 +89,11 @@ export function CourseManagement() {
 	});
 
 	const columns = useMemo<ColumnDef<StaffCourse>[]>(
-		() => [
-			{
-				accessorKey: "course_code",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Code
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				cell: ({ row }) => (
-					<Badge variant="outline" className="font-mono">
-						{row.original.course_code}
-					</Badge>
-				),
-			},
-			{
-				accessorKey: "course_name",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}
-					>
-						Course Name
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				cell: ({ row }) => (
-					<div
-						className="font-medium max-w-[200px] truncate"
-						title={row.original.course_name}
-					>
-						{row.original.course_name}
-					</div>
-				),
-			},
-			{
-				accessorKey: "credit",
-				header: "Credits",
-				cell: ({ row }) => (
-					<Badge variant="outline">{row.original.credit}</Badge>
-				),
-			},
-			{
-				accessorKey: "faculty_name",
-				header: "Faculty",
-				cell: ({ row }) => (
-					<div className="text-muted-foreground">
-						{row.original.faculty_name || "\u2014"}
-					</div>
-				),
-			},
-			{
-				accessorKey: "year",
-				header: "Year",
-				cell: ({ row }) => row.original.year ?? "\u2014",
-			},
-			{
-				accessorKey: "semester",
-				header: "Semester",
-				cell: ({ row }) => (
-					<Badge variant="secondary" className="font-medium">
-						{formatOrdinal(row.original.semester)}
-					</Badge>
-				),
-			},
-			{
-				accessorKey: "enrollment_count",
-				header: "Enrolled",
-				cell: ({ row }) => (
-					<Badge
-						variant="secondary"
-						className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800"
-					>
-						{row.original.enrollment_count ?? 0}
-					</Badge>
-				),
-			},
-			{
-				id: "actions",
-				header: () => <div className="text-right">Actions</div>,
-				cell: ({ row }) => {
-					const course = row.original;
-					return (
-						<div className="flex items-center justify-end gap-2">
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-								onClick={() => openEditDialog(course)}
-							>
-								<Pencil className="w-4 h-4" />
-							</Button>
-							<AlertDialog>
-								<AlertDialogTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-									>
-										<Trash2 className="w-4 h-4" />
-									</Button>
-								</AlertDialogTrigger>
-								<AlertDialogContent>
-									<AlertDialogHeader>
-										<AlertDialogTitle>
-											Delete Course
-										</AlertDialogTitle>
-										<AlertDialogDescription>
-											Are you sure you want to delete "
-											{course.course_name}"? This will
-											also delete all associated tests,
-											marks, and enrollments. This action
-											cannot be undone.
-										</AlertDialogDescription>
-									</AlertDialogHeader>
-									<AlertDialogFooter>
-										<AlertDialogCancel>
-											Cancel
-										</AlertDialogCancel>
-										<AlertDialogAction
-											onClick={() =>
-												handleDeleteCourse(
-													course.course_id,
-													course.course_name,
-												)
-											}
-											className="bg-red-600 hover:bg-red-700"
-										>
-											Delete
-										</AlertDialogAction>
-									</AlertDialogFooter>
-								</AlertDialogContent>
-							</AlertDialog>
-						</div>
-					);
-				},
-			},
-		],
+		() =>
+			getCourseColumns({
+				onEdit: openEditDialog,
+				onDelete: handleDeleteCourse,
+			}),
 		[],
 	);
 
@@ -371,206 +209,35 @@ export function CourseManagement() {
 						</p>
 					</div>
 				</div>
-				<Dialog
+				<Button
+					className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+					onClick={() => setIsAddDialogOpen(true)}
+				>
+					<Plus className="w-4 h-4" />
+					Add Course
+				</Button>
+				<CourseDialog
+					mode="add"
 					open={isAddDialogOpen}
 					onOpenChange={setIsAddDialogOpen}
-				>
-					<DialogTrigger asChild>
-						<Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-							<Plus className="w-4 h-4" />
-							Add Course
-						</Button>
-					</DialogTrigger>
-					<DialogContent className="sm:max-w-[500px]">
-						<DialogHeader>
-							<DialogTitle>Add New Course</DialogTitle>
-							<DialogDescription>
-								Create a new course for your department
-							</DialogDescription>
-						</DialogHeader>
-						<div className="grid gap-4 py-4">
-							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<Label htmlFor="course_code">
-										Course Code *
-									</Label>
-									<Input
-										id="course_code"
-										placeholder="e.g., CS301"
-										value={formData.course_code}
-										onChange={(e) =>
-											setFormData({
-												...formData,
-												course_code: e.target.value,
-											})
-										}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="credit">Credits *</Label>
-									<Select
-										value={String(formData.credit)}
-										onValueChange={(value) =>
-											setFormData({
-												...formData,
-												credit: parseInt(value),
-											})
-										}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											{[1, 2, 3, 4, 5, 6].map((c) => (
-												<SelectItem
-													key={c}
-													value={String(c)}
-												>
-													{c}{" "}
-													{c === 1
-														? "Credit"
-														: "Credits"}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="name">Course Name *</Label>
-								<Input
-									id="name"
-									placeholder="e.g., Database Management Systems"
-									value={formData.name}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											name: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="faculty">
-									Assign Faculty *
-								</Label>
-								<Select
-									value={formData.faculty_id}
-									onValueChange={(value) =>
-										setFormData({
-											...formData,
-											faculty_id: value,
-										})
-									}
-									disabled={isLoadingFaculty}
-								>
-									<SelectTrigger>
-										<SelectValue
-											placeholder={
-												isLoadingFaculty
-													? "Loading..."
-													: "Select faculty member"
-											}
-										/>
-									</SelectTrigger>
-									<SelectContent>
-										{faculty
-											.filter(
-												(f) =>
-													f.role === "faculty" ||
-													f.role === "hod",
-											)
-											.map((f) => (
-												<SelectItem
-													key={f.employee_id}
-													value={f.employee_id}
-												>
-													{f.username}{" "}
-													{f.role === "hod"
-														? "(HOD)"
-														: ""}
-												</SelectItem>
-											))}
-									</SelectContent>
-								</Select>
-							</div>
-							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<Label htmlFor="year">Year *</Label>
-									<Select
-										value={String(formData.year)}
-										onValueChange={(value) =>
-											setFormData({
-												...formData,
-												year: parseInt(value),
-											})
-										}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											{years.map((y) => (
-												<SelectItem
-													key={y}
-													value={String(y)}
-												>
-													{y}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="semester">Semester *</Label>
-									<Select
-										value={formData.semester}
-										onValueChange={(value) =>
-											setFormData({
-												...formData,
-												semester: value,
-											})
-										}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											{semesters.map((s) => (
-												<SelectItem key={s} value={s}>
-													{s} Semester
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-							</div>
-						</div>
-						<DialogFooter>
-							<Button
-								variant="outline"
-								onClick={() => {
-									setIsAddDialogOpen(false);
-									resetForm();
-								}}
-							>
-								Cancel
-							</Button>
-							<Button
-								onClick={handleCreateCourse}
-								disabled={isSubmitting}
-								className="bg-emerald-600 hover:bg-emerald-700"
-							>
-								{isSubmitting ? "Creating..." : "Create Course"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+					formData={formData}
+					setFormData={setFormData}
+					faculty={faculty}
+					isLoadingFaculty={isLoadingFaculty}
+					onSubmit={handleCreateCourse}
+					isSubmitting={isSubmitting}
+					onCancel={() => {
+						setIsAddDialogOpen(false);
+						resetForm();
+					}}
+					years={years}
+					semesters={semesters}
+				/>
 			</CardHeader>
 			<CardContent>
 				<DataTable
 					columns={columns}
-					data={courses}
+					data={courses || []}
 					refreshing={isLoading}
 					serverPagination={{
 						pagination,
@@ -650,192 +317,23 @@ export function CourseManagement() {
 			</CardContent>
 
 			{/* Edit Course Dialog */}
-			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-				<DialogContent className="sm:max-w-[500px]">
-					<DialogHeader>
-						<DialogTitle>Edit Course</DialogTitle>
-						<DialogDescription>
-							Update course information
-						</DialogDescription>
-					</DialogHeader>
-					<div className="grid gap-4 py-4">
-						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="edit_course_code">
-									Course Code *
-								</Label>
-								<Input
-									id="edit_course_code"
-									placeholder="e.g., CS301"
-									value={editFormData.course_code}
-									onChange={(e) =>
-										setEditFormData({
-											...editFormData,
-											course_code: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="edit_credit">Credits *</Label>
-								<Select
-									value={String(editFormData.credit)}
-									onValueChange={(value) =>
-										setEditFormData({
-											...editFormData,
-											credit: parseInt(value),
-										})
-									}
-								>
-									<SelectTrigger>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{[1, 2, 3, 4, 5, 6].map((c) => (
-											<SelectItem
-												key={c}
-												value={String(c)}
-											>
-												{c}{" "}
-												{c === 1 ? "Credit" : "Credits"}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="edit_name">Course Name *</Label>
-							<Input
-								id="edit_name"
-								placeholder="e.g., Database Management Systems"
-								value={editFormData.name}
-								onChange={(e) =>
-									setEditFormData({
-										...editFormData,
-										name: e.target.value,
-									})
-								}
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="edit_faculty">
-								Assign Faculty *
-							</Label>
-							<Select
-								value={editFormData.faculty_id}
-								onValueChange={(value) =>
-									setEditFormData({
-										...editFormData,
-										faculty_id: value,
-									})
-								}
-								disabled={isLoadingFaculty}
-							>
-								<SelectTrigger>
-									<SelectValue
-										placeholder={
-											isLoadingFaculty
-												? "Loading..."
-												: "Select faculty member"
-										}
-									/>
-								</SelectTrigger>
-								<SelectContent>
-									{faculty
-										.filter(
-											(f) =>
-												f.role === "faculty" ||
-												f.role === "hod",
-										)
-										.map((f) => (
-											<SelectItem
-												key={f.employee_id}
-												value={f.employee_id}
-											>
-												{f.username}{" "}
-												{f.role === "hod"
-													? "(HOD)"
-													: ""}
-											</SelectItem>
-										))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="edit_year">Year *</Label>
-								<Select
-									value={String(editFormData.year)}
-									onValueChange={(value) =>
-										setEditFormData({
-											...editFormData,
-											year: parseInt(value),
-										})
-									}
-								>
-									<SelectTrigger>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{years.map((y) => (
-											<SelectItem
-												key={y}
-												value={String(y)}
-											>
-												{y}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="edit_semester">
-									Semester *
-								</Label>
-								<Select
-									value={editFormData.semester}
-									onValueChange={(value) =>
-										setEditFormData({
-											...editFormData,
-											semester: value,
-										})
-									}
-								>
-									<SelectTrigger>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{semesters.map((s) => (
-											<SelectItem key={s} value={s}>
-												{s} Semester
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => {
-								setIsEditDialogOpen(false);
-								setSelectedCourse(null);
-							}}
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={handleUpdateCourse}
-							disabled={isSubmitting}
-							className="bg-emerald-600 hover:bg-emerald-700"
-						>
-							{isSubmitting ? "Saving..." : "Save Changes"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<CourseDialog
+				mode="edit"
+				open={isEditDialogOpen}
+				onOpenChange={setIsEditDialogOpen}
+				formData={editFormData}
+				setFormData={setEditFormData}
+				faculty={faculty}
+				isLoadingFaculty={isLoadingFaculty}
+				onSubmit={handleUpdateCourse}
+				isSubmitting={isSubmitting}
+				onCancel={() => {
+					setIsEditDialogOpen(false);
+					setSelectedCourse(null);
+				}}
+				years={years}
+				semesters={semesters}
+			/>
 		</Card>
 	);
 }

@@ -1,4 +1,4 @@
-import { QuickAccessGrid, type QuickAccessItem } from "@/components/shared";
+import { QuickAccessGrid, type QuickAccessItem } from "@/features/shared";
 import { ClipboardList, FileCheck, Network } from "lucide-react";
 
 type FacultyPage = "dashboard" | "assessments" | "marks" | "copo";

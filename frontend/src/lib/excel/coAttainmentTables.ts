@@ -4,6 +4,8 @@ import type { StudentMarksData, COMarks } from "./types";
 interface COStats {
 	above70: number;
 	abovePass: number;
+	sumPercentage: number;
+	averagePercentage: number;
 }
 
 interface AttainmentCalculation {
@@ -45,12 +47,12 @@ function calculateCOAttainment(
 	let absentees = 0;
 
 	const coStats = {
-		CO1: { above70: 0, abovePass: 0 },
-		CO2: { above70: 0, abovePass: 0 },
-		CO3: { above70: 0, abovePass: 0 },
-		CO4: { above70: 0, abovePass: 0 },
-		CO5: { above70: 0, abovePass: 0 },
-		CO6: { above70: 0, abovePass: 0 },
+		CO1: { above70: 0, abovePass: 0, sumPercentage: 0, averagePercentage: 0 },
+		CO2: { above70: 0, abovePass: 0, sumPercentage: 0, averagePercentage: 0 },
+		CO3: { above70: 0, abovePass: 0, sumPercentage: 0, averagePercentage: 0 },
+		CO4: { above70: 0, abovePass: 0, sumPercentage: 0, averagePercentage: 0 },
+		CO5: { above70: 0, abovePass: 0, sumPercentage: 0, averagePercentage: 0 },
+		CO6: { above70: 0, abovePass: 0, sumPercentage: 0, averagePercentage: 0 },
 	};
 
 	studentsData.forEach((student) => {
@@ -61,12 +63,23 @@ function calculateCOAttainment(
 
 		(["CO1", "CO2", "CO3", "CO4", "CO5", "CO6"] as const).forEach((co) => {
 			const percentage = student.coTotals[co];
+			const roundedPercentage = Math.round(percentage * 100) / 100;
 			if (percentage >= coThreshold) coStats[co].above70++;
 			if (percentage >= passingThreshold) coStats[co].abovePass++;
+			coStats[co].sumPercentage += roundedPercentage;
 		});
 	});
 
 	const presentStudents = totalStudents - absentees;
+	
+	// Calculate average percentage for each CO
+	(["CO1", "CO2", "CO3", "CO4", "CO5", "CO6"] as const).forEach((co) => {
+		if (presentStudents > 0) {
+			coStats[co].averagePercentage = 
+				Math.round((coStats[co].sumPercentage / presentStudents) * 100) / 100;
+		}
+	});
+	
 	return { totalStudents, absentees, presentStudents, coStats };
 }
 
@@ -77,13 +90,21 @@ function getAttainmentLevel(
 	percentage: number,
 	thresholds: AttainmentThreshold[]
 ): number {
-	const sortedThresholds = [...thresholds].sort(
+	const sorted = [...thresholds].sort(
 		(a, b) => b.percentage - a.percentage
 	);
 
-	for (let i = 0; i < sortedThresholds.length; i++) {
-		if (percentage >= sortedThresholds[i].percentage) {
-			return sortedThresholds.length - i;
+	if (sorted.length === 0) return 0;
+	if (percentage >= sorted[0].percentage) return sorted.length;
+
+	for (let i = 1; i < sorted.length; i++) {
+		if (percentage >= sorted[i].percentage) {
+			const baseLevel = sorted.length - i;
+			const basePct = sorted[i].percentage;
+			const nextPct = sorted[i - 1].percentage;
+			const diff = nextPct - basePct;
+			if (diff === 0) return baseLevel;
+			return baseLevel + (percentage - basePct) / diff;
 		}
 	}
 
@@ -100,9 +121,10 @@ function getPercentageColor(
 	const level = getAttainmentLevel(percentage, thresholds);
 	const maxLevel = thresholds.length;
 
-	if (level === maxLevel) return "FFAAFFAA"; // Light green
-	if (level === maxLevel - 1) return "FFFFFFAA"; // Light yellow
-	if (level === maxLevel - 2) return "FFFFCCAA"; // Light orange
+	const flooredLevel = Math.floor(level);
+	if (flooredLevel === maxLevel) return "FFAAFFAA"; // Light green
+	if (flooredLevel === maxLevel - 1) return "FFFFFFAA"; // Light yellow
+	if (flooredLevel === maxLevel - 2) return "FFFFCCAA"; // Light orange
 	return "FFFFAAAA"; // Light red
 }
 
@@ -645,10 +667,10 @@ export function createCOAttainmentAbsoluteScaleTable(
 	});
 	currentRow++;
 
-	// Row 5: CO Attainment (% of Students Above Passing Marks)
+	// Row 5: CO Attainment (AVERAGE OF PERCENTAGE ATTAINMENTS)
 	const avgAttainmentCell = ws.getCell(currentRow, 1);
 	avgAttainmentCell.value =
-		"CO Attainment (% of Students Above Passing Marks)";
+		"CO Attainment (AVERAGE OF PERCENTAGE ATTAINMENTS)";
 	avgAttainmentCell.font = { bold: true };
 	avgAttainmentCell.alignment = { horizontal: "left", vertical: "middle" };
 	avgAttainmentCell.border = {
@@ -662,13 +684,7 @@ export function createCOAttainmentAbsoluteScaleTable(
 		const cell = ws.getCell(currentRow, idx + 5);
 		const assessed = isCOAssessed(co, coMaxMarks);
 		if (assessed) {
-			const percentage =
-				attainment.presentStudents > 0
-					? (attainment.coStats[co as keyof typeof attainment.coStats]
-							.abovePass /
-							attainment.presentStudents) *
-					  100
-					: 0;
+			const percentage = attainment.coStats[co as keyof typeof attainment.coStats].averagePercentage || 0;
 			cell.value = Number(percentage.toFixed(2));
 			cell.fill = {
 				type: "pattern",
@@ -718,14 +734,8 @@ export function createCOAttainmentAbsoluteScaleTable(
 		const cell = ws.getCell(currentRow, idx + 5);
 		const assessed = isCOAssessed(co, coMaxMarks);
 		if (assessed) {
-			const percentage =
-				attainment.presentStudents > 0
-					? (attainment.coStats[co as keyof typeof attainment.coStats]
-							.abovePass /
-							attainment.presentStudents) *
-					  100
-					: 0;
-			cell.value = Number(percentage.toFixed(2));
+			const percentage = attainment.coStats[co as keyof typeof attainment.coStats].averagePercentage || 0;
+			cell.value = Number(percentage.toFixed(2)) + "%";
 			cell.fill = {
 				type: "pattern",
 				pattern: "solid",

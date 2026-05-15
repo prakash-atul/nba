@@ -1,0 +1,21 @@
+{
+	"mcp": {
+		"shadcn": {
+			"command": ["npx", "shadcn@latest", "mcp"],
+			"args": ["shadcn@latest", "mcp"],
+			"enabled": true,
+			"type": "local"
+		},
+		"@magicuidesign/mcp": {
+			"command": "npx",
+			"args": ["-y", "@magicuidesign/mcp@latest"],
+			"enabled": true
+		},
+		"jcodemunch": {
+			"type": "local",
+			"command": ["python", "-m", "jcodemunch_mcp", "serve"],
+			"enabled": true
+		}
+	},
+	"$schema": "https://opencode.ai/config.json"
+}

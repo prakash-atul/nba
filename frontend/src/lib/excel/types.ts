@@ -25,6 +25,7 @@ export interface StudentMarksData {
 	sNo: number;
 	rollNo: string;
 	name: string;
+	programmeName?: string;
 	absentee?: string;
 	assessmentMarks: { [assessmentName: string]: COMarks };
 	coTotals: COMarks & { total: number };

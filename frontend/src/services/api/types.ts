@@ -38,7 +38,8 @@ export interface User {
 	email: string;
 	role: string;
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
 	department_id: number | null;
 	department_name?: string;
 	department_code?: string;
@@ -75,6 +76,11 @@ export interface Course {
 	faculty_id: number;
 	year: number;
 	semester: string;
+	is_active?: number;
+	cfa_is_active?: number | null;
+	enrollment_count?: number;
+	test_count?: number;
+	avg_score_pct?: number | null;
 }
 
 export interface CoursesResponse {
@@ -106,14 +112,16 @@ export interface QuestionResponse extends Question {
 
 export interface Test {
 	id: number;
-	course_id: number;
+	offering_id: number;
+	course_id?: number; // legacy alias
 	name: string;
 	full_marks: number;
 	pass_marks: number;
 }
 
 export interface CreateAssessmentRequest {
-	course_id: number;
+	offering_id: number;
+	course_id?: number; // legacy alias
 	name: string;
 	full_marks: number;
 	pass_marks: number;
@@ -139,6 +147,7 @@ export interface SaveMarksByQuestionRequest {
 	test_id: number;
 	student_id: string;
 	marks: QuestionMarks[];
+	validate_marks?: boolean;
 }
 
 export interface SaveMarksByCORequest {
@@ -150,6 +159,7 @@ export interface SaveMarksByCORequest {
 	CO4?: number;
 	CO5?: number;
 	CO6?: number;
+	validate_marks?: boolean;
 }
 
 export interface COTotals {
@@ -164,6 +174,9 @@ export interface COTotals {
 export interface MarksRecord {
 	id: number;
 	student_id: string;
+	student_name?: string;
+	programme_id?: number;
+	programme_name?: string;
 	test_id: number;
 	CO1: number;
 	CO2: number;
@@ -194,6 +207,7 @@ export interface BulkMarksEntry {
 export interface BulkMarksSaveRequest {
 	test_id: number;
 	marks_entries: BulkMarksEntry[];
+	validate_marks?: boolean;
 }
 
 export interface BulkMarksSaveResponse {
@@ -212,13 +226,17 @@ export interface BulkMarksSaveResponse {
 export interface Student {
 	roll_no: string;
 	student_name: string;
-	department_id: number;
+	programme_id: number;
 	batch_year: number;
 	student_status: string;
 	email: string | null;
-	phone: string | null;
+	phones: string[];
+	programme_name?: string;
+	programme_code?: string;
+	department_id?: number;
 	department_name: string;
 	department_code: string;
+	enrolled_courses?: string; // comma-separated "code: name (year/sem)" entries
 
 	// Legacy support
 	rollno?: string;
@@ -232,7 +250,9 @@ export interface EnrolledStudent extends Student {
 
 export interface UpdateStudentRequest {
 	student_name?: string;
+	programme_id?: number;
 	email?: string | null;
+	phones?: string[];
 	phone?: string | null;
 	student_status?: string;
 	batch_year?: number;
@@ -247,6 +267,7 @@ export interface Enrollment {
 export interface CourseEnrollmentsResponse {
 	success: boolean;
 	data: {
+		offering_id: number;
 		course_id: number;
 		course_code: string;
 		enrollment_count: number;
@@ -278,6 +299,23 @@ export interface Department {
 	latest_offering?: string | null;
 }
 
+export interface Programme {
+	programme_id: number;
+	department_id: number;
+	programme_code: string;
+	programme_name: string;
+	degree_level: "UG" | "PG" | "Diploma" | "PhD";
+	duration_years: number;
+	created_at?: string;
+	department_name?: string;
+	department_code?: string;
+	school_id?: number | null;
+	school_name?: string | null;
+	school_code?: string | null;
+	student_count?: number;
+	course_count?: number;
+}
+
 // Admin Types
 export interface AdminStats {
 	totalUsers: number;
@@ -307,6 +345,7 @@ export interface AdminCourse {
 	passing_threshold?: number | null;
 	faculty_id?: number | null;
 	faculty_name?: string | null;
+	cfa_is_active?: number | null;
 	enrollment_count?: number;
 	test_count?: number;
 	// Legacy/Compat
@@ -333,15 +372,17 @@ export interface CreateUserRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "admin" | "faculty" | "hod" | "staff";
+	role: "admin" | "faculty" | "hod" | "staff" | "dean";
 	designation?: string | null;
-	phone?: string | null;
+	phones: string[];
 	department_id?: number | null;
+	school_id?: number | null;
 }
 
 // Attainment Types
 export interface AttainmentConfig {
-	course_id: number;
+	offering_id: number;
+	course_id?: number;
 	co_threshold: number;
 	passing_threshold: number;
 	attainment_thresholds: Array<{
@@ -352,7 +393,7 @@ export interface AttainmentConfig {
 }
 
 export interface SaveAttainmentConfigRequest {
-	course_id: number;
+	offering_id: number;
 	co_threshold: number;
 	passing_threshold: number;
 	attainment_thresholds: Array<{
@@ -365,6 +406,38 @@ export interface CoPoMappingRow {
 	co_name: string;
 	po_name: string;
 	value: number;
+}
+
+export interface OfferingAttainmentCO {
+	co_name: string;
+	attainment_percentage: number;
+	attainment_level: number;
+}
+
+export interface OfferingAttainmentPO {
+	po_name: string;
+	attainment_value: number;
+}
+
+export interface OfferingAttainmentSnapshotInfo {
+	offering_id: number;
+	co_threshold: number;
+	passing_threshold: number;
+	attainment_thresholds: Array<{ id: number; level: number; percentage: number }>;
+	co_attainment: OfferingAttainmentCO[];
+	po_attainment: OfferingAttainmentPO[];
+}
+
+export interface OfferingAttainmentResponse extends OfferingAttainmentSnapshotInfo {
+	// Extends the snapshot info (same shape returned by apiGet's .data field)
+}
+
+
+
+export interface ProgrammeAttainmentResponse {
+	programme_id: number;
+	batch_year: number | null;
+	po_attainment: OfferingAttainmentPO[];
 }
 
 export interface SaveCoPoMatrixRequest {
@@ -396,6 +469,7 @@ export interface DepartmentCourse {
 	course_name: string;
 	credit: number;
 	department_id?: number | null;
+	department_code?: string | null;
 	course_type?: string;
 	course_level?: string;
 	is_active?: number;
@@ -428,7 +502,8 @@ export interface DepartmentFaculty {
 	username: string;
 	email: string;
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
 	role: string;
 	department_id: number;
 	is_hod?: boolean;
@@ -468,6 +543,8 @@ export interface HODHistoryRecord {
 	username: string;
 	email: string;
 	designation: string | null;
+	phones?: string[];
+	phone?: string | null;
 	start_date: string;
 	end_date: string | null;
 	is_current: number;
@@ -483,7 +560,8 @@ export interface HODCreateUserRequest {
 	password: string;
 	role: "faculty" | "staff";
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
 }
 
 export interface HODUpdateUserRequest {
@@ -491,6 +569,18 @@ export interface HODUpdateUserRequest {
 	email?: string;
 	password?: string;
 	role?: "faculty" | "staff";
+	designation?: string | null;
+	phones?: string[];
+	phone?: string | null;
+}
+
+export interface AdminUpdateUserRequest {
+	username?: string;
+	email?: string;
+	password?: string;
+	role?: "admin" | "dean" | "hod" | "faculty" | "staff";
+	department_id?: number | null;
+	school_id?: number | null;
 	designation?: string | null;
 	phone?: string | null;
 }
@@ -527,8 +617,8 @@ export interface CreateDeanRequest extends AppointDeanRequest {
 	username: string;
 	email: string;
 	password: string;
-	role: "faculty";
-	department_id: number;
+	role: "dean";
+	department_id?: number | null;
 }
 
 // Admin Department Management Types
@@ -544,6 +634,53 @@ export interface UpdateDepartmentRequest {
 	department_code?: string;
 	school_id?: number | null;
 	description?: string;
+}
+
+export interface CreateProgrammeRequest {
+	department_id?: number;
+	programme_code: string;
+	programme_name: string;
+	degree_level?: "UG" | "PG" | "Diploma" | "PhD";
+	duration_years?: number;
+}
+
+export interface UpdateProgrammeRequest {
+	department_id?: number;
+	programme_code?: string;
+	programme_name?: string;
+	degree_level?: "UG" | "PG" | "Diploma" | "PhD";
+	duration_years?: number;
+}
+
+export interface ProgrammeBulkStudent {
+	rollno: string;
+	name: string;
+	batch_year?: number;
+}
+
+export interface ProgrammeCourse {
+	id: number;
+	programme_id: number;
+	course_id: number;
+	course_code: string;
+	course_name: string;
+	credits: number | null;
+	created_at: string;
+}
+
+export interface ProgrammeCourseResponse {
+	courses: ProgrammeCourse[];
+	available: Array<{
+		course_id: number;
+		course_code: string;
+		course_name: string;
+		credits: number | null;
+	}>;
+}
+
+export interface ProgrammeBulkEnrollRequest {
+	students: ProgrammeBulkStudent[];
+	batch_year?: number;
 }
 
 // Faculty Types
@@ -619,7 +756,9 @@ export interface DeanUser {
 	username: string;
 	email: string;
 	designation: string | null;
-	phone: string | null;
+	phones?: string[];
+	phone?: string | null;
+
 	role: string;
 	department_id: number | null;
 	department_name: string | null;
@@ -654,13 +793,16 @@ export interface DeanCourse {
 export interface DeanStudent {
 	roll_no: string;
 	student_name: string;
+	programme_id: number;
+	programme_name?: string;
+	programme_code?: string;
 	department_id: number;
 	department_name: string;
 	department_code: string;
 	batch_year: number | null;
 	student_status: string;
 	email: string | null;
-	phone: string | null;
+	phones: string[];
 }
 
 export interface DeanTest {

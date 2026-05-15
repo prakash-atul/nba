@@ -14,6 +14,11 @@ class CourseFacultyAssignmentRepository
         $this->db = $dbConnection;
     }
 
+    public function getDb()
+    {
+        return $this->db;
+    }
+
     /**
      * Find assignment by ID
      * @param int $id
@@ -272,6 +277,27 @@ class CourseFacultyAssignmentRepository
     }
 
     /**
+     * Reactivate a course offering (open it back for faculty review)
+     * @param int $offeringId
+     * @return bool
+     */
+    public function reactivateOffering($offeringId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE course_faculty_assignments 
+                SET is_active = 1, completion_date = NULL
+                WHERE offering_id = ? AND assignment_type = 'Primary'
+            ");
+
+            $stmt->execute([$offeringId]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Delete an assignment
      * @param int $id
      * @return bool
@@ -328,14 +354,14 @@ class CourseFacultyAssignmentRepository
      * @param int $employeeId
      * @return bool
      */
-    public function isFacultyAssignedToOffering($offeringId, $employeeId)
+    public function isFacultyAssignedToOffering($offeringId, $employeeId, $allowInactive = false)
     {
         try {
-            $stmt = $this->db->prepare("
-                SELECT COUNT(*) 
-                FROM course_faculty_assignments 
-                WHERE offering_id = ? AND employee_id = ? AND is_active = 1
-            ");
+            $sql = "SELECT COUNT(*) FROM course_faculty_assignments WHERE offering_id = ? AND employee_id = ?";
+            if (!$allowInactive) {
+                $sql .= " AND is_active = 1";
+            }
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([$offeringId, $employeeId]);
             
             return $stmt->fetchColumn() > 0;

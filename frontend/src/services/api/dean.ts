@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiDelete, apiGetPaginated } from "./base";
+import { debugLogger } from "@/lib/debugLogger";
 import type {
 	DeanStats,
 	DeanDepartment,
@@ -15,6 +16,7 @@ import type {
 
 export const deanApi = {
 	async getStats(): Promise<DeanStats> {
+		debugLogger.info("deanApi", "getStats called");
 		return apiGet<DeanStats>("/dean/stats");
 	},
 
@@ -49,11 +51,13 @@ export const deanApi = {
 	},
 
 	async getDepartmentAnalytics(): Promise<DepartmentAnalytics[]> {
+		debugLogger.info("deanApi", "getAllDepartments called");
 		return apiGet<DepartmentAnalytics[]>("/dean/analytics");
 	},
 
 	// HOD Management
 	async getDepartmentFaculty(departmentId: number): Promise<DeanUser[]> {
+		debugLogger.info("deanApi", "getDepartmentFaculty called");
 		return apiGet<DeanUser[]>(`/dean/departments/${departmentId}/faculty`);
 	},
 
@@ -61,6 +65,7 @@ export const deanApi = {
 		departmentId: number,
 		data: AppointHODRequest,
 	): Promise<DeanUser> {
+		debugLogger.info("deanApi", "appointHOD called");
 		return apiPost<AppointHODRequest, DeanUser>(
 			`/dean/departments/${departmentId}/hod`,
 			data,
@@ -68,10 +73,12 @@ export const deanApi = {
 	},
 
 	async demoteHOD(employeeId: number): Promise<DeanUser> {
+		debugLogger.info("deanApi", "demoteHOD called");
 		return apiDelete<DeanUser>(`/dean/hod/${employeeId}`);
 	},
 
 	async getHODHistory(): Promise<HODHistoryRecord[]> {
+		debugLogger.info("deanApi", "getHODHistory called");
 		return apiGet<HODHistoryRecord[]>("/dean/hod/history");
 	},
 };

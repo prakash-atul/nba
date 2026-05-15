@@ -1,9 +1,5 @@
 <?php
 
-/**
- * StudentRepository
- * Handles database operations for Student
- */
 class StudentRepository
 {
     private $db;
@@ -13,64 +9,67 @@ class StudentRepository
         $this->db = $db;
     }
 
-    /**
-     * Find student by roll number
-     */
     public function findByRollno($rollno)
     {
-        $stmt = $this->db->prepare("SELECT * FROM students WHERE roll_no = ?");
+        $stmt = $this->db->prepare("
+            SELECT s.*, p.department_id AS dept_id
+            FROM students s
+            LEFT JOIN programmes p ON s.programme_id = p.programme_id
+            WHERE s.roll_no = ?
+        ");
         $stmt->execute([$rollno]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
             return new Student(
-                $row['roll_no'], 
-                $row['student_name'], 
-                $row['department_id'],
+                $row['roll_no'],
+                $row['student_name'],
+                $row['programme_id'],
                 $row['batch_year'] ?? null,
                 $row['student_status'] ?? 'Active',
                 $row['email'] ?? null,
-                $row['phone'] ?? null
+                $row['phone'] ?? null,
+                $row['dept_id'] ?? null
             );
         }
         return null;
     }
 
-    /**
-     * Find students by department
-     */
     public function findByDepartment($deptId)
     {
-        $stmt = $this->db->prepare("SELECT * FROM students WHERE department_id = ? ORDER BY roll_no");
+        $stmt = $this->db->prepare("
+            SELECT s.*, p.department_id AS dept_id
+            FROM students s
+            JOIN programmes p ON s.programme_id = p.programme_id
+            WHERE p.department_id = ?
+            ORDER BY s.roll_no
+        ");
         $stmt->execute([$deptId]);
 
         $students = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $students[] = new Student(
-                $row['roll_no'], 
-                $row['student_name'], 
-                $row['department_id'],
+                $row['roll_no'],
+                $row['student_name'],
+                $row['programme_id'],
                 $row['batch_year'] ?? null,
                 $row['student_status'] ?? 'Active',
                 $row['email'] ?? null,
-                $row['phone'] ?? null
+                $row['phone'] ?? null,
+                $row['dept_id'] ?? null
             );
         }
         return $students;
     }
 
-    /**
-     * Find students by school ID
-     * @param int $schoolId
-     * @return array
-     */
     public function findBySchool($schoolId)
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT s.* 
+                SELECT s.*, p.department_id AS dept_id
                 FROM students s
-                JOIN departments d ON s.department_id = d.department_id
+                JOIN programmes p ON s.programme_id = p.programme_id
+                JOIN departments d ON p.department_id = d.department_id
                 WHERE d.school_id = ?
                 ORDER BY s.roll_no
             ");
@@ -79,13 +78,14 @@ class StudentRepository
 
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $students[] = new Student(
-                    $row['roll_no'], 
-                    $row['student_name'], 
-                    $row['department_id'],
+                    $row['roll_no'],
+                    $row['student_name'],
+                    $row['programme_id'],
                     $row['batch_year'] ?? null,
                     $row['student_status'] ?? 'Active',
                     $row['email'] ?? null,
-                    $row['phone'] ?? null
+                    $row['phone'] ?? null,
+                    $row['dept_id'] ?? null
                 );
             }
             return $students;
@@ -94,18 +94,14 @@ class StudentRepository
         }
     }
 
-    /**
-     * Count students by school ID
-     * @param int $schoolId
-     * @return int
-     */
     public function countBySchool($schoolId)
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT COUNT(*) 
+                SELECT COUNT(*)
                 FROM students s
-                JOIN departments d ON s.department_id = d.department_id
+                JOIN programmes p ON s.programme_id = p.programme_id
+                JOIN departments d ON p.department_id = d.department_id
                 WHERE d.school_id = ?
             ");
             $stmt->execute([$schoolId]);
@@ -115,19 +111,16 @@ class StudentRepository
         }
     }
 
-    /**
-     * Create a new student
-     */
     public function save(Student $student)
     {
         $stmt = $this->db->prepare(
-            "INSERT INTO students (roll_no, student_name, department_id, batch_year, student_status, email, phone) 
+            "INSERT INTO students (roll_no, student_name, programme_id, batch_year, student_status, email, phone)
              VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
         return $stmt->execute([
             $student->getRollNo(),
             $student->getStudentName(),
-            $student->getDepartmentId(),
+            $student->getProgrammeId(),
             $student->getBatchYear(),
             $student->getStudentStatus(),
             $student->getEmail(),
@@ -135,18 +128,15 @@ class StudentRepository
         ]);
     }
 
-    /**
-     * Update student
-     */
     public function update(Student $student)
     {
         $stmt = $this->db->prepare(
-            "UPDATE students SET student_name = ?, department_id = ?, batch_year = ?, 
+            "UPDATE students SET student_name = ?, programme_id = ?, batch_year = ?,
              student_status = ?, email = ?, phone = ? WHERE roll_no = ?"
         );
         return $stmt->execute([
             $student->getStudentName(),
-            $student->getDepartmentId(),
+            $student->getProgrammeId(),
             $student->getBatchYear(),
             $student->getStudentStatus(),
             $student->getEmail(),
@@ -155,9 +145,6 @@ class StudentRepository
         ]);
     }
 
-    /**
-     * Check if student exists
-     */
     public function exists($rollno)
     {
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM students WHERE roll_no = ?");
@@ -165,31 +152,32 @@ class StudentRepository
         return $stmt->fetchColumn() > 0;
     }
 
-    /**
-     * Get all students with department info
-     * @return array
-     */
     public function findAll()
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT s.*, d.department_name, d.department_code 
-                FROM students s 
-                LEFT JOIN departments d ON s.department_id = d.department_id 
+                SELECT s.*, p.programme_name, p.programme_code, p.department_id AS dept_id,
+                       d.department_name, d.department_code
+                FROM students s
+                LEFT JOIN programmes p ON s.programme_id = p.programme_id
+                LEFT JOIN departments d ON p.department_id = d.department_id
                 ORDER BY s.roll_no
             ");
             $stmt->execute();
-            $students = [];
 
+            $students = [];
             while ($data = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $students[] = [
                     'roll_no' => $data['roll_no'],
                     'student_name' => $data['student_name'],
-                    'department_id' => $data['department_id'],
+                    'programme_id' => $data['programme_id'],
                     'batch_year' => $data['batch_year'],
                     'student_status' => $data['student_status'],
                     'email' => $data['email'],
                     'phone' => $data['phone'],
+                    'programme_name' => $data['programme_name'],
+                    'programme_code' => $data['programme_code'],
+                    'department_id' => $data['dept_id'],
                     'department_name' => $data['department_name'],
                     'department_code' => $data['department_code']
                 ];
@@ -201,10 +189,6 @@ class StudentRepository
         }
     }
 
-    /**
-     * Count all students
-     * @return int
-     */
     public function countAll(): int
     {
         try {
@@ -216,22 +200,24 @@ class StudentRepository
         }
     }
 
-    /**
-     * Paginated list of students (admin view).
-     * Cursor is on roll_no (VARCHAR) — string keyset.
-     *
-     * @param array $params Result of PaginationHelper::parseParams()
-     * @return array raw rows
-     */
     public function findPaginated(array $params): array
     {
         try {
             $sql = "
-                SELECT s.roll_no, s.student_name, s.department_id,
+                SELECT s.roll_no, s.student_name, s.programme_id,
                        s.batch_year, s.student_status, s.email, s.phone,
-                       d.department_name, d.department_code
+                       p.programme_name, p.programme_code,
+                       d.department_name, d.department_code, d.department_id AS dept_id,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
-                LEFT JOIN departments d ON s.department_id = d.department_id
+                LEFT JOIN programmes p ON s.programme_id = p.programme_id
+                LEFT JOIN departments d ON p.department_id = d.department_id
                 WHERE 1=1
             ";
             $bindings = [];
@@ -243,8 +229,12 @@ class StudentRepository
                 $bindings[] = $like;
                 $bindings[] = $like;
             }
+            if (!empty($params['filters']['programme_id'])) {
+                $sql .= " AND s.programme_id = ?";
+                $bindings[] = (int)$params['filters']['programme_id'];
+            }
             if (!empty($params['filters']['department_id'])) {
-                $sql .= " AND s.department_id = ?";
+                $sql .= " AND p.department_id = ?";
                 $bindings[] = (int)$params['filters']['department_id'];
             }
             if (!empty($params['filters']['batch_year'])) {
@@ -255,8 +245,11 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
 
-            // String PK cursor (roll_no)
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
 
             $limit = (int)$params['limit'] + 1;
@@ -270,9 +263,6 @@ class StudentRepository
         }
     }
 
-    /**
-     * Count students matching pagination filters.
-     */
     public function countPaginated(array $params): int
     {
         try {
@@ -286,8 +276,12 @@ class StudentRepository
                 $bindings[] = $like;
                 $bindings[] = $like;
             }
+            if (!empty($params['filters']['programme_id'])) {
+                $sql .= " AND s.programme_id = ?";
+                $bindings[] = (int)$params['filters']['programme_id'];
+            }
             if (!empty($params['filters']['department_id'])) {
-                $sql .= " AND s.department_id = ?";
+                $sql .= " AND s.programme_id IN (SELECT programme_id FROM programmes WHERE department_id = ?)";
                 $bindings[] = (int)$params['filters']['department_id'];
             }
             if (!empty($params['filters']['batch_year'])) {
@@ -297,6 +291,10 @@ class StudentRepository
             if (!empty($params['filters']['student_status'])) {
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
+            }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
             }
 
             $stmt = $this->db->prepare($sql);
@@ -307,18 +305,24 @@ class StudentRepository
         }
     }
 
-    /**
-     * Paginated students scoped to a school (dean view).
-     */
     public function findBySchoolPaginated(int $schoolId, array $params): array
     {
         try {
             $sql = "
-                SELECT s.roll_no, s.student_name, s.department_id,
+                SELECT s.roll_no, s.student_name, s.programme_id,
                        s.batch_year, s.student_status, s.email, s.phone,
-                       d.department_name, d.department_code
+                       p.programme_name, p.programme_code,
+                       d.department_name, d.department_code, d.department_id AS dept_id,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
-                JOIN departments d ON s.department_id = d.department_id
+                JOIN programmes p ON s.programme_id = p.programme_id
+                JOIN departments d ON p.department_id = d.department_id
                 WHERE d.school_id = ?
             ";
             $bindings = [$schoolId];
@@ -329,8 +333,12 @@ class StudentRepository
                 $bindings[] = $like;
                 $bindings[] = $like;
             }
+            if (!empty($params['filters']['programme_id'])) {
+                $sql .= " AND s.programme_id = ?";
+                $bindings[] = (int)$params['filters']['programme_id'];
+            }
             if (!empty($params['filters']['department_id'])) {
-                $sql .= " AND s.department_id = ?";
+                $sql .= " AND p.department_id = ?";
                 $bindings[] = (int)$params['filters']['department_id'];
             }
             if (!empty($params['filters']['batch_year'])) {
@@ -340,6 +348,10 @@ class StudentRepository
             if (!empty($params['filters']['student_status'])) {
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
+            }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
             }
 
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
@@ -355,16 +367,14 @@ class StudentRepository
         }
     }
 
-    /**
-     * Count students in a school matching filters.
-     */
     public function countBySchoolPaginated(int $schoolId, array $params): int
     {
         try {
             $sql = "
                 SELECT COUNT(*)
                 FROM students s
-                JOIN departments d ON s.department_id = d.department_id
+                JOIN programmes p ON s.programme_id = p.programme_id
+                JOIN departments d ON p.department_id = d.department_id
                 WHERE d.school_id = ?
             ";
             $bindings = [$schoolId];
@@ -375,8 +385,12 @@ class StudentRepository
                 $bindings[] = $like;
                 $bindings[] = $like;
             }
+            if (!empty($params['filters']['programme_id'])) {
+                $sql .= " AND s.programme_id = ?";
+                $bindings[] = (int)$params['filters']['programme_id'];
+            }
             if (!empty($params['filters']['department_id'])) {
-                $sql .= " AND s.department_id = ?";
+                $sql .= " AND p.department_id = ?";
                 $bindings[] = (int)$params['filters']['department_id'];
             }
             if (!empty($params['filters']['batch_year'])) {
@@ -387,6 +401,10 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
@@ -396,21 +414,25 @@ class StudentRepository
         }
     }
 
-    /**
-     * Paginated students scoped to a department (HOD / Staff view).
-     *
-     * @param int   $departmentId
-     * @param array $params Result of PaginationHelper::parseParams()
-     * @return array raw rows
-     */
     public function findByDepartmentPaginated(int $departmentId, array $params): array
     {
         try {
             $sql = "
-                SELECT s.roll_no, s.student_name, s.department_id,
-                       s.batch_year, s.student_status, s.email, s.phone
+                SELECT s.roll_no, s.student_name, s.programme_id,
+                       s.batch_year, s.student_status, s.email, s.phone,
+                       p.programme_name, p.programme_code,
+                       d.department_name, d.department_code,
+                       (
+                           SELECT GROUP_CONCAT(DISTINCT CONCAT(c.course_code, ': ', c.course_name, ' (', co.year, '/', co.semester, ')') ORDER BY c.course_code SEPARATOR ', ')
+                           FROM enrollments e
+                           JOIN course_offerings co ON e.offering_id = co.offering_id
+                           JOIN courses c ON co.course_id = c.course_id
+                           WHERE e.student_rollno = s.roll_no
+                       ) AS enrolled_courses
                 FROM students s
-                WHERE s.department_id = ?
+                JOIN programmes p ON s.programme_id = p.programme_id
+                JOIN departments d ON p.department_id = d.department_id
+                WHERE p.department_id = ?
             ";
             $bindings = [$departmentId];
 
@@ -429,6 +451,10 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
 
             PaginationHelper::applyCursor($sql, $bindings, 's.roll_no', $params['cursor'], $params['sortDir'], true);
 
@@ -443,13 +469,10 @@ class StudentRepository
         }
     }
 
-    /**
-     * Count students in a department matching filters.
-     */
     public function countByDepartmentPaginated(int $departmentId, array $params): int
     {
         try {
-            $sql = "SELECT COUNT(*) FROM students s WHERE s.department_id = ?";
+            $sql = "SELECT COUNT(*) FROM students s WHERE s.programme_id IN (SELECT programme_id FROM programmes WHERE department_id = ?)";
             $bindings = [$departmentId];
 
             if ($params['search']) {
@@ -466,6 +489,10 @@ class StudentRepository
                 $sql .= " AND s.student_status = ?";
                 $bindings[] = $params['filters']['student_status'];
             }
+            if (!empty($params['filters']['course_code'])) {
+                $sql .= " AND EXISTS (SELECT 1 FROM enrollments e JOIN course_offerings co ON e.offering_id = co.offering_id JOIN courses c ON co.course_id = c.course_id WHERE e.student_rollno = s.roll_no AND c.course_code = ?)";
+                $bindings[] = $params['filters']['course_code'];
+            }
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($bindings);
@@ -473,5 +500,13 @@ class StudentRepository
         } catch (PDOException $e) {
             throw new Exception("Database error: " . $e->getMessage());
         }
+    }
+
+    public function findFirstProgrammeIdByDepartment(int $departmentId): ?int
+    {
+        $stmt = $this->db->prepare("SELECT programme_id FROM programmes WHERE department_id = ? ORDER BY programme_id LIMIT 1");
+        $stmt->execute([$departmentId]);
+        $value = $stmt->fetchColumn();
+        return $value !== false ? (int)$value : null;
     }
 }

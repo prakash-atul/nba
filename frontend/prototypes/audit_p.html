@@ -1,0 +1,819 @@
+<!doctype html>
+
+<html class="light" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<title>Audit Trail - High-Density Data Explorer</title>
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<script id="tailwind-config">
+			tailwind.config = {
+				darkMode: "class",
+				theme: {
+					extend: {
+						colors: {
+							"tertiary-container": "#34b5fa",
+							"primary-fixed": "#d8e3fb",
+							"tertiary-fixed": "#34b5fa",
+							secondary: "#506076",
+							"surface-bright": "#f7f9fb",
+							"on-tertiary": "#f5f9ff",
+							"inverse-surface": "#0b0f10",
+							"on-tertiary-container": "#003047",
+							primary: "#545f73",
+							"on-tertiary-fixed": "#00121e",
+							"error-container": "#fe8983",
+							"surface-container-high": "#e1e9ee",
+							"surface-variant": "#d9e4ea",
+							surface: "#f7f9fb",
+							"primary-fixed-dim": "#cad5ed",
+							"on-surface-variant": "#566166",
+							"on-primary": "#f6f7ff",
+							"on-tertiary-fixed-variant": "#003954",
+							"on-secondary": "#f7f9ff",
+							"secondary-fixed": "#d3e4fe",
+							"tertiary-dim": "#005980",
+							"outline-variant": "#a9b4b9",
+							"on-secondary-fixed": "#314055",
+							"on-surface": "#2a3439",
+							"surface-container-low": "#f0f4f7",
+							"primary-container": "#d8e3fb",
+							"on-background": "#2a3439",
+							"on-secondary-container": "#435368",
+							"on-secondary-fixed-variant": "#4d5d73",
+							"on-primary-container": "#475266",
+							background: "#f7f9fb",
+							"tertiary-fixed-dim": "#17a8ec",
+							"on-error": "#fff7f6",
+							"secondary-fixed-dim": "#c5d6f0",
+							"on-primary-fixed-variant": "#515c70",
+							"secondary-dim": "#44546a",
+							"surface-container-highest": "#d9e4ea",
+							"surface-tint": "#545f73",
+							"on-primary-fixed": "#354053",
+							"surface-container-lowest": "#ffffff",
+							"surface-container": "#e8eff3",
+							outline: "#717c82",
+							tertiary: "#006592",
+							"secondary-container": "#d3e4fe",
+							"primary-dim": "#485367",
+							"on-error-container": "#752121",
+							error: "#9f403d",
+							"error-dim": "#4e0309",
+							"surface-dim": "#cfdce3",
+							"inverse-primary": "#dae6fe",
+							"inverse-on-surface": "#9a9d9f",
+						},
+						fontFamily: {
+							headline: ["Manrope"],
+							body: ["Inter"],
+							label: ["Inter"],
+						},
+						borderRadius: {
+							DEFAULT: "0.125rem",
+							lg: "0.25rem",
+							xl: "0.5rem",
+							full: "0.75rem",
+						},
+					},
+				},
+			};
+		</script>
+		<style>
+			.material-symbols-outlined {
+				font-variation-settings:
+					"FILL" 0,
+					"wght" 400,
+					"GRAD" 0,
+					"opsz" 24;
+				vertical-align: middle;
+			}
+			::-webkit-scrollbar {
+				width: 6px;
+				height: 6px;
+			}
+			::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			::-webkit-scrollbar-thumb {
+				background: #d9e4ea;
+				border-radius: 10px;
+			}
+			::-webkit-scrollbar-thumb:hover {
+				background: #717c82;
+			}
+		</style>
+	</head>
+	<body class="bg-surface font-body text-on-surface overflow-hidden">
+		<!-- Sidebar Navigation -->
+		<aside
+			class="h-screen w-64 fixed left-0 top-0 bg-[#f0f4f7] dark:bg-slate-900 flex flex-col py-6 pl-4 pr-0 z-50"
+		>
+			<div class="px-4 mb-10">
+				<div class="flex items-center gap-3">
+					<div
+						class="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center text-primary"
+					>
+						<span
+							class="material-symbols-outlined"
+							style="font-variation-settings: &quot;FILL&quot; 1"
+							>security</span
+						>
+					</div>
+					<div>
+						<h1
+							class="font-['Manrope'] text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight"
+						>
+							System Admin
+						</h1>
+						<p
+							class="text-xs text-slate-500 font-medium tracking-wide"
+						>
+							Enterprise Oversight
+						</p>
+					</div>
+				</div>
+			</div>
+			<nav class="flex-1 space-y-1">
+				<a
+					class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-all ease-in-out duration-300 font-['Inter'] font-medium text-sm tracking-wide"
+					href="#"
+				>
+					<span class="material-symbols-outlined">dashboard</span>
+					Overview
+				</a>
+				<a
+					class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-l-lg font-semibold shadow-sm font-['Inter'] text-sm tracking-wide"
+					href="#"
+				>
+					<span class="material-symbols-outlined"
+						>history_toggle_off</span
+					>
+					Access Logs
+				</a>
+				<a
+					class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-all ease-in-out duration-300 font-['Inter'] font-medium text-sm tracking-wide"
+					href="#"
+				>
+					<span class="material-symbols-outlined">verified_user</span>
+					Security Events
+				</a>
+				<a
+					class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-all ease-in-out duration-300 font-['Inter'] font-medium text-sm tracking-wide"
+					href="#"
+				>
+					<span class="material-symbols-outlined">policy</span>
+					System Policies
+				</a>
+				<a
+					class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-all ease-in-out duration-300 font-['Inter'] font-medium text-sm tracking-wide"
+					href="#"
+				>
+					<span class="material-symbols-outlined"
+						>admin_panel_settings</span
+					>
+					Admin Settings
+				</a>
+			</nav>
+			<div class="mt-auto px-4 space-y-4">
+				<button
+					class="w-full py-2.5 px-4 bg-primary text-on-primary rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+				>
+					Refresh Logs
+				</button>
+				<div class="pt-6 border-t border-outline-variant/10 space-y-1">
+					<a
+						class="flex items-center gap-3 py-2 text-slate-600 text-xs font-medium hover:text-primary transition-colors"
+						href="#"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>menu_book</span
+						>
+						Documentation
+					</a>
+					<a
+						class="flex items-center gap-3 py-2 text-slate-600 text-xs font-medium hover:text-primary transition-colors"
+						href="#"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>contact_support</span
+						>
+						Support
+					</a>
+				</div>
+			</div>
+		</aside>
+		<!-- Main Content Area -->
+		<main class="ml-64 min-h-screen flex flex-col">
+			<!-- Top Navigation Bar -->
+			<header
+				class="flex justify-between items-center px-8 h-16 w-full bg-[#f7f9fb] dark:bg-slate-900 sticky top-0 z-40"
+			>
+				<div class="flex items-center gap-6">
+					<span
+						class="font-['Manrope'] font-extrabold text-xl text-[#545f73] dark:text-slate-200"
+						>Audit Trail</span
+					>
+					<div class="h-6 w-px bg-outline-variant/20"></div>
+					<div class="flex items-center gap-4">
+						<span
+							class="text-[#545f73] border-b-2 border-[#545f73] font-['Manrope'] font-bold tracking-tight text-lg py-1 cursor-pointer"
+							>Logs</span
+						>
+						<span
+							class="text-slate-500 hover:text-slate-900 font-['Manrope'] font-bold tracking-tight text-lg py-1 cursor-pointer transition-colors"
+							>Analytics</span
+						>
+					</div>
+				</div>
+				<div class="flex items-center gap-4">
+					<div class="relative">
+						<span
+							class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline"
+							>search</span
+						>
+						<input
+							class="bg-surface-container-highest border-none rounded-xl pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-tertiary-container/30 transition-all"
+							placeholder="Search entity or actor..."
+							type="text"
+						/>
+					</div>
+					<div class="flex items-center gap-2">
+						<button
+							class="p-2 text-primary hover:bg-slate-100 rounded-lg transition-colors"
+						>
+							<span class="material-symbols-outlined"
+								>notifications</span
+							>
+						</button>
+						<button
+							class="p-2 text-primary hover:bg-slate-100 rounded-lg transition-colors"
+						>
+							<span class="material-symbols-outlined">help</span>
+						</button>
+						<button
+							class="flex items-center gap-2 pl-2 pr-1 py-1 hover:bg-slate-100 rounded-full transition-colors"
+						>
+							<span class="text-sm font-semibold text-slate-700"
+								>Admin.User</span
+							>
+							<span class="material-symbols-outlined text-3xl"
+								>account_circle</span
+							>
+						</button>
+					</div>
+				</div>
+			</header>
+			<!-- Advanced Filter Row -->
+			<section
+				class="px-8 py-4 bg-surface-container-low flex items-center justify-between gap-4"
+			>
+				<div
+					class="flex items-center gap-3 overflow-x-auto no-scrollbar"
+				>
+					<div
+						class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded-lg border border-outline-variant/10 text-xs font-medium cursor-pointer hover:bg-white shadow-sm transition-all"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>calendar_today</span
+						>
+						<span>Date Range: Last 24 Hours</span>
+						<span class="material-symbols-outlined text-sm"
+							>expand_more</span
+						>
+					</div>
+					<div
+						class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded-lg border border-outline-variant/10 text-xs font-medium cursor-pointer hover:bg-white shadow-sm transition-all"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>person</span
+						>
+						<span>Actor: All Users</span>
+						<span class="material-symbols-outlined text-sm"
+							>expand_more</span
+						>
+					</div>
+					<div
+						class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded-lg border border-outline-variant/10 text-xs font-medium cursor-pointer hover:bg-white shadow-sm transition-all"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>category</span
+						>
+						<span>Entity Type: Database</span>
+						<span class="material-symbols-outlined text-sm"
+							>expand_more</span
+						>
+					</div>
+					<div
+						class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded-lg border border-outline-variant/10 text-xs font-medium cursor-pointer hover:bg-white shadow-sm transition-all"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>warning</span
+						>
+						<span>Severity: High &amp; Critical</span>
+						<span class="material-symbols-outlined text-sm"
+							>expand_more</span
+						>
+					</div>
+				</div>
+				<div class="flex items-center gap-2">
+					<button
+						class="flex items-center gap-2 px-4 py-1.5 bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-xs font-semibold hover:bg-white transition-all"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>view_column</span
+						>
+						Columns
+					</button>
+					<button
+						class="flex items-center gap-2 px-4 py-1.5 bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-xs font-semibold hover:bg-white transition-all"
+					>
+						<span class="material-symbols-outlined text-sm"
+							>download</span
+						>
+						Export CSV
+					</button>
+				</div>
+			</section>
+			<!-- Split View Container -->
+			<div class="flex-1 flex overflow-hidden relative">
+				<!-- Table View -->
+				<div class="flex-1 overflow-auto bg-surface relative">
+					<table class="w-full border-separate border-spacing-0">
+						<thead
+							class="sticky top-0 z-10 bg-surface-container-highest shadow-sm"
+						>
+							<tr>
+								<th
+									class="px-6 py-4 text-left text-[10px] uppercase tracking-[0.05em] font-bold text-on-surface-variant"
+								>
+									Timestamp
+								</th>
+								<th
+									class="px-6 py-4 text-left text-[10px] uppercase tracking-[0.05em] font-bold text-on-surface-variant"
+								>
+									Action
+								</th>
+								<th
+									class="px-6 py-4 text-left text-[10px] uppercase tracking-[0.05em] font-bold text-on-surface-variant"
+								>
+									Actor
+								</th>
+								<th
+									class="px-6 py-4 text-left text-[10px] uppercase tracking-[0.05em] font-bold text-on-surface-variant"
+								>
+									Entity ID
+								</th>
+								<th
+									class="px-6 py-4 text-left text-[10px] uppercase tracking-[0.05em] font-bold text-on-surface-variant"
+								>
+									Status
+								</th>
+								<th
+									class="px-6 py-4 text-right text-[10px] uppercase tracking-[0.05em] font-bold text-on-surface-variant"
+								>
+									Details
+								</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-outline-variant/5">
+							<!-- Critical Row -->
+							<tr
+								class="group hover:bg-surface-container-low cursor-pointer transition-colors bg-error/5"
+							>
+								<td class="px-6 py-4 whitespace-nowrap">
+									<div class="flex flex-col">
+										<span
+											class="text-sm font-semibold text-on-surface"
+											>Oct 24, 2023</span
+										>
+										<span
+											class="text-[11px] text-on-surface-variant"
+											>14:32:01.004</span
+										>
+									</div>
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="px-2 py-1 bg-inverse-surface text-white text-[10px] font-bold rounded-md"
+										>CREATE</span
+									>
+									<span
+										class="ml-2 text-sm font-medium text-on-surface"
+										>Admin Token Generated</span
+									>
+								</td>
+								<td class="px-6 py-4">
+									<div class="flex items-center gap-2">
+										<div
+											class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden"
+										>
+											<img
+												class="w-full h-full object-cover"
+												data-alt="User avatar for Sarah Miller"
+												src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV4YRmRXdjNX72WLdhT6gW7HgpjrzucXGSDNVTywxHqPBtHvfD5yUibRiiYh7TGvY_zt7nXP0nEBx6dOUefnTfiH2VyGGreKnJfp3DsuH7TNwc13EUYc_nhLDKtJy7ALDtEXKrIkQdG3MyKn8YlPbNBRGIFqMJ0abXwnw_SheA3lSy4p0XWjS7-eF2tjPcaGQ_BE5MWl32yTuWqnny4Z2ezhfMc1rqnkqeL27E5Iku9tCH7TkNJ68Y04EWUl0Uc-bg1ndTtZeZ6Wl2"
+											/>
+										</div>
+										<span class="text-sm text-on-surface"
+											>sarah.miller@corp.com</span
+										>
+									</div>
+								</td>
+								<td
+									class="px-6 py-4 text-sm font-mono text-tertiary"
+								>
+									#AUTH-99210
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="flex items-center gap-1.5 text-error font-semibold text-xs"
+									>
+										<span
+											class="material-symbols-outlined text-[14px]"
+											style="
+												font-variation-settings: &quot;FILL&quot;
+													1;
+											"
+											>error</span
+										>
+										Access Denied
+									</span>
+								</td>
+								<td class="px-6 py-4 text-right">
+									<button
+										class="text-tertiary hover:underline text-xs font-bold"
+									>
+										VIEW
+									</button>
+								</td>
+							</tr>
+							<!-- Standard Row -->
+							<tr
+								class="group hover:bg-surface-container-low cursor-pointer transition-colors"
+							>
+								<td class="px-6 py-4 whitespace-nowrap">
+									<div class="flex flex-col">
+										<span
+											class="text-sm font-semibold text-on-surface"
+											>Oct 24, 2023</span
+										>
+										<span
+											class="text-[11px] text-on-surface-variant"
+											>14:28:44.219</span
+										>
+									</div>
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="px-2 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-md"
+										>UPDATE</span
+									>
+									<span
+										class="ml-2 text-sm font-medium text-on-surface"
+										>Policy Restriction Modified</span
+									>
+								</td>
+								<td class="px-6 py-4">
+									<div class="flex items-center gap-2">
+										<div
+											class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden"
+										>
+											<img
+												class="w-full h-full object-cover"
+												data-alt="User avatar for James Chen"
+												src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS9VfnZOFHU7RZaaNUmmhrLtQjp8xYaXnYCsZ_J8VHsoqDJXX2zemvMKZrpxArQWBm866myFHN6sy4rghQP4TguGnhIvP27nK3mnDzu8iG4_4c04vlIO1DpWwzDCQbQBgY5LTwSh4wohWFTrYimazpoCT-p1yGf7m8Pe3e5X32P9N3S97HqS5utDYM2vV6MjJErImRkl-BFuFqZQaCg-EBbNl9Hf3PQlA6JykhMl_U2cqx_RVDTskz5pZlDdea2BO8OibU_FGQfGT3"
+											/>
+										</div>
+										<span class="text-sm text-on-surface"
+											>james.chen@corp.com</span
+										>
+									</div>
+								</td>
+								<td
+									class="px-6 py-4 text-sm font-mono text-tertiary"
+								>
+									#POL-88122
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="flex items-center gap-1.5 text-on-surface-variant font-semibold text-xs"
+									>
+										<span
+											class="material-symbols-outlined text-[14px]"
+											>check_circle</span
+										>
+										Success
+									</span>
+								</td>
+								<td class="px-6 py-4 text-right">
+									<button
+										class="text-tertiary hover:underline text-xs font-bold"
+									>
+										VIEW
+									</button>
+								</td>
+							</tr>
+							<!-- High Priority Row -->
+							<tr
+								class="group hover:bg-surface-container-low cursor-pointer transition-colors bg-tertiary/5"
+							>
+								<td class="px-6 py-4 whitespace-nowrap">
+									<div class="flex flex-col">
+										<span
+											class="text-sm font-semibold text-on-surface"
+											>Oct 24, 2023</span
+										>
+										<span
+											class="text-[11px] text-on-surface-variant"
+											>14:15:20.881</span
+										>
+									</div>
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="px-2 py-1 bg-inverse-surface text-white text-[10px] font-bold rounded-md"
+										>DELETE</span
+									>
+									<span
+										class="ml-2 text-sm font-medium text-on-surface"
+										>Critical Cluster Removed</span
+									>
+								</td>
+								<td class="px-6 py-4">
+									<div class="flex items-center gap-2">
+										<div
+											class="w-7 h-7 rounded-full bg-primary flex items-center justify-center"
+										>
+											<span
+												class="text-[10px] text-white font-bold"
+												>SA</span
+											>
+										</div>
+										<span class="text-sm text-on-surface"
+											>system_auto_bot</span
+										>
+									</div>
+								</td>
+								<td
+									class="px-6 py-4 text-sm font-mono text-tertiary"
+								>
+									#CLS-11029
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="flex items-center gap-1.5 text-on-surface font-semibold text-xs"
+									>
+										<span
+											class="material-symbols-outlined text-[14px]"
+											>info</span
+										>
+										Processing
+									</span>
+								</td>
+								<td class="px-6 py-4 text-right">
+									<button
+										class="text-tertiary hover:underline text-xs font-bold"
+									>
+										VIEW
+									</button>
+								</td>
+							</tr>
+							<!-- More Rows to fill -->
+							<tr
+								class="group hover:bg-surface-container-low cursor-pointer transition-colors border-t border-outline-variant/10"
+							>
+								<td class="px-6 py-4 whitespace-nowrap">
+									<div class="flex flex-col">
+										<span
+											class="text-sm font-semibold text-on-surface"
+											>Oct 24, 2023</span
+										>
+										<span
+											class="text-[11px] text-on-surface-variant"
+											>14:02:11.902</span
+										>
+									</div>
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="px-2 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-md"
+										>UPDATE</span
+									>
+									<span
+										class="ml-2 text-sm font-medium text-on-surface"
+										>Storage Bucket ACL Modified</span
+									>
+								</td>
+								<td class="px-6 py-4">
+									<div class="flex items-center gap-2">
+										<div
+											class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden"
+										>
+											<img
+												class="w-full h-full object-cover"
+												data-alt="User avatar for Elena Rodriguez"
+												src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkCJwJyP6gJiQ5Ig-NWCRDEgS2RU69xWCx7eWNKXPjFu3m-EVdMWNevVOug5vpkF-Y-8_La5hPFYN3GML9pFsPFme6iusdOycck1_-WKFL8HGgo4TwDjoCEdPDgl-SwPFDnZFPzSQ-GdIkYyzQwIE7XV3jOpFraqJHF4rb1dO9y-MOH7qtnUnK4uvzExcBPRD3arM8Ii6r-T-3aYq9pQXCCZGxeVPx3jW7DsO3gOngjkL9y7-xz9QrR-OpD53LiGrzJCKjMSWr_SJJ"
+											/>
+										</div>
+										<span class="text-sm text-on-surface"
+											>elena.r@corp.com</span
+										>
+									</div>
+								</td>
+								<td
+									class="px-6 py-4 text-sm font-mono text-tertiary"
+								>
+									#S3-556102
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="flex items-center gap-1.5 text-on-surface-variant font-semibold text-xs"
+									>
+										<span
+											class="material-symbols-outlined text-[14px]"
+											>check_circle</span
+										>
+										Success
+									</span>
+								</td>
+								<td class="px-6 py-4 text-right">
+									<button
+										class="text-tertiary hover:underline text-xs font-bold"
+									>
+										VIEW
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<!-- Detail Panel (Split View) -->
+				<div
+					class="w-[450px] bg-surface-container-lowest border-l border-outline-variant/20 shadow-[-10px_0_30px_rgba(0,0,0,0.02)] flex flex-col z-20"
+				>
+					<div
+						class="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low"
+					>
+						<h2
+							class="font-headline font-bold text-lg text-on-surface"
+						>
+							Audit Detail
+						</h2>
+						<button
+							class="p-1 hover:bg-slate-200 rounded-full transition-colors"
+						>
+							<span class="material-symbols-outlined">close</span>
+						</button>
+					</div>
+					<div class="flex-1 overflow-y-auto p-6 space-y-8">
+						<!-- Event Overview -->
+						<section>
+							<div class="flex items-center gap-3 mb-4">
+								<span
+									class="px-2.5 py-1 bg-error-container text-on-error-container text-[11px] font-bold rounded uppercase"
+									>Critical Error</span
+								>
+								<span
+									class="text-[11px] text-on-surface-variant font-medium"
+									>Event ID: 99x-bc82-012</span
+								>
+							</div>
+							<h3
+								class="font-headline font-extrabold text-2xl mb-1 leading-tight"
+							>
+								Admin Token Generation Denied
+							</h3>
+							<p class="text-sm text-on-surface-variant">
+								The security layer intercepted an unauthorized
+								attempt to generate a high-privilege Bearer
+								token from a non-whitelisted IP address.
+							</p>
+						</section>
+						<!-- Property Grid -->
+						<div class="grid grid-cols-2 gap-y-6">
+							<div>
+								<p
+									class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1"
+								>
+									Actor Identity
+								</p>
+								<p class="text-sm font-semibold">
+									Sarah Miller (Manager)
+								</p>
+							</div>
+							<div>
+								<p
+									class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1"
+								>
+									Source IP
+								</p>
+								<p class="text-sm font-mono">192.168.1.104</p>
+							</div>
+							<div>
+								<p
+									class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1"
+								>
+									Environment
+								</p>
+								<p class="text-sm font-semibold">
+									Production-US-East
+								</p>
+							</div>
+							<div>
+								<p
+									class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1"
+								>
+									Impact Level
+								</p>
+								<p class="text-sm font-semibold text-error">
+									Severe
+								</p>
+							</div>
+						</div>
+						<!-- JSON Diffs -->
+						<div class="space-y-4">
+							<div>
+								<div
+									class="flex items-center justify-between mb-2"
+								>
+									<h4
+										class="text-xs font-bold text-on-surface"
+									>
+										Previous State
+									</h4>
+									<span
+										class="text-[10px] text-on-surface-variant"
+										>Revision #412</span
+									>
+								</div>
+								<div
+									class="bg-surface-container-low p-4 rounded-xl font-mono text-xs text-on-surface-variant overflow-x-auto"
+								>
+									<pre>
+{
+  "token_access": "read_only",
+  "expiry": "2023-12-31",
+  "scopes": ["core:read"]
+}</pre
+									>
+								</div>
+							</div>
+							<div>
+								<div
+									class="flex items-center justify-between mb-2"
+								>
+									<h4
+										class="text-xs font-bold text-on-surface"
+									>
+										Attempted State
+									</h4>
+									<span
+										class="text-[10px] text-error font-bold"
+										>Unsaved Changes</span
+									>
+								</div>
+								<div
+									class="bg-surface-container-low p-4 rounded-xl font-mono text-xs text-on-surface overflow-x-auto border-l-4 border-error"
+								>
+									<pre>{
+  "token_access": <span class="bg-error/20 text-error px-1">"root_admin"</span>,
+  "expiry": <span class="bg-error/20 text-error px-1">"9999-12-31"</span>,
+  "scopes": <span class="bg-error/20 text-error px-1">["*"]</span>
+}</pre>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div
+						class="p-6 bg-surface-container-low border-t border-outline-variant/10 grid grid-cols-2 gap-3"
+					>
+						<button
+							class="w-full py-2.5 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm font-bold text-on-surface hover:bg-white transition-all"
+						>
+							Flag for Review
+						</button>
+						<button
+							class="w-full py-2.5 bg-primary text-on-primary rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all"
+						>
+							Revert Action
+						</button>
+					</div>
+				</div>
+			</div>
+		</main>
+		<!-- Contextual FAB (Hidden by default in detailed view based on instructions but kept for context if focused on a task) -->
+		<!-- Suppressed on detailed screens per instructions -->
+	</body>
+</html>
