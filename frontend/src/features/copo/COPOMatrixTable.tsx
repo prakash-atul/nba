@@ -22,8 +22,13 @@ interface COPOMatrixTableProps {
 	getAttainmentLevel: (percentage: number) => number;
 	getLevelColor: (level: number) => string;
 	attainmentThresholds: { id: number; percentage: number }[];
-	coMaxMarks?: Record<string, number>; // Total max marks per CO
+	coMaxMarks?: Record<string, number>;
 	readOnly?: boolean;
+	snapshotIndirectData?: Array<{
+		co_name: string;
+		final_attainment_level?: number | null;
+		attainment_level: number;
+	}>;
 }
 
 export function COPOMatrixTable({
@@ -36,6 +41,7 @@ export function COPOMatrixTable({
 	attainmentThresholds,
 	coMaxMarks,
 	readOnly = false,
+	snapshotIndirectData,
 }: COPOMatrixTableProps) {
 	return (
 		<Card>
@@ -60,6 +66,7 @@ export function COPOMatrixTable({
 						attainmentThresholds={attainmentThresholds}
 						coMaxMarks={coMaxMarks}
 						readOnly={readOnly}
+						snapshotIndirectData={snapshotIndirectData}
 					/>
 				</div>
 				<div className="p-4">

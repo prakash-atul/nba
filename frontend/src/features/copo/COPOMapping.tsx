@@ -52,6 +52,7 @@ export function COPOMapping({
 		handleExportAttainment,
 		poComputations,
 		calculatePOAttainment,
+		snapshotIndirectData,
 	} = useCOPOMappingData({
 		courseId,
 		courseCode,
@@ -106,6 +107,7 @@ export function COPOMapping({
 			handleCSVDataParsed={handleCSVDataParsed}
 			saveMatrix={saveMatrix}
 			handleExportAttainment={handleExportAttainment}
+			snapshotIndirectData={snapshotIndirectData}
 		/>
 	);
 }

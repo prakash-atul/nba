@@ -1,12 +1,6 @@
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { debugLogger } from "@/lib/debugLogger";
 import React from "react";
 
 interface POComputationPercentageTableProps {
@@ -39,6 +33,13 @@ export const POComputationPercentageTable = React.memo(function POComputationPer
 		"PSO2",
 		"PSO3",
 	];
+
+	debugLogger.info("POComputationPercentageTable", "Rendering percentage scale", {
+		overall: data.overall.toFixed(2),
+		averages: Object.fromEntries(
+			pos.map((po) => [po, data.averages[po]?.toFixed(2) ?? null]),
+		),
+	});
 
 	return (
 		<Card className="mt-6 border dark:border-gray-800 shadow-sm overflow-hidden">

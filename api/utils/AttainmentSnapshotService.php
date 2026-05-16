@@ -4,6 +4,7 @@ require_once __DIR__ . '/../models/AttainmentSnapshotRepository.php';
 require_once __DIR__ . '/../models/AttainmentScaleRepository.php';
 require_once __DIR__ . '/../models/CoPoRepository.php';
 require_once __DIR__ . '/../models/CourseOfferingRepository.php';
+require_once __DIR__ . '/../models/CourseExitSurveyRepository.php';
 
 class AttainmentSnapshotService
 {
@@ -12,19 +13,22 @@ class AttainmentSnapshotService
     private $scaleRepository;
     private $coPoRepository;
     private $offeringRepository;
+    private ?CourseExitSurveyRepository $surveyRepository;
 
     public function __construct(
         $db,
         AttainmentSnapshotRepository $snapshotRepository,
         AttainmentScaleRepository $scaleRepository,
         CoPoRepository $coPoRepository,
-        CourseOfferingRepository $offeringRepository
+        CourseOfferingRepository $offeringRepository,
+        ?CourseExitSurveyRepository $surveyRepository = null
     ) {
         $this->db = $db;
         $this->snapshotRepository = $snapshotRepository;
         $this->scaleRepository = $scaleRepository;
         $this->coPoRepository = $coPoRepository;
         $this->offeringRepository = $offeringRepository;
+        $this->surveyRepository = $surveyRepository;
     }
 
     public function calculatePreview($offeringId): array
@@ -65,8 +69,10 @@ class AttainmentSnapshotService
         $coMaxMarks = $this->getCoMaxMarks($offeringId);
         $studentPercentages = $this->getStudentPercentages($offeringId, $coMaxMarks);
         $presentStudents = count($studentPercentages);
-        $coAttainment = [];
-        $coLevels = [];
+
+        // --- DIRECT CO ATTAINMENT (existing logic) ---
+        $directCoAttainment = [];
+        $directCoLevels = [];
 
         for ($coNumber = 1; $coNumber <= 6; $coNumber++) {
             $attainmentPercentage = 0.0;
@@ -84,8 +90,8 @@ class AttainmentSnapshotService
             }
 
             $attainmentLevel = round($this->resolveAttainmentLevel($attainmentPercentage, $thresholds), 2);
-            $coLevels[$coNumber] = $attainmentLevel;
-            $coAttainment[] = [
+            $directCoLevels[$coNumber] = $attainmentLevel;
+            $directCoAttainment[] = [
                 'co_number' => $coNumber,
                 'co_name' => 'CO' . $coNumber,
                 'attainment_percentage' => $attainmentPercentage,
@@ -93,7 +99,123 @@ class AttainmentSnapshotService
             ];
         }
 
-        $poAttainment = $this->computePoAttainment($offeringId, $coLevels, count($thresholds));
+        // --- INDIRECT CO ATTAINMENT (from course exit surveys) ---
+        $indirectCoAttainment = [];
+        $indirectCoLevels = [];
+        $hasSurveyData = false;
+
+        if ($this->surveyRepository && $this->surveyRepository->hasResponses($offeringId)) {
+            $hasSurveyData = true;
+            $coAverages = $this->surveyRepository->getCoAverages($offeringId);
+            $avgByCo = [];
+            foreach ($coAverages as $avg) {
+                $avgByCo[(int)$avg['co_number']] = (float)$avg['average_rating'];
+            }
+
+            for ($coNumber = 1; $coNumber <= 6; $coNumber++) {
+                // Convert Likert 1-5 scale to percentage: (avg - 1) / 4 * 100
+                $avgRating = $avgByCo[$coNumber] ?? 0;
+                $indirectPct = $avgRating > 0 ? round(($avgRating - 1) / 4 * 100, 2) : 0.0;
+                $indirectLevel = round($this->resolveAttainmentLevel($indirectPct, $thresholds), 2);
+
+                $indirectCoLevels[$coNumber] = $indirectLevel;
+                $indirectCoAttainment[] = [
+                    'co_number' => $coNumber,
+                    'co_name' => 'CO' . $coNumber,
+                    'indirect_attainment_percentage' => $indirectPct,
+                    'indirect_attainment_level' => $indirectLevel,
+                ];
+            }
+        }
+
+        // --- BLENDED (FINAL) CO ATTAINMENT ---
+        $directWeightage = (float)($offering->getDirectWeightage() ?? 80.0);
+        $indirectWeightage = (float)($offering->getIndirectWeightage() ?? 20.0);
+
+        $finalCoAttainment = [];
+        $finalCoLevels = [];
+
+        for ($coNumber = 1; $coNumber <= 6; $coNumber++) {
+            $directPct = $directCoAttainment[$coNumber - 1]['attainment_percentage'];
+            $directLevel = $directCoLevels[$coNumber];
+
+            if ($hasSurveyData && isset($indirectCoLevels[$coNumber]) && $indirectCoLevels[$coNumber] > 0) {
+                $indirectPct = $indirectCoAttainment[$coNumber - 1]['indirect_attainment_percentage'];
+                $indirectLevel = $indirectCoLevels[$coNumber];
+
+                $finalPct = round(
+                    ($directPct * $directWeightage / 100) + ($indirectPct * $indirectWeightage / 100),
+                    2
+                );
+                $finalLevel = round($this->resolveAttainmentLevel($finalPct, $thresholds), 2);
+
+                $finalCoAttainment[] = [
+                    'co_number' => $coNumber,
+                    'co_name' => 'CO' . $coNumber,
+                    'attainment_percentage' => $directPct,
+                    'attainment_level' => $directLevel,
+                    'indirect_attainment_percentage' => $indirectPct,
+                    'indirect_attainment_level' => $indirectLevel,
+                    'final_attainment_percentage' => $finalPct,
+                    'final_attainment_level' => $finalLevel,
+                ];
+            } else {
+                // No survey data — final = direct
+                $finalCoAttainment[] = [
+                    'co_number' => $coNumber,
+                    'co_name' => 'CO' . $coNumber,
+                    'attainment_percentage' => $directPct,
+                    'attainment_level' => $directLevel,
+                    'indirect_attainment_percentage' => null,
+                    'indirect_attainment_level' => null,
+                    'final_attainment_percentage' => $directPct,
+                    'final_attainment_level' => $directLevel,
+                ];
+            }
+
+            // Always store the achievement level used for PO computation
+            // If blended, use final; otherwise use direct
+            $finalCoLevels[$coNumber] = $hasSurveyData && ($indirectCoLevels[$coNumber] ?? 0) > 0
+                ? ($finalCoAttainment[$coNumber - 1]['final_attainment_level'] ?? $directLevel)
+                : $directLevel;
+        }
+
+        // --- PO ATTAINMENT ---
+        // Direct PO (from direct CO levels)
+        $directPoAttainment = $this->computePoAttainment($offeringId, $directCoLevels, count($thresholds));
+        // Final PO (from final CO levels)
+        $finalPoAttainment = $this->computePoAttainment($offeringId, $finalCoLevels, count($thresholds));
+
+        // Merge: keep backward-compatible attainment_value = final, add direct/indirect
+        $poLookup = [];
+        foreach ($directPoAttainment as $po) {
+            $poLookup[$po['po_name']] = [
+                'direct_attainment_value' => $po['attainment_value'],
+            ];
+        }
+        foreach ($finalPoAttainment as $po) {
+            if (isset($poLookup[$po['po_name']])) {
+                $poLookup[$po['po_name']]['final_attainment_value'] = $po['attainment_value'];
+            }
+        }
+
+        $mergedPo = [];
+        ksort($poLookup);
+        foreach ($poLookup as $poName => $values) {
+            $directVal = $values['direct_attainment_value'];
+            $finalVal = $values['final_attainment_value'];
+            $indirectVal = $finalVal !== null && $directVal !== null
+                ? round($finalVal - $directVal, 2)
+                : null;
+
+            $mergedPo[] = [
+                'po_name' => $poName,
+                'attainment_value' => $finalVal ?? $directVal,
+                'direct_attainment_value' => $directVal,
+                'indirect_attainment_value' => $indirectVal,
+                'final_attainment_value' => $finalVal ?? $directVal,
+            ];
+        }
 
         return [
             'offering_id' => $offeringId,
@@ -107,9 +229,53 @@ class AttainmentSnapshotService
                     'percentage' => (float)$scale->min_percentage,
                 ];
             }, $thresholds),
-            'co_attainment' => $coAttainment,
-            'po_attainment' => $poAttainment,
+            'co_attainment' => $finalCoAttainment,
+            'po_attainment' => $mergedPo,
         ];
+    }
+
+    /**
+     * Calculate indirect CO attainment from survey data (preview, no persist).
+     */
+    public function calculateIndirectCoAttainment(int $offeringId): array
+    {
+        if (!$this->surveyRepository || !$this->surveyRepository->hasResponses($offeringId)) {
+            return [];
+        }
+
+        $thresholds = $this->scaleRepository->getByOfferingId($offeringId);
+        usort($thresholds, function ($a, $b) {
+            return $b->min_percentage <=> $a->min_percentage;
+        });
+
+        $averages = $this->surveyRepository->getCoAverages($offeringId);
+        $results = [];
+
+        for ($co = 1; $co <= 6; $co++) {
+            $avg = 0;
+            $count = 0;
+            foreach ($averages as $a) {
+                if ((int)$a['co_number'] === $co) {
+                    $avg = (float)$a['average_rating'];
+                    $count = (int)$a['respondent_count'];
+                    break;
+                }
+            }
+
+            $pct = $avg > 0 ? round(($avg - 1) / 4 * 100, 2) : 0.0;
+            $level = round($this->resolveAttainmentLevel($pct, $thresholds), 2);
+
+            $results[] = [
+                'co_number' => $co,
+                'co_name' => 'CO' . $co,
+                'average_rating' => $avg,
+                'respondent_count' => $count,
+                'attainment_percentage' => $pct,
+                'attainment_level' => $level,
+            ];
+        }
+
+        return $results;
     }
 
     private function getCoMaxMarks(int $offeringId): array

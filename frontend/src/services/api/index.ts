@@ -12,6 +12,7 @@ import { staffApi } from "./staff";
 import { deanApi } from "./dean";
 import { facultyApi } from "./faculty";
 import { attainmentApi } from "./attainment";
+import { surveyApi } from "./surveys";
 
 // Create a unified API service that maintains backward compatibility
 class ApiService {
@@ -121,6 +122,7 @@ export {
 	hodApi,
 	facultyApi,
 	attainmentApi,
+	surveyApi,
 	staffApi,
 	deanApi,
 };

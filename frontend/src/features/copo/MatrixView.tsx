@@ -64,6 +64,15 @@ export interface MatrixViewProps {
 		semester?: string;
 		session?: string;
 	}) => void;
+	snapshotIndirectData?: Array<{
+		co_name: string;
+		attainment_percentage: number;
+		attainment_level: number;
+		indirect_attainment_percentage?: number | null;
+		indirect_attainment_level?: number | null;
+		final_attainment_percentage?: number | null;
+		final_attainment_level?: number | null;
+	}>;
 }
 
 export function MatrixView({
@@ -103,6 +112,7 @@ export function MatrixView({
 	handleCSVDataParsed,
 	saveMatrix,
 	handleExportAttainment,
+	snapshotIndirectData,
 }: MatrixViewProps) {
 	const [editableProgramme, setEditableProgramme] = useState(programme);
 	const [editableYear, setEditableYear] = useState(String(year));
@@ -295,6 +305,7 @@ export function MatrixView({
 					getPercentageColor={getPercentageColorFn}
 					coThreshold={coThreshold}
 					coMaxMarks={coMaxMarks}
+					snapshotIndirectData={snapshotIndirectData}
 				/>
 			)}
 
@@ -341,6 +352,7 @@ export function MatrixView({
 				getLevelColor={getLevelColorFn}
 				attainmentThresholds={attainmentThresholds}
 				coMaxMarks={coMaxMarks}
+				snapshotIndirectData={snapshotIndirectData}
 			/>
 
 			{/* PO Direct Attainment Table (Sum of Mappings) */}

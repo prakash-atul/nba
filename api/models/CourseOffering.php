@@ -17,6 +17,8 @@ class CourseOffering
     private $isActive;
     private $createdAt;
     private $updatedAt;
+    private $directWeightage;
+    private $indirectWeightage;
 
     public function __construct(
         $courseId,
@@ -28,7 +30,9 @@ class CourseOffering
         $isActive = 1,
         $createdAt = null,
         $updatedAt = null,
-        $offeringId = null
+        $offeringId = null,
+        $directWeightage = 80.00,
+        $indirectWeightage = 20.00
     ) {
         $this->offeringId = $offeringId;
         $this->courseId = $courseId;
@@ -40,6 +44,8 @@ class CourseOffering
         $this->isActive = $isActive;
         $this->createdAt = $createdAt;
         $this->updatedAt = $updatedAt;
+        $this->directWeightage = $directWeightage;
+        $this->indirectWeightage = $indirectWeightage;
     }
 
     // Getters
@@ -49,6 +55,8 @@ class CourseOffering
     public function getSemester() { return $this->semester; }
     public function getCoThreshold() { return $this->coThreshold; }
     public function getPassingThreshold() { return $this->passingThreshold; }
+    public function getDirectWeightage() { return $this->directWeightage; }
+    public function getIndirectWeightage() { return $this->indirectWeightage; }
     public function getSyllabusPdf() { return $this->syllabusPdf; }
     public function getIsActive() { return $this->isActive; }
     public function getCreatedAt() { return $this->createdAt; }

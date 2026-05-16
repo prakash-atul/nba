@@ -1,10 +1,11 @@
 -- =============================================
--- NBA DATABASE SCHEMA - WITH ATTAINMENT SNAPSHOTS
--- Version: 5.0
+-- NBA DATABASE SCHEMA - WITH INDIRECT ATTAINMENT & SURVEYS
+-- Version: 6.0
 -- Database: nba_db
 -- Purpose: Manage courses, tests, and CO-based assessments with assignment-based roles
--- Change from v4: added offering_co_attainment and offering_po_attainment for
---   materialised attainment snapshots (conclude/lock workflow).
+-- Change from v5: added indirect attainment columns to snapshot tables,
+--   course exit surveys, stakeholder surveys, programme batch attainments,
+--   action plans, and configurable direct/indirect weightage per offering.
 -- Date: May 16, 2026
 -- =============================================
 
@@ -16,6 +17,10 @@ USE `nba_db`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `action_plans`;
+DROP TABLE IF EXISTS `programme_batch_attainments`;
+DROP TABLE IF EXISTS `stakeholder_survey_responses`;
+DROP TABLE IF EXISTS `course_exit_survey_responses`;
 DROP TABLE IF EXISTS `offering_po_attainment`;
 DROP TABLE IF EXISTS `offering_co_attainment`;
 DROP TABLE IF EXISTS `audit_logs`;
@@ -237,6 +242,8 @@ CREATE TABLE `course_offerings` (
     `semester` ENUM('Spring', 'Autumn') NOT NULL,
     `co_threshold` DECIMAL(5, 2) DEFAULT 40.00 CHECK (`co_threshold` >= 0 AND `co_threshold` <= 100),
     `passing_threshold` DECIMAL(5, 2) DEFAULT 60.00 CHECK (`passing_threshold` >= 0 AND `passing_threshold` <= 100),
+    `direct_weightage` DECIMAL(5,2) DEFAULT 80.00 CHECK (`direct_weightage` >= 0 AND `direct_weightage` <= 100),
+    `indirect_weightage` DECIMAL(5,2) DEFAULT 20.00 CHECK (`indirect_weightage` >= 0 AND `indirect_weightage` <= 100),
     `syllabus_pdf` LONGBLOB,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -388,6 +395,10 @@ CREATE TABLE `offering_co_attainment` (
     `co_number` TINYINT NOT NULL CHECK (`co_number` BETWEEN 1 AND 6),
     `attainment_percentage` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     `attainment_level` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `indirect_attainment_percentage` DECIMAL(5,2) DEFAULT NULL,
+    `indirect_attainment_level` DECIMAL(5,2) DEFAULT NULL,
+    `final_attainment_percentage` DECIMAL(5,2) DEFAULT NULL,
+    `final_attainment_level` DECIMAL(5,2) DEFAULT NULL,
     `calculated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`offering_id`, `co_number`),
     INDEX `idx_oca_offering` (`offering_id`),
@@ -399,11 +410,97 @@ CREATE TABLE `offering_po_attainment` (
     `offering_id` BIGINT NOT NULL,
     `po_name` VARCHAR(5) NOT NULL,
     `attainment_value` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `indirect_attainment_value` DECIMAL(5,2) DEFAULT NULL,
+    `final_attainment_value` DECIMAL(5,2) DEFAULT NULL,
     `calculated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`offering_id`, `po_name`),
     INDEX `idx_opa_offering` (`offering_id`),
     INDEX `idx_opa_po_name` (`po_name`),
     FOREIGN KEY (`offering_id`) REFERENCES `course_offerings`(`offering_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- COURSE EXIT SURVEYS (indirect CO attainment)
+-- =============================================
+
+CREATE TABLE `course_exit_survey_responses` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `offering_id` BIGINT NOT NULL,
+    `student_rollno` VARCHAR(20) NOT NULL,
+    `co_number` TINYINT NOT NULL CHECK (`co_number` BETWEEN 1 AND 6),
+    `likert_rating` TINYINT NOT NULL CHECK (`likert_rating` BETWEEN 1 AND 5),
+    `imported_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_offering_student_co` (`offering_id`, `student_rollno`, `co_number`),
+    INDEX `idx_cesr_offering` (`offering_id`),
+    FOREIGN KEY (`offering_id`) REFERENCES `course_offerings`(`offering_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`student_rollno`) REFERENCES `students`(`roll_no`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- STAKEHOLDER SURVEYS (indirect PO attainment)
+-- =============================================
+
+CREATE TABLE `stakeholder_survey_responses` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `programme_id` INT(11) NOT NULL,
+    `stakeholder_type` ENUM('Alumni','Employer','Graduate Exit','Parent','Academic Peer') NOT NULL,
+    `batch_year` INT NOT NULL,
+    `po_name` VARCHAR(5) NOT NULL,
+    `likert_rating` TINYINT NOT NULL CHECK (`likert_rating` BETWEEN 1 AND 5),
+    `respondent_identifier` VARCHAR(255) NULL,
+    `imported_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_ssr_programme` (`programme_id`),
+    INDEX `idx_ssr_batch` (`batch_year`),
+    INDEX `idx_ssr_type` (`stakeholder_type`),
+    FOREIGN KEY (`programme_id`) REFERENCES `programmes`(`programme_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- PROGRAMME BATCH ATTAINMENTS (final blended)
+-- =============================================
+
+CREATE TABLE `programme_batch_attainments` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `programme_id` INT(11) NOT NULL,
+    `batch_year` INT NOT NULL,
+    `po_name` VARCHAR(5) NOT NULL,
+    `direct_attainment` DECIMAL(5,2) DEFAULT 0.00,
+    `indirect_attainment` DECIMAL(5,2) DEFAULT 0.00,
+    `final_attainment` DECIMAL(5,2) DEFAULT 0.00,
+    `target` DECIMAL(5,2) DEFAULT 0.00,
+    `calculated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_programme_batch_po` (`programme_id`, `batch_year`, `po_name`),
+    FOREIGN KEY (`programme_id`) REFERENCES `programmes`(`programme_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- ACTION PLANS (continuous improvement)
+-- =============================================
+
+CREATE TABLE `action_plans` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `offering_id` BIGINT NULL,
+    `programme_id` INT(11) NULL,
+    `batch_year` INT NULL,
+    `po_name` VARCHAR(5) NULL,
+    `gap_description` TEXT NOT NULL,
+    `action_text` TEXT NOT NULL,
+    `responsible_person` VARCHAR(255) NULL,
+    `target_date` DATE NULL,
+    `status` ENUM('Open', 'In Progress', 'Completed') DEFAULT 'Open',
+    `created_by` INT(11) NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_ap_offering` (`offering_id`),
+    INDEX `idx_ap_programme` (`programme_id`),
+    INDEX `idx_ap_status` (`status`),
+    FOREIGN KEY (`offering_id`) REFERENCES `course_offerings`(`offering_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`programme_id`) REFERENCES `programmes`(`programme_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`created_by`) REFERENCES `users`(`employee_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
@@ -834,6 +931,10 @@ UNION ALL SELECT 'co_po_mapping', COUNT(*) FROM `co_po_mapping`
 UNION ALL SELECT 'attainment_scale', COUNT(*) FROM `attainment_scale`
 UNION ALL SELECT 'offering_co_attainment', COUNT(*) FROM `offering_co_attainment`
 UNION ALL SELECT 'offering_po_attainment', COUNT(*) FROM `offering_po_attainment`
+UNION ALL SELECT 'course_exit_survey_responses', COUNT(*) FROM `course_exit_survey_responses`
+UNION ALL SELECT 'stakeholder_survey_responses', COUNT(*) FROM `stakeholder_survey_responses`
+UNION ALL SELECT 'programme_batch_attainments', COUNT(*) FROM `programme_batch_attainments`
+UNION ALL SELECT 'action_plans', COUNT(*) FROM `action_plans`
 UNION ALL SELECT 'audit_logs', COUNT(*) FROM `audit_logs`;
 
 -- =============================================

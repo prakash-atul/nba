@@ -50,6 +50,24 @@ export function useCOPOMappingData({
 	}>({});
 
 	const [showSettings, setShowSettings] = useState(false);
+	const [snapshotIndirectData, setSnapshotIndirectData] = useState<
+		Array<{
+			co_name: string;
+			attainment_percentage: number;
+			attainment_level: number;
+			indirect_attainment_percentage?: number | null;
+			indirect_attainment_level?: number | null;
+			final_attainment_percentage?: number | null;
+			final_attainment_level?: number | null;
+		}>
+	>();
+	const [snapshotPoData, setSnapshotPoData] = useState<
+		Array<{
+			po_name: string;
+			attainment_value: number;
+			final_attainment_value?: number | null;
+		}>
+	>();
 	const [attainmentThresholds, setAttainmentThresholds] = useState<
 		AttainmentThreshold[]
 	>([
@@ -397,17 +415,36 @@ export function useCOPOMappingData({
 			// Snapshot verification: attempt to fetch persisted attainment for comparison
 			try {
 				const snapshot = await attainmentApi.getOfferingAttainment(courseId);
+				const coData = snapshot.co_attainment?.map((c) => ({
+					co_name: c.co_name,
+					attainment_percentage: c.attainment_percentage,
+					attainment_level: c.attainment_level,
+					indirect_attainment_percentage: c.indirect_attainment_percentage ?? null,
+					indirect_attainment_level: c.indirect_attainment_level ?? null,
+					final_attainment_percentage: c.final_attainment_percentage ?? null,
+					final_attainment_level: c.final_attainment_level ?? null,
+				}));
+				setSnapshotIndirectData(coData);
+
+				const poData = snapshot.po_attainment?.map((p) => ({
+					po_name: p.po_name,
+					attainment_value: p.attainment_value,
+					final_attainment_value: p.final_attainment_value ?? null,
+				}));
+				setSnapshotPoData(poData);
 				debugLogger.info("COPOMapping", "Snapshot fetch result", {
 					courseId,
 					hasSnapshot: snapshot.co_attainment?.length > 0 || snapshot.po_attainment?.length > 0,
-					co_attainment: snapshot.co_attainment?.map((c) => ({
+					co_attainment: coData,
+					indirectSummary: coData?.map((c) => ({
 						co: c.co_name,
-						attainment_percentage: c.attainment_percentage,
-						attainment_level: c.attainment_level,
-					})),
-					po_attainment: snapshot.po_attainment?.map((p) => ({
-						po: p.po_name,
-						attainment_value: p.attainment_value,
+						directPct: c.attainment_percentage,
+						indirectPct: c.indirect_attainment_percentage,
+						finalPct: c.final_attainment_percentage,
+						directLevel: c.attainment_level,
+						finalLevel: c.final_attainment_level,
+						hasIndirect: c.indirect_attainment_level !== null,
+						isBlended: c.final_attainment_percentage !== c.attainment_percentage,
 					})),
 				});
 			} catch (snapErr) {
@@ -737,9 +774,55 @@ export function useCOPOMappingData({
 			getLevel,
 		);
 
-		debugLogger.info("COPO", "Calculations completed", {
+		// Capture live averages before potential override
+		const liveAverages = { ...result.data3Point.averages };
+
+		// When snapshot has final PO values, override the 3-point scale averages
+		if (snapshotPoData && snapshotPoData.length > 0) {
+			const hasFinalValues = snapshotPoData.some(
+				(p) => p.final_attainment_value != null,
+			);
+			if (hasFinalValues) {
+				const snapshotAvg: Record<string, number> = {};
+				let sum = 0;
+				let count = 0;
+				for (const po of snapshotPoData) {
+					const val = po.final_attainment_value ?? po.attainment_value;
+					snapshotAvg[po.po_name] = val;
+					sum += val;
+					count++;
+				}
+				result.data3Point.averages = snapshotAvg;
+				result.data3Point.overall = count > 0 ? sum / count : 0;
+			}
+		}
+
+		const usingSnapshot = snapshotPoData?.some(
+			(p) => p.final_attainment_value != null,
+		);
+		debugLogger.info("COPO", "PO computations prepared", {
 			overall3Point: result.data3Point.overall,
 			overallPercentage: result.dataPercentage.overall,
+			usingSnapshot,
+			liveDirectAverages: liveAverages,
+			snapshotFinalAverages: result.data3Point.averages,
+			diff: usingSnapshot
+				? Object.fromEntries(
+						Object.entries(result.data3Point.averages).map(
+							([po, final]) => [
+								po,
+								{
+									live: liveAverages[po]?.toFixed(2) ?? null,
+									final: final?.toFixed(2) ?? null,
+									diff:
+										final != null && liveAverages[po] != null
+											? (final - liveAverages[po]).toFixed(2)
+											: null,
+								},
+							],
+						),
+					)
+				: "not-applied",
 		});
 
 		return result;
@@ -749,6 +832,7 @@ export function useCOPOMappingData({
 		copoMatrix,
 		getLevel,
 		studentsData,
+		snapshotPoData,
 	]);
 
 	const calculatePOAttainment = useCallback(
@@ -786,5 +870,7 @@ export function useCOPOMappingData({
 		handleExportAttainment,
 		poComputations,
 		calculatePOAttainment,
+		snapshotIndirectData,
+		snapshotPoData,
 	};
 }

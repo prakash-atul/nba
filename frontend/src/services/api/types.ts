@@ -410,8 +410,72 @@ export interface CoPoMappingRow {
 
 export interface OfferingAttainmentCO {
 	co_name: string;
-	attainment_percentage: number;
-	attainment_level: number;
+	attainment_percentage: number;           // Direct (backward-compatible)
+	attainment_level: number;                 // Direct
+	indirect_attainment_percentage?: number | null;
+	indirect_attainment_level?: number | null;
+	final_attainment_percentage?: number | null;
+	final_attainment_level?: number | null;
+}
+
+export interface OfferingAttainmentPO {
+	po_name: string;
+	attainment_value: number;                // Final (backward-compatible)
+	direct_attainment_value?: number | null;
+	indirect_attainment_value?: number | null;
+	final_attainment_value?: number | null;
+}
+
+export interface OfferingAttainmentSnapshotInfo {
+	offering_id: number;
+	co_threshold: number;
+	passing_threshold: number;
+	attainment_thresholds: Array<{ id: number; level: number; percentage: number }>;
+	co_attainment: OfferingAttainmentCO[];
+	po_attainment: OfferingAttainmentPO[];
+}
+
+export interface OfferingAttainmentResponse extends OfferingAttainmentSnapshotInfo {
+}
+
+export interface ProgrammeAttainmentResponse {
+	programme_id: number;
+	batch_year: number | null;
+	po_attainment: OfferingAttainmentPO[];
+}
+
+export interface SaveCoPoMatrixRequest {
+	mappings: Array<{ co: string; po: string; value: number }>;
+}
+
+// Survey types
+export interface CourseExitSurveyRow {
+	student_rollno: string;
+	co_number: number;
+	likert_rating: number;
+}
+
+export interface CourseExitSurveyImportRequest {
+	responses: CourseExitSurveyRow[];
+}
+
+export interface CourseExitSurveyImportResponse {
+	imported_count: number;
+	error_count: number;
+	errors: string[];
+}
+
+export interface CourseExitSurveyCoResult {
+	co_number: number;
+	co_name: string;
+	average_rating: number | null;
+	respondent_count: number;
+}
+
+export interface CourseExitSurveyResultsResponse {
+	offering_id: number;
+	has_data: boolean;
+	co_results: CourseExitSurveyCoResult[];
 }
 
 export interface OfferingAttainmentPO {

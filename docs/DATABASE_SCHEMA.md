@@ -1,4 +1,4 @@
-# NBA Assessment System - Database Schema v6.0
+# NBA Assessment System - Database Schema v7.0
 
 ## ERD Diagram
 
@@ -29,6 +29,11 @@ erDiagram
     questions ||--o{ raw_marks : "graded_in"
     course_offerings ||--o{ offering_co_attainment : "snapshots_co"
     course_offerings ||--o{ offering_po_attainment : "snapshots_po"
+    course_offerings ||--o{ course_exit_survey_responses : "survey_responses"
+    programmes ||--o{ stakeholder_survey_responses : "stakeholder_feedback"
+    programmes ||--o{ programme_batch_attainments : "batch_scores"
+    course_offerings ||--o{ action_plans : "improvement_actions"
+    programmes ||--o{ action_plans : "programme_actions"
 
     schools {
         int school_id PK
@@ -122,6 +127,8 @@ erDiagram
         decimal co_threshold
         decimal passing_threshold
         blob syllabus_pdf
+        decimal direct_weightage
+        decimal indirect_weightage
         timestamp created_at
         timestamp updated_at
     }
@@ -209,6 +216,10 @@ erDiagram
         tinyint co_number PK
         decimal attainment_percentage
         decimal attainment_level
+        decimal indirect_attainment_percentage
+        decimal indirect_attainment_level
+        decimal final_attainment_percentage
+        decimal final_attainment_level
         timestamp calculated_at
     }
 
@@ -216,7 +227,57 @@ erDiagram
         bigint offering_id PK, FK
         string po_name PK
         decimal attainment_value
+        decimal indirect_attainment_value
+        decimal final_attainment_value
         timestamp calculated_at
+    }
+
+    course_exit_survey_responses {
+        bigint id PK
+        bigint offering_id FK
+        string student_rollno FK
+        tinyint co_number
+        tinyint likert_rating
+        timestamp imported_at
+    }
+
+    stakeholder_survey_responses {
+        bigint id PK
+        int programme_id FK
+        enum stakeholder_type
+        int batch_year
+        string po_name
+        tinyint likert_rating
+        string respondent_identifier
+        timestamp imported_at
+    }
+
+    programme_batch_attainments {
+        bigint id PK
+        int programme_id FK
+        int batch_year
+        string po_name
+        decimal direct_attainment
+        decimal indirect_attainment
+        decimal final_attainment
+        decimal target
+        timestamp calculated_at
+    }
+
+    action_plans {
+        bigint id PK
+        bigint offering_id FK
+        int programme_id FK
+        int batch_year
+        string po_name
+        text gap_description
+        text action_text
+        string responsible_person
+        date target_date
+        enum status
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
     }
 ```
 
@@ -407,8 +468,10 @@ Session-specific instances of a course (Year/Semester).
 | co_threshold      | DECIMAL(5,2) | DEFAULT 40.00                            | CO passing percentage (0-100)      |
 | passing_threshold | DECIMAL(5,2) | DEFAULT 60.00                            | Overall passing percentage (0-100) |
 | syllabus_pdf      | LONGBLOB     | NULL                                     | Syllabus PDF (binary data)         |
-| created_at        | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                | Record creation timestamp          |
-| updated_at        | TIMESTAMP    | ON UPDATE CURRENT_TIMESTAMP              | Last update timestamp              |
+| direct_weightage  | DECIMAL(5,2) | DEFAULT 80.00, CHECK (0-100)            | Weight % for direct attainment       |
+| indirect_weightage| DECIMAL(5,2) | DEFAULT 20.00, CHECK (0-100)            | Weight % for indirect attainment     |
+| created_at        | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                | Record creation timestamp            |
+| updated_at        | TIMESTAMP    | ON UPDATE CURRENT_TIMESTAMP              | Last update timestamp                |
 
 **Indexes**: PRIMARY KEY (offering_id), UNIQUE KEY (course_id, year, semester), INDEX (course_id), INDEX (year, semester, course_id)
 **Foreign Keys**:
@@ -577,15 +640,19 @@ Aggregated marks per CO for a student in a test.
 
 ### 18. offering_co_attainment
 
-Materialised CO attainment snapshot computed when a course offering is concluded/locked. Immutable record for NBA audit trail.
+Materialised CO attainment snapshot computed when a course offering is concluded/locked. Now includes columns for direct, indirect (from course exit surveys), and blended final attainment values.
 
-| Column                | Type         | Constraints                              | Description                               |
-| --------------------- | ------------ | ---------------------------------------- | ----------------------------------------- |
-| offering_id           | BIGINT       | PRIMARY KEY, FOREIGN KEY                 | Course offering ID                        |
-| co_number             | TINYINT      | PRIMARY KEY, CHECK (1-6)                 | CO number (1-6)                           |
-| attainment_percentage | DECIMAL(5,2) | NOT NULL DEFAULT 0.00                    | Percentage of students above CO threshold |
-| attainment_level      | DECIMAL(5,2) | NOT NULL DEFAULT 0.00                    | Computed attainment level (0-3 scale)     |
-| calculated_at         | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                | When this snapshot was computed           |
+| Column                        | Type         | Constraints                              | Description                                    |
+| ----------------------------- | ------------ | ---------------------------------------- | ---------------------------------------------- |
+| offering_id                   | BIGINT       | PRIMARY KEY, FOREIGN KEY                 | Course offering ID                             |
+| co_number                     | TINYINT      | PRIMARY KEY, CHECK (1-6)                 | CO number (1-6)                                |
+| attainment_percentage         | DECIMAL(5,2) | NOT NULL DEFAULT 0.00                    | Direct: % of students above CO threshold       |
+| attainment_level              | DECIMAL(5,2) | NOT NULL DEFAULT 0.00                    | Direct: computed attainment level (0-3 scale)  |
+| indirect_attainment_percentage| DECIMAL(5,2) | DEFAULT NULL                             | Indirect: % from course exit survey Likert→%   |
+| indirect_attainment_level     | DECIMAL(5,2) | DEFAULT NULL                             | Indirect: attainment level from survey data    |
+| final_attainment_percentage   | DECIMAL(5,2) | DEFAULT NULL                             | Blended: direct×weightage + indirect×weightage |
+| final_attainment_level        | DECIMAL(5,2) | DEFAULT NULL                             | Blended: attainment level of final %           |
+| calculated_at                 | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                | When this snapshot was computed                |
 
 **Indexes**: PRIMARY KEY (offering_id, co_number), INDEX (offering_id)
 **Foreign Keys**: offering_id REFERENCES course_offerings(offering_id) ON DELETE CASCADE
@@ -596,14 +663,111 @@ Materialised CO attainment snapshot computed when a course offering is concluded
 
 Materialised PO attainment snapshot derived from CO attainment × CO-PO mapping values.
 
-| Column            | Type         | Constraints                     | Description                           |
-| ----------------- | ------------ | ------------------------------- | ------------------------------------- |
-| offering_id       | BIGINT       | PRIMARY KEY, FOREIGN KEY        | Course offering ID                    |
-| po_name           | VARCHAR(5)   | PRIMARY KEY                     | PO identifier (PO1-PO12, PSO1-PSO3)  |
-| attainment_value  | DECIMAL(5,2) | NOT NULL DEFAULT 0.00           | Scaled PO attainment value            |
-| calculated_at     | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP       | When this snapshot was computed       |
+| Column                  | Type         | Constraints                     | Description                                  |
+| ----------------------- | ------------ | ------------------------------- | -------------------------------------------- |
+| offering_id             | BIGINT       | PRIMARY KEY, FOREIGN KEY        | Course offering ID                           |
+| po_name                 | VARCHAR(5)   | PRIMARY KEY                     | PO identifier (PO1-PO12, PSO1-PSO3)         |
+| attainment_value        | DECIMAL(5,2) | NOT NULL DEFAULT 0.00           | PO value from direct CO attainment           |
+| indirect_attainment_value | DECIMAL(5,2)| DEFAULT NULL                    | PO value from indirect CO attainment only    |
+| final_attainment_value  | DECIMAL(5,2) | DEFAULT NULL                    | PO value from blended (final) CO attainment  |
+| calculated_at           | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP       | When this snapshot was computed              |
 
 **Indexes**: PRIMARY KEY (offering_id, po_name), INDEX (offering_id), INDEX (po_name)
 **Foreign Keys**: offering_id REFERENCES course_offerings(offering_id) ON DELETE CASCADE
 
-**Purpose**: Used by the Programme Attainment dashboard (HOD view). Programme-level PO attainment is computed by averaging `attainment_value` across all locked offerings in a programme/batch using an `EXISTS` clause that filters by student programme enrollment, avoiding student-count weighting.
+**Purpose**: Used by the Programme Attainment dashboard (HOD view). Programme-level PO attainment is computed by averaging `final_attainment_value` across all locked offerings in a programme/batch using an `EXISTS` clause that filters by student programme enrollment, avoiding student-count weighting.
+
+---
+
+### 20. course_exit_survey_responses
+
+Likert-scale (1-5) responses from students about their perceived attainment of each CO. Imported from Google Forms CSV export.
+
+| Column          | Type         | Constraints                                      | Description                              |
+| --------------- | ------------ | ------------------------------------------------ | ---------------------------------------- |
+| id              | BIGINT       | PRIMARY KEY, AUTO_INCREMENT                      | Unique identifier                        |
+| offering_id     | BIGINT       | FOREIGN KEY → course_offerings                   | Course offering ID                       |
+| student_rollno  | VARCHAR(20)  | FOREIGN KEY → students(roll_no)                  | Student roll number                      |
+| co_number       | TINYINT      | CHECK (1-6)                                      | CO being rated                           |
+| likert_rating   | TINYINT      | CHECK (1-5)                                      | Rating: 1=Strongly Disagree → 5=Strongly Agree |
+| imported_at     | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                        | When the CSV was imported                |
+
+**Indexes**: PRIMARY KEY (id), UNIQUE KEY (offering_id, student_rollno, co_number), INDEX (offering_id)
+**Foreign Keys**: offering_id REFERENCES course_offerings(offering_id) ON DELETE CASCADE, student_rollno REFERENCES students(roll_no) ON DELETE CASCADE
+
+**Purpose**: Computed into indirect CO attainment during course conclusion. Likert ratings are converted to percentages via formula: `(avg_rating - 1) / 4 * 100`, then blended with direct attainment using the offering's configured weightage.
+
+---
+
+### 21. stakeholder_survey_responses
+
+Likert-scale (1-5) responses from external stakeholders (Alumni, Employers, etc.) mapped directly to POs. Used for programme-level indirect PO attainment.
+
+| Column                | Type         | Constraints                                      | Description                              |
+| --------------------- | ------------ | ------------------------------------------------ | ---------------------------------------- |
+| id                    | BIGINT       | PRIMARY KEY, AUTO_INCREMENT                      | Unique identifier                        |
+| programme_id          | INT(11)      | FOREIGN KEY → programmes(programme_id)           | Programme being evaluated                |
+| stakeholder_type      | ENUM         | Alumni, Employer, Graduate Exit, Parent, Academic Peer | Type of stakeholder              |
+| batch_year            | INT          | NOT NULL                                         | Batch year of the students               |
+| po_name               | VARCHAR(5)   | NOT NULL                                         | PO being rated (PO1-PO12, PSO1-PSO3)     |
+| likert_rating         | TINYINT      | CHECK (1-5)                                      | Rating: 1=Strongly Disagree → 5=Strongly Agree |
+| respondent_identifier | VARCHAR(255) | NULL                                             | Optional identifier for deduplication    |
+| imported_at           | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                        | When the CSV was imported                |
+
+**Indexes**: PRIMARY KEY (id), INDEX (programme_id), INDEX (batch_year), INDEX (stakeholder_type)
+**Foreign Keys**: programme_id REFERENCES programmes(programme_id) ON DELETE CASCADE
+
+**Purpose**: Supports Phase 4 of the indirect attainment implementation. Computed into programme-level indirect PO attainment.
+
+---
+
+### 22. programme_batch_attainments
+
+Final blended PO/PSO scores for a specific programme and batch, stored after the programme-level calculation is run. Includes targets for gap analysis.
+
+| Column              | Type         | Constraints                                      | Description                              |
+| ------------------- | ------------ | ------------------------------------------------ | ---------------------------------------- |
+| id                  | BIGINT       | PRIMARY KEY, AUTO_INCREMENT                      | Unique identifier                        |
+| programme_id        | INT(11)      | FOREIGN KEY → programmes(programme_id)           | Programme                                |
+| batch_year          | INT          | NOT NULL                                         | Batch year                               |
+| po_name             | VARCHAR(5)   | NOT NULL                                         | PO identifier (PO1-PO12, PSO1-PSO3)     |
+| direct_attainment   | DECIMAL(5,2) | DEFAULT 0.00                                     | Direct PO from aggregated offering snapshots |
+| indirect_attainment | DECIMAL(5,2) | DEFAULT 0.00                                     | Indirect PO from stakeholder surveys     |
+| final_attainment    | DECIMAL(5,2) | DEFAULT 0.00                                     | Blended: direct×0.80 + indirect×0.20    |
+| target              | DECIMAL(5,2) | DEFAULT 0.00                                     | Target threshold for this PO             |
+| calculated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                        | When the calculation was run             |
+
+**Indexes**: PRIMARY KEY (id), UNIQUE KEY (programme_id, batch_year, po_name)
+**Foreign Keys**: programme_id REFERENCES programmes(programme_id) ON DELETE CASCADE
+
+**Purpose**: Stores the output of the programme-level attainment calculation (Phases 3-6). Used by gap analysis dashboards and accreditation reports.
+
+---
+
+### 23. action_plans
+
+Documents continuous improvement actions triggered by attainment gaps.
+
+| Column              | Type         | Constraints                                      | Description                              |
+| ------------------- | ------------ | ------------------------------------------------ | ---------------------------------------- |
+| id                  | BIGINT       | PRIMARY KEY, AUTO_INCREMENT                      | Unique identifier                        |
+| offering_id         | BIGINT       | FOREIGN KEY → course_offerings (NULL)            | Optional link to a specific offering     |
+| programme_id        | INT(11)      | FOREIGN KEY → programmes (NULL)                  | Optional link to a programme             |
+| batch_year          | INT          | NULL                                             | Batch year relevant to the gap           |
+| po_name             | VARCHAR(5)   | NULL                                             | PO that fell below target                |
+| gap_description     | TEXT         | NOT NULL                                         | Description of the gap                   |
+| action_text         | TEXT         | NOT NULL                                         | Proposed remediation                     |
+| responsible_person  | VARCHAR(255) | NULL                                             | Who is accountable                       |
+| target_date         | DATE         | NULL                                             | Expected completion date                 |
+| status              | ENUM         | 'Open', 'In Progress', 'Completed'               | Current status (default: Open)           |
+| created_by          | INT(11)      | FOREIGN KEY → users(employee_id) (NULL)          | Who created the plan                     |
+| created_at          | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                        | Record creation timestamp                |
+| updated_at          | TIMESTAMP    | ON UPDATE CURRENT_TIMESTAMP                      | Last update timestamp                    |
+
+**Indexes**: PRIMARY KEY (id), INDEX (offering_id), INDEX (programme_id), INDEX (status)
+**Foreign Keys**:
+- offering_id REFERENCES course_offerings(offering_id) ON DELETE CASCADE
+- programme_id REFERENCES programmes(programme_id) ON DELETE CASCADE
+- created_by REFERENCES users(employee_id) ON DELETE SET NULL
+
+**Purpose**: Closes the "continuous improvement" loop for NBA accreditation. When a PO falls below its target, the system triggers creation of an action plan documenting interventions such as curriculum changes, extra classes, or new projects.

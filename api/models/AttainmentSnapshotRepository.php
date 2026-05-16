@@ -21,11 +21,18 @@ class AttainmentSnapshotRepository
     public function saveCoAttainments($offeringId, array $rows): void
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO offering_co_attainment (offering_id, co_number, attainment_percentage, attainment_level)
-             VALUES (?, ?, ?, ?)
+            'INSERT INTO offering_co_attainment
+                (offering_id, co_number, attainment_percentage, attainment_level,
+                 indirect_attainment_percentage, indirect_attainment_level,
+                 final_attainment_percentage, final_attainment_level)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 attainment_percentage = VALUES(attainment_percentage),
                 attainment_level = VALUES(attainment_level),
+                indirect_attainment_percentage = VALUES(indirect_attainment_percentage),
+                indirect_attainment_level = VALUES(indirect_attainment_level),
+                final_attainment_percentage = VALUES(final_attainment_percentage),
+                final_attainment_level = VALUES(final_attainment_level),
                 calculated_at = CURRENT_TIMESTAMP'
         );
 
@@ -35,6 +42,10 @@ class AttainmentSnapshotRepository
                 (int)$row['co_number'],
                 (float)$row['attainment_percentage'],
                 (float)$row['attainment_level'],
+                $row['indirect_attainment_percentage'] !== null ? (float)$row['indirect_attainment_percentage'] : null,
+                $row['indirect_attainment_level'] !== null ? (float)$row['indirect_attainment_level'] : null,
+                (float)$row['final_attainment_percentage'],
+                (float)$row['final_attainment_level'],
             ]);
         }
     }
@@ -42,10 +53,14 @@ class AttainmentSnapshotRepository
     public function savePoAttainments($offeringId, array $rows): void
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO offering_po_attainment (offering_id, po_name, attainment_value)
-             VALUES (?, ?, ?)
+            'INSERT INTO offering_po_attainment
+                (offering_id, po_name, attainment_value,
+                 indirect_attainment_value, final_attainment_value)
+             VALUES (?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 attainment_value = VALUES(attainment_value),
+                indirect_attainment_value = VALUES(indirect_attainment_value),
+                final_attainment_value = VALUES(final_attainment_value),
                 calculated_at = CURRENT_TIMESTAMP'
         );
 
@@ -54,6 +69,8 @@ class AttainmentSnapshotRepository
                 (int)$offeringId,
                 $row['po_name'],
                 (float)$row['attainment_value'],
+                $row['indirect_attainment_value'] !== null ? (float)$row['indirect_attainment_value'] : null,
+                (float)$row['final_attainment_value'],
             ]);
         }
     }
@@ -61,7 +78,11 @@ class AttainmentSnapshotRepository
     public function getCoAttainmentsByOfferingId($offeringId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT offering_id, co_number, CONCAT('CO', co_number) AS co_name, attainment_percentage, attainment_level, calculated_at
+            "SELECT offering_id, co_number, CONCAT('CO', co_number) AS co_name,
+                    attainment_percentage, attainment_level,
+                    indirect_attainment_percentage, indirect_attainment_level,
+                    final_attainment_percentage, final_attainment_level,
+                    calculated_at
              FROM offering_co_attainment
              WHERE offering_id = ?
              ORDER BY co_number ASC"
@@ -73,7 +94,9 @@ class AttainmentSnapshotRepository
     public function getPoAttainmentsByOfferingId($offeringId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT offering_id, po_name, attainment_value, calculated_at
+            'SELECT offering_id, po_name, attainment_value,
+                    indirect_attainment_value, final_attainment_value,
+                    calculated_at
              FROM offering_po_attainment
              WHERE offering_id = ?
              ORDER BY po_name ASC'
@@ -102,7 +125,10 @@ class AttainmentSnapshotRepository
         $stmt = $this->db->prepare(
             "SELECT
                 opa.po_name,
-                ROUND(AVG(opa.attainment_value), 2) AS attainment_value,
+                ROUND(AVG(opa.final_attainment_value), 2) AS attainment_value,
+                ROUND(AVG(opa.attainment_value), 2) AS direct_attainment_value,
+                ROUND(AVG(opa.indirect_attainment_value), 2) AS indirect_attainment_value,
+                ROUND(AVG(opa.final_attainment_value), 2) AS final_attainment_value,
                 COUNT(DISTINCT opa.offering_id) AS offering_count
              FROM offering_po_attainment opa
              WHERE EXISTS (

@@ -39,7 +39,9 @@ class CourseOfferingRepository
                     $data['is_active'] ?? 1,
                     $data['created_at'] ?? null,
                     $data['updated_at'] ?? null,
-                    $data['offering_id']
+                    $data['offering_id'],
+                    $data['direct_weightage'] ?? 80.00,
+                    $data['indirect_weightage'] ?? 20.00
                 );
             }
             return null;
@@ -73,7 +75,9 @@ class CourseOfferingRepository
                     $data['is_active'] ?? 1,
                     $data['created_at'] ?? null,
                     $data['updated_at'] ?? null,
-                    $data['offering_id']
+                    $data['offering_id'],
+                    $data['direct_weightage'] ?? 80.00,
+                    $data['indirect_weightage'] ?? 20.00
                 );
             }
             return null;

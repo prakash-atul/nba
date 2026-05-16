@@ -1,12 +1,6 @@
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { debugLogger } from "@/lib/debugLogger";
 import React from "react";
 
 interface POComputation3PointTableProps {
@@ -37,6 +31,13 @@ export const POComputation3PointTable = React.memo(function POComputation3PointT
 		"PSO2",
 		"PSO3",
 	];
+
+	debugLogger.info("POComputation3PointTable", "Rendering 3-point scale", {
+		overall: data.overall.toFixed(2),
+		averages: Object.fromEntries(
+			pos.map((po) => [po, data.averages[po]?.toFixed(2) ?? null]),
+		),
+	});
 
 	return (
 		<Card className="mt-6 border dark:border-gray-800 shadow-sm overflow-hidden">
