@@ -158,7 +158,7 @@ export function COPOMatrixGrid({
 							<TableCell className="border border-gray-300 dark:border-gray-700 text-center">
 								{assessed ? (
 									<Badge className={getLevelColor(coLevel)}>
-										{(coLevel).toFixed(2)}
+										{Number(coLevel).toFixed(2)}
 									</Badge>
 								) : (
 									<span className="text-gray-500 font-medium">
@@ -272,7 +272,7 @@ export function COPOMatrixGrid({
 										Math.round(attainment),
 									)}
 								>
-									{attainment.toFixed(2)}
+									{Number(attainment).toFixed(2)}
 								</Badge>
 							</TableCell>
 						);
@@ -289,7 +289,7 @@ export function COPOMatrixGrid({
 										Math.round(attainment),
 									)}
 								>
-									{attainment.toFixed(2)}
+									{Number(attainment).toFixed(2)}
 								</Badge>
 							</TableCell>
 						);

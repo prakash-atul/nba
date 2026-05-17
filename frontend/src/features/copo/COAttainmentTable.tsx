@@ -246,57 +246,42 @@ function SnapshotIndirectTable({
 										{d.co_name}
 									</TableCell>
 									<TableCell className="text-center border border-gray-300 dark:border-gray-700">
-										{d.attainment_percentage?.toFixed(2) ??
-											"—"}
+										{d.attainment_percentage != null
+											? Number(d.attainment_percentage).toFixed(2)
+											: "—"}
 									</TableCell>
 									<TableCell className="text-center border border-gray-300 dark:border-gray-700">
-										{d.attainment_level?.toFixed(2) ??
-											"—"}
+										{d.attainment_level != null
+											? Number(d.attainment_level).toFixed(2)
+											: "—"}
 									</TableCell>
 									{hasIndirect && (
 										<>
 											<TableCell className="text-center border border-gray-300 dark:border-gray-700">
-												{d.indirect_attainment_percentage !== null &&
-												d.indirect_attainment_percentage !==
-													undefined
-													? d.indirect_attainment_percentage.toFixed(
-															2,
-														)
+												{d.indirect_attainment_percentage != null
+													? Number(d.indirect_attainment_percentage).toFixed(2)
 													: "—"}
 											</TableCell>
 											<TableCell className="text-center border border-gray-300 dark:border-gray-700">
-												{d.indirect_attainment_level !==
-													null &&
-												d.indirect_attainment_level !==
-													undefined
-													? d.indirect_attainment_level.toFixed(
-															2,
-														)
+												{d.indirect_attainment_level != null
+													? Number(d.indirect_attainment_level).toFixed(2)
 													: "—"}
 											</TableCell>
 										</>
 									)}
 									<TableCell className="text-center border border-gray-300 dark:border-gray-700 font-bold text-green-700 dark:text-green-400">
-										{d.final_attainment_percentage !==
-											null &&
-										d.final_attainment_percentage !==
-											undefined
-											? d.final_attainment_percentage.toFixed(
-													2,
-												)
-											: d.attainment_percentage?.toFixed(
-													2,
-												) ?? "—"}
+										{d.final_attainment_percentage != null
+											? Number(d.final_attainment_percentage).toFixed(2)
+											: d.attainment_percentage != null
+												? Number(d.attainment_percentage).toFixed(2)
+												: "—"}
 									</TableCell>
 									<TableCell className="text-center border border-gray-300 dark:border-gray-700 font-bold text-green-700 dark:text-green-400">
-										{d.final_attainment_level !== null &&
-										d.final_attainment_level !== undefined
-											? d.final_attainment_level.toFixed(
-													2,
-												)
-											: d.attainment_level?.toFixed(
-													2,
-												) ?? "—"}
+										{d.final_attainment_level != null
+											? Number(d.final_attainment_level).toFixed(2)
+											: d.attainment_level != null
+												? Number(d.attainment_level).toFixed(2)
+												: "—"}
 									</TableCell>
 								</TableRow>
 							);

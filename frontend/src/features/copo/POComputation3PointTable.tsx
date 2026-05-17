@@ -33,9 +33,9 @@ export const POComputation3PointTable = React.memo(function POComputation3PointT
 	];
 
 	debugLogger.info("POComputation3PointTable", "Rendering 3-point scale", {
-		overall: data.overall.toFixed(2),
-		averages: Object.fromEntries(
-			pos.map((po) => [po, data.averages[po]?.toFixed(2) ?? null]),
+		overall: Number(data.overall).toFixed(2),
+		poAverages: Object.fromEntries(
+			pos.map((po) => [po, data.averages[po] != null ? Number(data.averages[po]).toFixed(2) : null]),
 		),
 	});
 
@@ -45,7 +45,7 @@ export const POComputation3PointTable = React.memo(function POComputation3PointT
 				<CardTitle className="text-xl text-gray-800 dark:text-gray-100 flex items-center justify-between">
 					<span>PO &amp; PSO Attainment (3 Point Scale)</span>
 					<span className="text-sm font-normal bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-3 py-1 rounded-full">
-						Overall: {data.overall.toFixed(2)}
+						Overall: {Number(data.overall).toFixed(2)}
 					</span>
 				</CardTitle>
 			</CardHeader>
@@ -81,7 +81,7 @@ export const POComputation3PointTable = React.memo(function POComputation3PointT
 										className="text-center border-r dark:border-gray-800"
 									>
 										{row.values[po] !== null
-											? row.values[po]!.toFixed(2)
+											? Number(row.values[po]!).toFixed(2)
 											: "-"}
 									</TableCell>
 								))}
@@ -101,7 +101,7 @@ export const POComputation3PointTable = React.memo(function POComputation3PointT
 										className="text-center border-r dark:border-gray-800 text-blue-700 dark:text-blue-400"
 									>
 										{val !== null && val !== undefined
-											? val.toFixed(2)
+											? Number(val).toFixed(2)
 											: "-"}
 									</TableCell>
 								);

@@ -35,9 +35,9 @@ export const POComputationPercentageTable = React.memo(function POComputationPer
 	];
 
 	debugLogger.info("POComputationPercentageTable", "Rendering percentage scale", {
-		overall: data.overall.toFixed(2),
+		overall: Number(data.overall).toFixed(2),
 		averages: Object.fromEntries(
-			pos.map((po) => [po, data.averages[po]?.toFixed(2) ?? null]),
+			pos.map((po) => [po, data.averages[po] != null ? Number(data.averages[po]).toFixed(2) : null]),
 		),
 	});
 
@@ -47,7 +47,7 @@ export const POComputationPercentageTable = React.memo(function POComputationPer
 				<CardTitle className="text-xl text-gray-800 dark:text-gray-100 flex items-center justify-between">
 					<span>PO &amp; PSO Attainment (Percentage Scale)</span>
 					<span className="text-sm font-normal bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100 px-3 py-1 rounded-full">
-						Overall Average: {data.overall.toFixed(2)}%
+						Overall Average: {Number(data.overall).toFixed(2)}%
 					</span>
 				</CardTitle>
 			</CardHeader>

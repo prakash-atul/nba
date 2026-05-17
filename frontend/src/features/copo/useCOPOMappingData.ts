@@ -787,7 +787,7 @@ export function useCOPOMappingData({
 				let sum = 0;
 				let count = 0;
 				for (const po of snapshotPoData) {
-					const val = po.final_attainment_value ?? po.attainment_value;
+					const val = Number(po.final_attainment_value ?? po.attainment_value);
 					snapshotAvg[po.po_name] = val;
 					sum += val;
 					count++;
@@ -812,11 +812,20 @@ export function useCOPOMappingData({
 							([po, final]) => [
 								po,
 								{
-									live: liveAverages[po]?.toFixed(2) ?? null,
-									final: final?.toFixed(2) ?? null,
+									live:
+										liveAverages[po] != null
+											? Number(liveAverages[po]).toFixed(2)
+											: null,
+									final:
+										final != null
+											? Number(final).toFixed(2)
+											: null,
 									diff:
 										final != null && liveAverages[po] != null
-											? (final - liveAverages[po]).toFixed(2)
+											? (
+													Number(final) -
+													Number(liveAverages[po])
+												).toFixed(2)
 											: null,
 								},
 							],
