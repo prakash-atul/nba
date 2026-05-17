@@ -4,6 +4,9 @@ import type {
 	CourseExitSurveyImportRequest,
 	CourseExitSurveyImportResponse,
 	CourseExitSurveyResultsResponse,
+	StakeholderSurveyImportRequest,
+	StakeholderSurveyImportResponse,
+	StakeholderSurveyResultsResponse,
 } from "./types";
 
 async function importCourseExitCsv(
@@ -47,8 +50,63 @@ async function clearCourseExit(offeringId: number): Promise<void> {
 	await apiDelete(`/offerings/${offeringId}/survey/course-exit`);
 }
 
+// ─── Stakeholder Survey API ───────────────────────────────────────────────────
+
+async function importStakeholderCsv(
+	programmeId: number,
+	data: StakeholderSurveyImportRequest,
+): Promise<StakeholderSurveyImportResponse> {
+	debugLogger.info("surveyApi", "importStakeholderCsv called", {
+		programmeId,
+		type: data.stakeholder_type,
+		batch: data.batch_year,
+		count: data.responses.length,
+	});
+	const response = await apiPost<StakeholderSurveyImportRequest, StakeholderSurveyImportResponse>(
+		`/programmes/${programmeId}/survey/stakeholder/import`,
+		data,
+	);
+	return response;
+}
+
+async function getStakeholderResults(
+	programmeId: number,
+	batchYear: number,
+	stakeholderType?: string,
+): Promise<StakeholderSurveyResultsResponse> {
+	const params = new URLSearchParams({ batch_year: String(batchYear) });
+	if (stakeholderType) params.set("stakeholder_type", stakeholderType);
+	debugLogger.info("surveyApi", "getStakeholderResults called", {
+		programmeId,
+		batchYear,
+		stakeholderType,
+	});
+	const response = await apiGet<StakeholderSurveyResultsResponse>(
+		`/programmes/${programmeId}/survey/stakeholder/results?${params}`,
+	);
+	return response;
+}
+
+async function clearStakeholder(
+	programmeId: number,
+	batchYear: number,
+	stakeholderType?: string,
+): Promise<void> {
+	const params = new URLSearchParams({ batch_year: String(batchYear) });
+	if (stakeholderType) params.set("stakeholder_type", stakeholderType);
+	debugLogger.info("surveyApi", "clearStakeholder called", {
+		programmeId,
+		batchYear,
+		stakeholderType,
+	});
+	await apiDelete(`/programmes/${programmeId}/survey/stakeholder?${params}`);
+}
+
 export const surveyApi = {
 	importCourseExitCsv,
 	getCourseExitResults,
 	clearCourseExit,
+	importStakeholderCsv,
+	getStakeholderResults,
+	clearStakeholder,
 };

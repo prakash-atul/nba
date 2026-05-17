@@ -37,6 +37,7 @@ require_once __DIR__ . '/../models/AttainmentScaleRepository.php';
 require_once __DIR__ . '/../models/AttainmentSnapshotRepository.php';
 require_once __DIR__ . '/../models/CoPoRepository.php';
 require_once __DIR__ . '/../models/CourseExitSurveyRepository.php';
+require_once __DIR__ . '/../models/StakeholderSurveyRepository.php';
 require_once __DIR__ . '/../models/School.php';
 require_once __DIR__ . '/../models/SchoolRepository.php';
 require_once __DIR__ . '/../models/HODAssignment.php';
@@ -65,6 +66,7 @@ require_once __DIR__ . '/../controllers/StaffController.php';
 require_once __DIR__ . '/../controllers/DeanController.php';
 require_once __DIR__ . '/../controllers/AuditLogController.php';
 require_once __DIR__ . '/../controllers/SurveyController.php';
+require_once __DIR__ . '/../controllers/ActionPlanController.php';
 
 /**
  * Router Class
@@ -86,6 +88,7 @@ class Router
     private $deanController;
     private $auditLogController;
     private $surveyController;
+    private $actionPlanController;
 
     public function __construct()
     {
@@ -113,6 +116,7 @@ class Router
         $hodAssignmentRepository = new HODAssignmentRepository($db);
         $deanAssignmentRepository = new DeanAssignmentRepository($db);
         $courseExitSurveyRepository = new CourseExitSurveyRepository($db);
+        $stakeholderSurveyRepository = new StakeholderSurveyRepository($db);
         $attainmentSnapshotService = new AttainmentSnapshotService($db, $attainmentSnapshotRepository, $attainmentScaleRepository, $coPoRepository, $courseOfferingRepository, $courseExitSurveyRepository);
         $jwtService = new JWTService();
         $authService = new AuthService($userRepository, $jwtService, $departmentRepository, $hodAssignmentRepository, $deanAssignmentRepository);
@@ -135,7 +139,8 @@ class Router
         $this->marksController = new MarksController($studentRepository, $rawMarksRepository, $marksRepository, $questionRepository, $testRepository, $validationMiddleware, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $auditService);
         $this->enrollmentController = new EnrollmentController($db, $auditService);
         $this->attainmentController = new AttainmentController($courseRepository, $courseOfferingRepository, $attainmentScaleRepository, $coPoRepository, $programmeRepository, $attainmentSnapshotRepository, $attainmentSnapshotService, $auditService);
-        $this->surveyController = new SurveyController($courseExitSurveyRepository, $courseOfferingRepository);
+        $this->surveyController = new SurveyController($courseExitSurveyRepository, $courseOfferingRepository, $stakeholderSurveyRepository, $programmeRepository);
+        $this->actionPlanController = new ActionPlanController(new ActionPlanRepository($db), $programmeRepository, $attainmentSnapshotRepository);
         $this->adminController = new AdminController($userRepository, $courseRepository, $studentRepository, $testRepository, $departmentRepository, $programmeRepository, $deanAssignmentRepository, $schoolRepository, $auditService, $programmeCourseRepository);
         $this->hodController = new HODController($userRepository, $courseRepository, $courseOfferingRepository, $courseFacultyAssignmentRepository, $departmentRepository, $validationMiddleware, $studentRepository, $auditService, $auditLogRepository, $programmeRepository, $programmeCourseRepository, $attainmentSnapshotService);
 
@@ -517,6 +522,16 @@ class Router
                     $user = $this->authMiddleware->requireAuth();
                     $_REQUEST['authenticated_user'] = $user;
                     $this->hodController->getDepartmentStudents();
+                } else {
+                    $this->sendMethodNotAllowed();
+                }
+                break;
+
+            case 'hod/programmes/with-batches':
+                if ($method === 'GET') {
+                    $user = $this->authMiddleware->requireAuth();
+                    $_REQUEST['authenticated_user'] = $user;
+                    $this->hodController->getProgrammesWithBatches();
                 } else {
                     $this->sendMethodNotAllowed();
                 }
@@ -969,12 +984,91 @@ class Router
                     } else {
                         $this->sendMethodNotAllowed();
                     }
+                } elseif (preg_match('#^action-plans/(\d+)$#', $path, $matches)) {
+                    $planId = (int)$matches[1];
+                    if ($method === 'PUT') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->actionPlanController->update($planId);
+                    } elseif ($method === 'DELETE') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->actionPlanController->delete($planId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^programmes/(\d+)/action-plans$#', $path, $matches)) {
+                    $programmeId = (int)$matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->actionPlanController->listByProgramme($programmeId);
+                    } elseif ($method === 'POST') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->actionPlanController->create($programmeId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^programmes/(\d+)/attainment/targets$#', $path, $matches)) {
+                    $programmeId = (int)$matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->actionPlanController->getTargets($programmeId);
+                    } elseif ($method === 'POST') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->actionPlanController->setTargets($programmeId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^programmes/(\d+)/survey/stakeholder/import$#', $path, $matches)) {
+                    $programmeId = (int)$matches[1];
+                    if ($method === 'POST') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->surveyController->importStakeholderCsv($programmeId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^programmes/(\d+)/survey/stakeholder/results$#', $path, $matches)) {
+                    $programmeId = (int)$matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->surveyController->getStakeholderResults($programmeId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^programmes/(\d+)/survey/stakeholder$#', $path, $matches)) {
+                    $programmeId = (int)$matches[1];
+                    if ($method === 'DELETE') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->surveyController->clearStakeholder($programmeId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
+                } elseif (preg_match('#^programmes/(\d+)/attainment/courses$#', $path, $matches)) {
+                    $programmeId = (int)$matches[1];
+                    if ($method === 'GET') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->attainmentController->getCoursesProgrammeAttainment($programmeId);
+                    } else {
+                        $this->sendMethodNotAllowed();
+                    }
                 } elseif (preg_match('#^programmes/(\d+)/attainment$#', $path, $matches)) {
                     $programmeId = (int)$matches[1];
                     if ($method === 'GET') {
                         $user = $this->authMiddleware->requireAuth();
                         $_REQUEST['authenticated_user'] = $user;
                         $this->attainmentController->getProgrammeAttainment($programmeId);
+                    } elseif ($method === 'POST') {
+                        $user = $this->authMiddleware->requireAuth();
+                        $_REQUEST['authenticated_user'] = $user;
+                        $this->attainmentController->calculateProgrammeAttainment($programmeId);
                     } else {
                         $this->sendMethodNotAllowed();
                     }

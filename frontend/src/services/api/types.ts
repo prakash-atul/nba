@@ -316,6 +316,17 @@ export interface Programme {
 	course_count?: number;
 }
 
+export interface ProgrammeWithBatch {
+	programme_id: number;
+	department_id: number;
+	programme_code: string;
+	programme_name: string;
+	degree_level: "UG" | "PG" | "Diploma" | "PhD";
+	duration_years: number;
+	created_at?: string;
+	batch_year: number;
+}
+
 // Admin Types
 export interface AdminStats {
 	totalUsers: number;
@@ -444,6 +455,24 @@ export interface ProgrammeAttainmentResponse {
 	po_attainment: OfferingAttainmentPO[];
 }
 
+export interface CoursePOAttainmentRow {
+	offering_id: number;
+	course_code: string;
+	course_name: string;
+	values: Record<string, number | null>;
+}
+
+export interface CourseLevelProgrammeAttainmentResponse {
+	programme_id: number;
+	batch_year: number | null;
+	po_list: string[];
+	courses: CoursePOAttainmentRow[];
+	averages: Record<string, number>;
+	finals: Record<string, number>;
+	indirect: Record<string, number | null>;
+	targets: Record<string, number>;
+}
+
 export interface SaveCoPoMatrixRequest {
 	mappings: Array<{ co: string; po: string; value: number }>;
 }
@@ -476,6 +505,80 @@ export interface CourseExitSurveyResultsResponse {
 	offering_id: number;
 	has_data: boolean;
 	co_results: CourseExitSurveyCoResult[];
+}
+
+// Stakeholder Survey Types
+export interface StakeholderSurveyRow {
+	po_name: string;
+	likert_rating: number;
+	respondent_identifier?: string | null;
+}
+
+export interface StakeholderSurveyImportRequest {
+	batch_year: number;
+	stakeholder_type: string;
+	responses: StakeholderSurveyRow[];
+}
+
+export interface StakeholderSurveyImportResponse {
+	imported_count: number;
+	error_count: number;
+	errors: string[];
+}
+
+export interface StakeholderPOAverage {
+	po_name: string;
+	average_rating: number;
+	attainment_percentage: number;
+	respondent_count: number;
+}
+
+export interface StakeholderByTypeRow {
+	stakeholder_type: string;
+	po_name: string;
+	average_rating: number;
+	respondent_count: number;
+}
+
+export interface StakeholderSurveyResultsResponse {
+	programme_id: number;
+	batch_year: number;
+	has_data: boolean;
+	stakeholder_types: string[];
+	averages: StakeholderPOAverage[];
+	by_type: StakeholderByTypeRow[];
+}
+
+// Action Plan Types
+export interface ActionPlan {
+	id: number;
+	programme_id: number | null;
+	offering_id: number | null;
+	batch_year: number | null;
+	po_name: string | null;
+	gap_description: string;
+	action_text: string;
+	responsible_person: string | null;
+	target_date: string | null;
+	status: "Open" | "In Progress" | "Completed";
+	created_by: number | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateActionPlanRequest {
+	batch_year?: number;
+	po_name?: string;
+	gap_description: string;
+	action_text: string;
+	responsible_person?: string;
+	target_date?: string;
+	status?: "Open" | "In Progress" | "Completed";
+}
+
+export interface SetTargetsRequest {
+	batch_year: number;
+	targets: Record<string, number>;
 }
 
 export interface OfferingAttainmentPO {

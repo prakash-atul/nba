@@ -95,6 +95,151 @@ class AttainmentController
     }
 
     /**
+     * Get course-level PO/PSO attainment for the programme articulation matrix.
+     * GET /programmes/{id}/attainment/courses?batch_year=
+     */
+    public function getCoursesProgrammeAttainment(int $programmeId): void
+    {
+        try {
+            if (!$this->programmeRepo || !$this->snapshotRepo) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Service not initialized']);
+                return;
+            }
+
+            $programme = $this->programmeRepo->findById($programmeId);
+            if (!$programme) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Programme not found']);
+                return;
+            }
+
+            $batchYear = isset($_GET['batch_year']) && $_GET['batch_year'] !== ''
+                ? (int)$_GET['batch_year']
+                : null;
+
+            if (!$batchYear) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'batch_year query parameter is required']);
+                return;
+            }
+
+            $rows = $this->snapshotRepo->getCourseLevelPoAttainment($programmeId, $batchYear);
+
+            // Build all PO/PSO names (PO1-PO12, PSO1-PSO3)
+            $poList = [];
+            for ($i = 1; $i <= 12; $i++) { $poList[] = 'PO' . $i; }
+            for ($i = 1; $i <= 3; $i++) { $poList[] = 'PSO' . $i; }
+
+            // Pivot rows into per-course structure
+            $courses = [];
+            $sumDirect = array_fill_keys($poList, 0.0);
+            $sumFinal = array_fill_keys($poList, 0.0);
+            $countDirect = array_fill_keys($poList, 0);
+            $countFinal = array_fill_keys($poList, 0);
+            $seenCourses = [];
+
+            foreach ($rows as $row) {
+                $offeringId = (int)$row['offering_id'];
+                $poName = $row['po_name'];
+
+                // Skip unknown PO names (safety)
+                if (!in_array($poName, $poList, true)) {
+                    continue;
+                }
+
+                $directVal = $row['attainment_value'] !== null ? (float)$row['attainment_value'] : null;
+                $finalVal = $row['final_attainment_value'] !== null ? (float)$row['final_attainment_value'] : null;
+
+                if (!isset($seenCourses[$offeringId])) {
+                    $courses[] = [
+                        'offering_id' => $offeringId,
+                        'course_code' => $row['course_code'],
+                        'course_name' => $row['course_name'],
+                        'values' => array_fill_keys($poList, null),
+                    ];
+                    $seenCourses[$offeringId] = count($courses) - 1;
+                }
+
+                $idx = $seenCourses[$offeringId];
+                $courses[$idx]['values'][$poName] = $finalVal;
+
+                // Accumulate for averages
+                if ($directVal !== null) {
+                    $sumDirect[$poName] += $directVal;
+                    $countDirect[$poName]++;
+                }
+                if ($finalVal !== null) {
+                    $sumFinal[$poName] += $finalVal;
+                    $countFinal[$poName]++;
+                }
+            }
+
+            // Read blended programme-level data from programme_batch_attainments
+            $blendedStmt = $this->snapshotRepo->getDb()->prepare(
+                "SELECT po_name, direct_attainment, indirect_attainment, final_attainment, target
+                 FROM programme_batch_attainments
+                 WHERE programme_id = ? AND batch_year = ?"
+            );
+            $blendedStmt->execute([$programmeId, $batchYear]);
+            $blendedRows = $blendedStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $hasBlended = !empty($blendedRows);
+            $blendedByPo = [];
+            foreach ($blendedRows as $b) {
+                $blendedByPo[$b['po_name']] = $b;
+            }
+
+            // Compute averages — prefer blended when available
+            $averages = [];
+            $finals = [];
+            $indirect = [];
+            $targets = [];
+            foreach ($poList as $po) {
+                if ($hasBlended && isset($blendedByPo[$po])) {
+                    $averages[$po] = (float)$blendedByPo[$po]['direct_attainment'];
+                    $finals[$po] = (float)$blendedByPo[$po]['final_attainment'];
+                    $indirect[$po] = (float)$blendedByPo[$po]['indirect_attainment'];
+                    $targets[$po] = (float)$blendedByPo[$po]['target'];
+                } else {
+                    $averages[$po] = $countDirect[$po] > 0
+                        ? round($sumDirect[$po] / $countDirect[$po], 2)
+                        : 0.0;
+                    $finals[$po] = $countFinal[$po] > 0
+                        ? round($sumFinal[$po] / $countFinal[$po], 2)
+                        : 0.0;
+                    $indirect[$po] = null;
+                    $targets[$po] = 0.0;
+                }
+            }
+
+            // Override targets from separate query as fallback
+            $savedTargets = $this->snapshotRepo->getTargets($programmeId, $batchYear);
+            foreach ($savedTargets as $po => $val) {
+                $targets[$po] = $val;
+            }
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'programme_id' => $programmeId,
+                    'batch_year' => $batchYear,
+                    'po_list' => $poList,
+                    'courses' => $courses,
+                    'averages' => $averages,
+                    'finals' => $finals,
+                    'indirect' => $indirect,
+                    'targets' => $targets,
+                ],
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Get programme-level PO attainment from persisted offering snapshots.
      */
     public function getProgrammeAttainment(int $programmeId): void
@@ -125,6 +270,54 @@ class AttainmentController
                     'batch_year' => $batchYear,
                     'po_attainment' => $this->snapshotRepo->getProgrammePoAttainment($programmeId, $batchYear),
                 ],
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Calculate and persist programme-level batch attainment.
+     * POST /programmes/{id}/attainment?batch_year=
+     */
+    public function calculateProgrammeAttainment(int $programmeId): void
+    {
+        try {
+            if (!$this->snapshotService || !$this->programmeRepo) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Service not initialized']);
+                return;
+            }
+
+            $programme = $this->programmeRepo->findById($programmeId);
+            if (!$programme) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Programme not found']);
+                return;
+            }
+
+            $batchYear = isset($_GET['batch_year']) && $_GET['batch_year'] !== ''
+                ? (int)$_GET['batch_year']
+                : null;
+
+            if (!$batchYear) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'batch_year query parameter is required']);
+                return;
+            }
+
+            $result = $this->snapshotService->calculateProgrammeBatchAttainment($programmeId, $batchYear);
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'programme_id' => $programmeId,
+                    'batch_year' => $batchYear,
+                    'po_attainment' => $result,
+                ],
+                'message' => 'Programme attainment calculated successfully',
             ]);
         } catch (Exception $e) {
             http_response_code(500);

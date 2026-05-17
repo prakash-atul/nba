@@ -1,6 +1,7 @@
-import { apiGet } from "./base";
+import { apiGet, apiPost } from "./base";
 import { debugLogger } from "@/lib/debugLogger";
 import type {
+	CourseLevelProgrammeAttainmentResponse,
 	OfferingAttainmentSnapshotInfo,
 	ProgrammeAttainmentResponse,
 } from "./types";
@@ -30,6 +31,57 @@ async function getOfferingAttainment(
 		po_attainment: response.po_attainment?.map((p) => ({
 			po: p.po_name,
 			value: p.attainment_value,
+		})),
+	});
+	return response;
+}
+
+async function getCourseLevelProgrammeAttainment(
+	programmeId: number,
+	batchYear: number,
+): Promise<CourseLevelProgrammeAttainmentResponse> {
+	debugLogger.info(
+		"attainmentApi",
+		"getCourseLevelProgrammeAttainment called",
+		{ programmeId, batchYear },
+	);
+	const response = await apiGet<CourseLevelProgrammeAttainmentResponse>(
+		`/programmes/${programmeId}/attainment/courses?batch_year=${encodeURIComponent(String(batchYear))}`,
+	);
+	debugLogger.info(
+		"attainmentApi",
+		"getCourseLevelProgrammeAttainment response",
+		{
+			programmeId,
+			batch_year: response.batch_year,
+			po_count: response.po_list?.length ?? 0,
+			course_count: response.courses?.length ?? 0,
+		},
+	);
+	return response;
+}
+
+async function calculateProgrammeAttainment(
+	programmeId: number,
+	batchYear: number,
+): Promise<ProgrammeAttainmentResponse> {
+	debugLogger.info("attainmentApi", "calculateProgrammeAttainment called", {
+		programmeId,
+		batchYear,
+	});
+	const response = await apiPost<object, ProgrammeAttainmentResponse>(
+		`/programmes/${programmeId}/attainment?batch_year=${encodeURIComponent(String(batchYear))}`,
+		{},
+	);
+	debugLogger.info("attainmentApi", "calculateProgrammeAttainment response", {
+		programmeId,
+		batch_year: response.batch_year,
+		count: response.po_attainment?.length ?? 0,
+		po_attainment: response.po_attainment?.map((p) => ({
+			po: p.po_name,
+			direct: p.direct_attainment_value,
+			indirect: p.indirect_attainment_value,
+			final: p.final_attainment_value,
 		})),
 	});
 	return response;
@@ -65,4 +117,6 @@ async function getProgrammeAttainment(
 export const attainmentApi = {
 	getOfferingAttainment,
 	getProgrammeAttainment,
+	calculateProgrammeAttainment,
+	getCourseLevelProgrammeAttainment,
 };

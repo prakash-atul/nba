@@ -66,6 +66,14 @@ class AttainmentSnapshotService
             return $b->min_percentage <=> $a->min_percentage;
         });
 
+        if (empty($thresholds)) {
+            $thresholds = [
+                new AttainmentScale(0, $offeringId, 3, 70.0),
+                new AttainmentScale(0, $offeringId, 2, 60.0),
+                new AttainmentScale(0, $offeringId, 1, 50.0),
+            ];
+        }
+
         $coMaxMarks = $this->getCoMaxMarks($offeringId);
         $studentPercentages = $this->getStudentPercentages($offeringId, $coMaxMarks);
         $presentStudents = count($studentPercentages);
@@ -248,6 +256,14 @@ class AttainmentSnapshotService
             return $b->min_percentage <=> $a->min_percentage;
         });
 
+        if (empty($thresholds)) {
+            $thresholds = [
+                new AttainmentScale(0, $offeringId, 3, 70.0),
+                new AttainmentScale(0, $offeringId, 2, 60.0),
+                new AttainmentScale(0, $offeringId, 1, 50.0),
+            ];
+        }
+
         $averages = $this->surveyRepository->getCoAverages($offeringId);
         $results = [];
 
@@ -367,6 +383,125 @@ class AttainmentSnapshotService
         }
 
         return 0.0;
+    }
+
+    /**
+     * Calculate and persist programme-level batch attainment.
+     * Blends course-level direct PO attainment with stakeholder survey
+     * indirect PO attainment using the programme's configured weightage.
+     * Upserts results into programme_batch_attainments.
+     */
+    public function calculateProgrammeBatchAttainment(int $programmeId, int $batchYear): array
+    {
+        // 1. Get programme weightage
+        $progStmt = $this->db->prepare(
+            'SELECT direct_weightage, indirect_weightage FROM programmes WHERE programme_id = ?'
+        );
+        $progStmt->execute([$programmeId]);
+        $progRow = $progStmt->fetch(PDO::FETCH_ASSOC);
+        $directWeightage = $progRow ? (float)$progRow['direct_weightage'] : 80.0;
+        $indirectWeightage = $progRow ? (float)$progRow['indirect_weightage'] : 20.0;
+
+        // 2. Get course-level direct PO attainment
+		$courseStmt = $this->db->prepare(
+            "SELECT
+                opa.po_name,
+                ROUND(AVG(opa.attainment_value), 2) AS direct_attainment
+             FROM offering_po_attainment opa
+             WHERE EXISTS (
+                 SELECT 1
+                 FROM enrollments e
+                 JOIN students s ON s.roll_no = e.student_rollno
+                 WHERE e.offering_id = opa.offering_id
+                   AND e.enrollment_status != 'Dropped'
+                   AND s.programme_id = ?
+                   AND s.batch_year = ?
+             )
+             GROUP BY opa.po_name
+             ORDER BY opa.po_name ASC"
+        );
+        $courseStmt->execute([$programmeId, $batchYear]);
+        $courseRows = $courseStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. Get stakeholder survey indirect (PO-level Likert averages)
+        $stakeholderStmt = $this->db->prepare(
+            "SELECT
+                po_name,
+                ROUND(AVG(likert_rating), 2) AS average_rating
+             FROM stakeholder_survey_responses
+             WHERE programme_id = ? AND batch_year = ?
+             GROUP BY po_name
+             ORDER BY po_name ASC"
+        );
+        $stakeholderStmt->execute([$programmeId, $batchYear]);
+        $stakeholderRows = $stakeholderStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Build lookup: po_name => Likert avg
+        $stakeholderByPo = [];
+        foreach ($stakeholderRows as $s) {
+            $avg = (float)$s['average_rating'];
+            $pct = $avg > 0 ? round(($avg - 1) / 4 * 100, 2) : 0.0;
+            $stakeholderByPo[$s['po_name']] = $pct;
+        }
+
+        // 4. Use default thresholds for Likert->level conversion
+        $defaultThresholds = [
+            new AttainmentScale(0, 0, 3, 70.0),
+            new AttainmentScale(0, 0, 2, 60.0),
+            new AttainmentScale(0, 0, 1, 50.0),
+        ];
+
+        // 5. Blend for each PO
+        $results = [];
+        $insertStmt = $this->db->prepare(
+            'INSERT INTO programme_batch_attainments
+                (programme_id, batch_year, po_name, direct_attainment, indirect_attainment, final_attainment, target)
+             VALUES (?, ?, ?, ?, ?, ?, 0)
+             ON DUPLICATE KEY UPDATE
+                direct_attainment = VALUES(direct_attainment),
+                indirect_attainment = VALUES(indirect_attainment),
+                final_attainment = VALUES(final_attainment),
+                calculated_at = CURRENT_TIMESTAMP'
+        );
+
+        foreach ($courseRows as $row) {
+            $poName = $row['po_name'];
+            $directVal = (float)$row['direct_attainment'];
+
+            // Stakeholder indirect for this PO
+            $indirectPct = $stakeholderByPo[$poName] ?? null;
+            $indirectLevel = null;
+            $finalVal = $directVal;
+
+            if ($indirectPct !== null) {
+                $indirectLevel = round(
+                    $this->resolveAttainmentLevel($indirectPct, $defaultThresholds),
+                    2
+                );
+                $finalVal = round(
+                    ($directVal * $directWeightage / 100) + ($indirectLevel * $indirectWeightage / 100),
+                    2
+                );
+            }
+
+            $results[] = [
+                'po_name' => $poName,
+                'direct_attainment' => $directVal,
+                'indirect_attainment' => $indirectLevel ?? 0.0,
+                'final_attainment' => $finalVal,
+            ];
+
+            $insertStmt->execute([
+                $programmeId,
+                $batchYear,
+                $poName,
+                $directVal,
+                $indirectLevel ?? 0.0,
+                $finalVal,
+            ]);
+        }
+
+        return $results;
     }
 
     private function computePoAttainment(int $offeringId, array $coLevels, int $attainmentPointsScale): array

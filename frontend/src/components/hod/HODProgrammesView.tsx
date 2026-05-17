@@ -1,5 +1,6 @@
 import { DataTable } from "@/features/shared/DataTable";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,17 +21,18 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, GraduationCap } from "lucide-react";
+import { Plus, GraduationCap, BarChart3, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { hodApi } from "@/services/api/hod";
 import { usePaginatedData } from "@/lib/usePaginatedData";
-import type { Programme } from "@/services/api";
+import type { Programme, ProgrammeWithBatch } from "@/services/api";
 import { getProgrammeColumns } from "../admin/ProgrammesView.columns";
-import { ProgrammeAttainment } from "@/features/programmes/ProgrammeAttainment";
 import { BulkEnrollStudentsDialog } from "../admin/BulkEnrollStudentsDialog";
 import { ProgrammeCoursesDialog } from "../admin/ProgrammeCoursesDialog";
 
 export function HODProgrammesView() {
+	const navigate = useNavigate();
+
 	const {
 		data: programmes,
 		loading: refreshing,
@@ -42,11 +44,11 @@ export function HODProgrammesView() {
 		pageIndex,
 		search,
 		setSearch,
-	} = usePaginatedData<Programme>(({
+	} = usePaginatedData<Programme>({
 		fetchFn: (params) => hodApi.getDepartmentProgrammes(params),
 		limit: 20,
 		defaultSort: "p.programme_code",
-	}));
+	});
 
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -54,6 +56,24 @@ export function HODProgrammesView() {
 	const [isCoursesDialogOpen, setIsCoursesDialogOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [selectedProgramme, setSelectedProgramme] = useState<Programme | null>(null);
+
+	const [batches, setBatches] = useState<ProgrammeWithBatch[]>([]);
+	const [batchesLoading, setBatchesLoading] = useState(false);
+
+	useEffect(() => {
+		const loadBatches = async () => {
+			setBatchesLoading(true);
+			try {
+				const result = await hodApi.getProgrammesWithBatches();
+				setBatches(result);
+			} catch {
+				// silently fail - batch table is supplementary
+			} finally {
+				setBatchesLoading(false);
+			}
+		};
+		loadBatches();
+	}, []);
 
 	const [formData, setFormData] = useState({
 		programme_name: "",
@@ -174,8 +194,6 @@ export function HODProgrammesView() {
 
 	return (
 		<div className="space-y-4">
-		<ProgrammeAttainment programmes={programmes || []} />
-
 			<Card className="border-none shadow-none bg-transparent">
 				<div className="flex flex-row items-center justify-between p-0 mb-4">
 					<div className="flex items-center gap-3">
@@ -359,6 +377,80 @@ export function HODProgrammesView() {
 				onSuccess={onDataRefresh}
 				api={hodApi}
 			/>
+
+			{/* Batch-wise Programme Attainment */}
+			<Card className="border-none shadow-none bg-transparent">
+				<div className="flex flex-row items-center gap-3 mb-4">
+					<div className="w-10 h-10 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+						<BarChart3 className="w-5 h-5 text-white" />
+					</div>
+					<div>
+						<h3 className="text-xl font-bold">Programme Attainment</h3>
+						<p className="text-sm text-muted-foreground">
+							Batch-wise programme attainment dashboard
+						</p>
+					</div>
+				</div>
+			</Card>
+
+			<Card className="p-0">
+				<div className="rounded-md border">
+					<table className="w-full text-sm">
+						<thead className="bg-muted/40">
+							<tr>
+								<th className="text-left px-3 py-2.5 font-medium">Code</th>
+								<th className="text-left px-3 py-2.5 font-medium">Programme</th>
+								<th className="text-left px-3 py-2.5 font-medium">Batch</th>
+								<th className="text-left px-3 py-2.5 font-medium">Level</th>
+								<th className="text-center px-3 py-2.5 font-medium">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{batchesLoading ? (
+								<tr>
+									<td colSpan={5} className="px-3 py-4 text-center text-muted-foreground">
+										Loading...
+									</td>
+								</tr>
+							) : batches.length === 0 ? (
+								<tr>
+									<td colSpan={5} className="px-3 py-4 text-center text-muted-foreground">
+										No programmes with batch data found.
+									</td>
+								</tr>
+							) : (
+								batches.map((b, idx) => (
+									<tr key={`${b.programme_id}-${b.batch_year}`} className={idx < batches.length - 1 ? "border-t" : ""}>
+										<td className="px-3 py-2 font-mono text-xs">{b.programme_code}</td>
+										<td className="px-3 py-2">{b.programme_name}</td>
+										<td className="px-3 py-2">{b.batch_year}</td>
+										<td className="px-3 py-2">{b.degree_level}</td>
+										<td className="px-3 py-2 text-center">
+											<Button
+												variant="outline"
+												size="sm"
+												className="gap-1.5"
+												onClick={() =>
+													navigate("/hod/programme-attainment", {
+														state: {
+															programmeId: b.programme_id,
+															programmeName: b.programme_name,
+															batchYear: String(b.batch_year),
+														},
+													})
+												}
+											>
+												<ExternalLink className="w-3.5 h-3.5" />
+												View Attainment
+											</Button>
+										</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+				</div>
+			</Card>
 		</div>
 	);
 }

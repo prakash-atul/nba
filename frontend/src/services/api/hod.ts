@@ -15,6 +15,7 @@ import type {
 	Student,
 	UpdateStudentRequest,
 	Programme,
+	ProgrammeWithBatch,
 	ProgrammeCourseResponse,
 	CreateProgrammeRequest,
 	ProgrammeBulkEnrollRequest,
@@ -24,6 +25,11 @@ export const hodApi = {
 	async getDepartmentProgrammes(params?: PaginationParams): Promise<PaginatedResponse<Programme>> {
 		debugLogger.info("hodApi", "getDepartmentProgrammes called", params);
 		return apiGetPaginated<Programme>("/hod/programmes", params);
+	},
+
+	async getProgrammesWithBatches(): Promise<ProgrammeWithBatch[]> {
+		debugLogger.info("hodApi", "getProgrammesWithBatches called");
+		return apiGet<ProgrammeWithBatch[]>("/hod/programmes/with-batches");
 	},
 
 	// Programme CRUD

@@ -16,6 +16,7 @@ import { HODStudents } from "./pages/hod/HODStudents";
 import { HODCourses } from "./pages/hod/HODCourses";
 import { HODProgrammes } from "./pages/hod/HODProgrammes";
 import { HODCourseCOPO } from "./pages/hod/HODCourseCOPO";
+import { HODProgrammeAttainment } from "./pages/hod/HODProgrammeAttainment";
 import { HODLogs } from "./pages/hod/HODLogs";
 import { FacultyHome } from "./pages/faculty/FacultyHome";
 import { FacultyAssessments } from "./pages/faculty/FacultyAssessments";
@@ -71,6 +72,10 @@ function App() {
 					<Route path="/hod/faculty" element={<HODFaculty />} />
 					<Route path="/hod/students" element={<HODStudents />} />
 					<Route path="/hod/programmes" element={<HODProgrammes />} />
+					<Route
+						path="/hod/programme-attainment"
+						element={<HODProgrammeAttainment />}
+					/>
 					<Route path="/hod/courses" element={<HODCourses />} />
 					<Route
 						path="/hod/courses/:id/copo"

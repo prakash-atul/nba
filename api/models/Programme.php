@@ -12,6 +12,8 @@ class Programme
     private $programmeName;
     private $degreeLevel;
     private $durationYears;
+    private $directWeightage;
+    private $indirectWeightage;
     private $createdAt;
 
     public function __construct(
@@ -21,6 +23,8 @@ class Programme
         $programmeName = null,
         $degreeLevel = 'UG',
         $durationYears = 4,
+        $directWeightage = 80.0,
+        $indirectWeightage = 20.0,
         $createdAt = null
     ) {
         $this->programmeId = $programmeId;
@@ -29,6 +33,8 @@ class Programme
         $this->programmeName = $programmeName;
         $this->degreeLevel = $degreeLevel;
         $this->durationYears = $durationYears;
+        $this->directWeightage = $directWeightage;
+        $this->indirectWeightage = $indirectWeightage;
         $this->createdAt = $createdAt;
     }
 
@@ -38,6 +44,8 @@ class Programme
     public function getProgrammeName() { return $this->programmeName; }
     public function getDegreeLevel() { return $this->degreeLevel; }
     public function getDurationYears() { return $this->durationYears; }
+    public function getDirectWeightage() { return $this->directWeightage; }
+    public function getIndirectWeightage() { return $this->indirectWeightage; }
     public function getCreatedAt() { return $this->createdAt; }
 
     public function setProgrammeId($programmeId)
@@ -98,6 +106,8 @@ class Programme
             'programme_name' => $this->programmeName,
             'degree_level' => $this->degreeLevel,
             'duration_years' => $this->durationYears,
+            'direct_weightage' => $this->directWeightage,
+            'indirect_weightage' => $this->indirectWeightage,
             'created_at' => $this->createdAt,
         ];
     }

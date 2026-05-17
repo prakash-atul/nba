@@ -193,6 +193,30 @@ class HODController
     }
 
     /**
+     * Get programmes with distinct batch_year combinations for the HOD's department
+     */
+    public function getProgrammesWithBatches()
+    {
+        try {
+            if (!$this->requireHOD()) return;
+
+            $departmentId = (int)($_REQUEST['authenticated_user']['department_id'] ?? 0);
+            $rows = $this->programmeRepository->getProgrammesWithBatches($departmentId);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Programmes with batches retrieved successfully',
+                'data' => $rows,
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve programmes with batches', 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Create a new programme (auto-assigned to HOD's department)
      */
     public function createProgramme()

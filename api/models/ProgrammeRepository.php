@@ -30,6 +30,8 @@ class ProgrammeRepository
             $row['programme_name'],
             $row['degree_level'],
             (int)$row['duration_years'],
+            isset($row['direct_weightage']) ? (float)$row['direct_weightage'] : 80.0,
+            isset($row['indirect_weightage']) ? (float)$row['indirect_weightage'] : 20.0,
             $row['created_at'] ?? null
         );
     }
@@ -83,6 +85,8 @@ class ProgrammeRepository
                 p.programme_name,
                 p.degree_level,
                 p.duration_years,
+                p.direct_weightage,
+                p.indirect_weightage,
                 p.created_at,
                 d.department_name,
                 d.department_code,
@@ -111,6 +115,8 @@ class ProgrammeRepository
                 'programme_name' => $row['programme_name'],
                 'degree_level' => $row['degree_level'],
                 'duration_years' => (int)$row['duration_years'],
+                'direct_weightage' => isset($row['direct_weightage']) ? (float)$row['direct_weightage'] : 80.0,
+                'indirect_weightage' => isset($row['indirect_weightage']) ? (float)$row['indirect_weightage'] : 20.0,
                 'created_at' => $row['created_at'],
                 'department_name' => $row['department_name'],
                 'department_code' => $row['department_code'],
@@ -162,24 +168,28 @@ class ProgrammeRepository
     public function save(Programme $programme): bool
     {
         if ($programme->getProgrammeId()) {
-            $stmt = $this->db->prepare('UPDATE programmes SET department_id = ?, programme_code = ?, programme_name = ?, degree_level = ?, duration_years = ? WHERE programme_id = ?');
+            $stmt = $this->db->prepare('UPDATE programmes SET department_id = ?, programme_code = ?, programme_name = ?, degree_level = ?, duration_years = ?, direct_weightage = ?, indirect_weightage = ? WHERE programme_id = ?');
             return $stmt->execute([
                 $programme->getDepartmentId(),
                 $programme->getProgrammeCode(),
                 $programme->getProgrammeName(),
                 $programme->getDegreeLevel(),
                 $programme->getDurationYears(),
+                $programme->getDirectWeightage(),
+                $programme->getIndirectWeightage(),
                 $programme->getProgrammeId(),
             ]);
         }
 
-        $stmt = $this->db->prepare('INSERT INTO programmes (department_id, programme_code, programme_name, degree_level, duration_years) VALUES (?, ?, ?, ?, ?)');
+        $stmt = $this->db->prepare('INSERT INTO programmes (department_id, programme_code, programme_name, degree_level, duration_years, direct_weightage, indirect_weightage) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $ok = $stmt->execute([
             $programme->getDepartmentId(),
             $programme->getProgrammeCode(),
             $programme->getProgrammeName(),
             $programme->getDegreeLevel(),
             $programme->getDurationYears(),
+            $programme->getDirectWeightage(),
+            $programme->getIndirectWeightage(),
         ]);
 
         if ($ok) {
@@ -223,6 +233,29 @@ class ProgrammeRepository
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function getProgrammesWithBatches(int $departmentId): array
+    {
+        $sql = "
+            SELECT DISTINCT
+                p.programme_id,
+                p.department_id,
+                p.programme_code,
+                p.programme_name,
+                p.degree_level,
+                p.duration_years,
+                p.created_at,
+                s.batch_year
+            FROM programmes p
+            INNER JOIN students s ON s.programme_id = p.programme_id
+            WHERE p.department_id = ?
+              AND s.batch_year IS NOT NULL
+            ORDER BY p.programme_name, s.batch_year DESC
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$departmentId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function countStudents($programmeId): int
