@@ -88,4 +88,27 @@ class CourseExitSurveyRepository
         $stmt->execute([$offeringId]);
         return (int)$stmt->fetchColumn() > 0;
     }
+
+    /**
+     * Get pivoted responses: one row per student with CO1-CO6 Likert ratings.
+     */
+    public function getPivotResponses(int $offeringId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                student_rollno,
+                MAX(CASE WHEN co_number = 1 THEN likert_rating END) AS co1,
+                MAX(CASE WHEN co_number = 2 THEN likert_rating END) AS co2,
+                MAX(CASE WHEN co_number = 3 THEN likert_rating END) AS co3,
+                MAX(CASE WHEN co_number = 4 THEN likert_rating END) AS co4,
+                MAX(CASE WHEN co_number = 5 THEN likert_rating END) AS co5,
+                MAX(CASE WHEN co_number = 6 THEN likert_rating END) AS co6
+             FROM course_exit_survey_responses
+             WHERE offering_id = ?
+             GROUP BY student_rollno
+             ORDER BY student_rollno ASC"
+        );
+        $stmt->execute([$offeringId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

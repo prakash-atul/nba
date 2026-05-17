@@ -8,9 +8,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, Users, Table2 } from "lucide-react";
 import { surveyApi } from "@/services/api/surveys";
 import { debugLogger } from "@/lib/debugLogger";
 import type { StakeholderSurveyResultsResponse } from "@/services/api";
+import { StakeholderSurveyDetailTable } from "./StakeholderSurveyDetailTable";
+import { ConsolidatedIndirectMatrix } from "./ConsolidatedIndirectMatrix";
 
 interface StakeholderSurveyResultsProps {
 	programmeId: number;
@@ -26,6 +34,8 @@ export function StakeholderSurveyResults({
 		null,
 	);
 	const [loading, setLoading] = useState(false);
+	const [detailOpen, setDetailOpen] = useState(false);
+	const [matrixOpen, setMatrixOpen] = useState(false);
 
 	const fetchResults = useCallback(async () => {
 		const year = parseInt(batchYear, 10);
@@ -45,22 +55,6 @@ export function StakeholderSurveyResults({
 	useEffect(() => {
 		if (refreshTrigger > 0) fetchResults();
 	}, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
-
-	const groupedByType: Record<
-		string,
-		Array<{ po_name: string; average_rating: number; respondent_count: number }>
-	> = {};
-	if (data?.by_type) {
-		for (const row of data.by_type) {
-			if (!groupedByType[row.stakeholder_type])
-				groupedByType[row.stakeholder_type] = [];
-			groupedByType[row.stakeholder_type].push({
-				po_name: row.po_name,
-				average_rating: Number(row.average_rating),
-				respondent_count: row.respondent_count,
-			});
-		}
-	}
 
 	return (
 		<Card>
@@ -137,58 +131,66 @@ export function StakeholderSurveyResults({
 							</table>
 						</div>
 
-						{/* Breakdown by stakeholder type */}
-						{Object.keys(groupedByType).length > 0 && (
-							<div>
-								<h4 className="text-sm font-medium mb-2">
-									Breakdown by Stakeholder Type
-								</h4>
-								{Object.entries(groupedByType).map(
-									([type, rows]) => (
-										<div key={type} className="mb-4">
-											<h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-												{type}
-											</h5>
-											<table className="w-full text-sm">
-												<thead>
-													<tr className="border-b">
-														<th className="text-left py-1 px-2">
-															PO
-														</th>
-														<th className="text-right py-1 px-2">
-															Avg
-														</th>
-														<th className="text-right py-1 px-2">
-															Count
-														</th>
-													</tr>
-												</thead>
-												<tbody>
-													{rows.map((r) => (
-														<tr
-															key={r.po_name}
-															className="border-b last:border-0"
-														>
-															<td className="py-1 px-2">
-																{r.po_name}
-															</td>
-															<td className="text-right py-1 px-2">
-																{r.average_rating.toFixed(
-																	2,
-																)}
-															</td>
-															<td className="text-right py-1 px-2">
-																{r.respondent_count}
-															</td>
-														</tr>
-													))}
-												</tbody>
-											</table>
+						{/* Individual Detail Table (collapsible) */}
+						<Collapsible
+							open={detailOpen}
+							onOpenChange={setDetailOpen}
+						>
+							<div className="rounded-md border">
+								<CollapsibleTrigger asChild>
+									<Button
+										variant="ghost"
+										className="flex w-full justify-between p-3 h-auto"
+									>
+										<div className="flex items-center gap-2">
+											<Users className="h-4 w-4 text-muted-foreground" />
+											<span className="text-sm font-medium">
+												Individual Responses ({data.individual.length})
+											</span>
 										</div>
-									),
-								)}
+										<ChevronDown
+											className={`h-4 w-4 transition-transform ${
+												detailOpen ? "rotate-180" : ""
+											}`}
+										/>
+									</Button>
+								</CollapsibleTrigger>
+								<CollapsibleContent className="p-3 pt-0">
+									<StakeholderSurveyDetailTable data={data} />
+								</CollapsibleContent>
 							</div>
-						)}
+						</Collapsible>
+
+						{/* Consolidated Indirect Survey Matrix (collapsible) */}
+						<Collapsible
+							open={matrixOpen}
+							onOpenChange={setMatrixOpen}
+						>
+							<div className="rounded-md border">
+								<CollapsibleTrigger asChild>
+									<Button
+										variant="ghost"
+										className="flex w-full justify-between p-3 h-auto"
+									>
+										<div className="flex items-center gap-2">
+											<Table2 className="h-4 w-4 text-muted-foreground" />
+											<span className="text-sm font-medium">
+												Consolidated Indirect Survey Matrix
+												({data.stakeholder_types.length} types)
+											</span>
+										</div>
+										<ChevronDown
+											className={`h-4 w-4 transition-transform ${
+												matrixOpen ? "rotate-180" : ""
+											}`}
+										/>
+									</Button>
+								</CollapsibleTrigger>
+								<CollapsibleContent className="p-3 pt-0">
+									<ConsolidatedIndirectMatrix data={data} />
+								</CollapsibleContent>
+							</div>
+						</Collapsible>
 					</div>
 				)}
 			</CardContent>

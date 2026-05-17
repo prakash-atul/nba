@@ -1,4 +1,4 @@
-# NBA Assessment System - Database Schema v7.0
+# NBA Assessment System - Database Schema v10.0
 
 ## ERD Diagram
 
@@ -711,7 +711,9 @@ Likert-scale (1-5) responses from external stakeholders (Alumni, Employers, etc.
 | batch_year            | INT          | NOT NULL                                         | Batch year of the students               |
 | po_name               | VARCHAR(5)   | NOT NULL                                         | PO being rated (PO1-PO12, PSO1-PSO3)     |
 | likert_rating         | TINYINT      | CHECK (1-5)                                      | Rating: 1=Strongly Disagree → 5=Strongly Agree |
-| respondent_identifier | VARCHAR(255) | NULL                                             | Optional identifier for deduplication    |
+| respondent_identifier | VARCHAR(255) | NULL                                             | Group identifier linking all ratings from one respondent |
+| respondent_name       | VARCHAR(255) | NULL                                             | Respondent display name                  |
+| qualification         | VARCHAR(255) | NULL                                             | Respondent qualification / designation   |
 | imported_at           | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP                        | When the CSV was imported                |
 
 **Indexes**: PRIMARY KEY (id), INDEX (programme_id), INDEX (batch_year), INDEX (stakeholder_type)

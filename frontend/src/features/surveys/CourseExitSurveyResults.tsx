@@ -8,6 +8,7 @@ import {
 import { surveyApi } from "@/services/api/surveys";
 import { debugLogger } from "@/lib/debugLogger";
 import type { CourseExitSurveyResultsResponse } from "@/services/api";
+import { CourseExitSurveyRawData } from "./CourseExitSurveyRawData";
 
 interface CourseExitSurveyResultsProps {
 	offeringId: number;
@@ -100,47 +101,50 @@ export function CourseExitSurveyResults({
 	}
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="text-base">
-					Course Exit Survey — Results
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<table className="w-full text-sm">
-					<thead>
-						<tr className="border-b">
-							<th className="text-left py-2 px-2">CO</th>
-							<th className="text-right py-2 px-2">
-								Avg. Rating
-							</th>
-							<th className="text-right py-2 px-2">
-								Respondents
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						{data.co_results.map((r) => (
-							<tr
-								key={r.co_number}
-								className="border-b last:border-0"
-							>
-								<td className="py-2 px-2 font-medium">
-									{r.co_name}
-								</td>
-								<td className="text-right py-2 px-2">
-									{r.average_rating !== null
-										? r.average_rating.toFixed(2)
-										: "—"}
-								</td>
-								<td className="text-right py-2 px-2">
-									{r.respondent_count}
-								</td>
+		<>
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">
+						Course Exit Survey — Results
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<table className="w-full text-sm">
+						<thead>
+							<tr className="border-b">
+								<th className="text-left py-2 px-2">CO</th>
+								<th className="text-right py-2 px-2">
+									Avg. Rating
+								</th>
+								<th className="text-right py-2 px-2">
+									Respondents
+								</th>
 							</tr>
-						))}
-					</tbody>
-				</table>
-			</CardContent>
-		</Card>
+						</thead>
+						<tbody>
+							{data.co_results.map((r) => (
+								<tr
+									key={r.co_number}
+									className="border-b last:border-0"
+								>
+									<td className="py-2 px-2 font-medium">
+										{r.co_name}
+									</td>
+									<td className="text-right py-2 px-2">
+										{r.average_rating !== null
+											? Number(r.average_rating).toFixed(2)
+											: "—"}
+									</td>
+									<td className="text-right py-2 px-2">
+										{r.respondent_count}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</CardContent>
+			</Card>
+			<CourseExitSurveyRawData data={data} />
+		</>
 	);
 }

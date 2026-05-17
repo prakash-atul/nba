@@ -484,6 +484,11 @@ export interface CourseExitSurveyRow {
 	likert_rating: number;
 }
 
+export interface CourseExitSurveyRawRow {
+	student_rollno: string;
+	ratings: Record<string, number | null>;
+}
+
 export interface CourseExitSurveyImportRequest {
 	responses: CourseExitSurveyRow[];
 }
@@ -505,6 +510,7 @@ export interface CourseExitSurveyResultsResponse {
 	offering_id: number;
 	has_data: boolean;
 	co_results: CourseExitSurveyCoResult[];
+	raw_responses: CourseExitSurveyRawRow[];
 }
 
 // Stakeholder Survey Types
@@ -512,6 +518,8 @@ export interface StakeholderSurveyRow {
 	po_name: string;
 	likert_rating: number;
 	respondent_identifier?: string | null;
+	respondent_name?: string | null;
+	qualification?: string | null;
 }
 
 export interface StakeholderSurveyImportRequest {
@@ -540,6 +548,13 @@ export interface StakeholderByTypeRow {
 	respondent_count: number;
 }
 
+export interface StakeholderIndividualResponse {
+	respondent_identifier: string | null;
+	respondent_name: string | null;
+	qualification: string | null;
+	ratings: Record<string, number>;
+}
+
 export interface StakeholderSurveyResultsResponse {
 	programme_id: number;
 	batch_year: number;
@@ -547,6 +562,7 @@ export interface StakeholderSurveyResultsResponse {
 	stakeholder_types: string[];
 	averages: StakeholderPOAverage[];
 	by_type: StakeholderByTypeRow[];
+	individual: StakeholderIndividualResponse[];
 }
 
 // Action Plan Types

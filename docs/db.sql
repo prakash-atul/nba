@@ -449,6 +449,8 @@ CREATE TABLE `stakeholder_survey_responses` (
     `po_name` VARCHAR(5) NOT NULL,
     `likert_rating` TINYINT NOT NULL CHECK (`likert_rating` BETWEEN 1 AND 5),
     `respondent_identifier` VARCHAR(255) NULL,
+    `respondent_name` VARCHAR(255) NULL,
+    `qualification` VARCHAR(255) NULL,
     `imported_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     INDEX `idx_ssr_programme` (`programme_id`),

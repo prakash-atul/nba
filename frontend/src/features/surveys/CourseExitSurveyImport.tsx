@@ -13,6 +13,28 @@ interface CourseExitSurveyImportProps {
 	onImportComplete?: () => void;
 }
 
+const LIKERT_TEXT_MAP: Record<string, number> = {
+	"strongly agree": 5,
+	agree: 4,
+	neutral: 3,
+	disagree: 2,
+	"strongly disagree": 1,
+};
+
+function parseLikertValue(raw: unknown): number | null {
+	if (raw === undefined || raw === null) return null;
+	if (typeof raw === "number" && raw >= 1 && raw <= 5) return raw;
+	const s = String(raw).trim().toLowerCase();
+	if (s === "") return null;
+	// Try numeric first
+	const n = parseInt(s, 10);
+	if (!isNaN(n) && n >= 1 && n <= 5) return n;
+	// Try text map
+	const mapped = LIKERT_TEXT_MAP[s];
+	if (mapped !== undefined) return mapped;
+	return null;
+}
+
 /* Auto‑detect CO column by looking for "CO1:", "CO2:", etc. in the header. */
 function detectCoColumn(
 	header: string,
@@ -110,8 +132,8 @@ export function CourseExitSurveyImport({
 
 			for (const [col, coNum] of Object.entries(columnMapping)) {
 				if (coNum === null || coNum === 0) continue; // skip rollno col & unmapped
-				const rating = parseInt(row[col], 10);
-				if (isNaN(rating) || rating < 1 || rating > 5) continue;
+				const rating = parseLikertValue(row[col]);
+				if (rating === null) continue;
 
 				responses.push({
 					student_rollno: rollno,
@@ -195,9 +217,9 @@ export function CourseExitSurveyImport({
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<p className="text-sm text-muted-foreground">
-					Download your Google Form CSV export and upload it here.
-					Columns containing CO numbers (e.g. "CO1: ...") will be
-					auto-detected.
+					Upload a Google Forms CSV export. Columns with CO headers
+					(e.g. "CO1: ...") are auto-detected. Supports Likert text
+					("Strongly Agree"→5) or numeric values.
 				</p>
 
 				{/* File upload */}

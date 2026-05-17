@@ -109,6 +109,7 @@ class SurveyController
 
             $averages = $this->surveyRepo->getCoAverages($offeringId);
             $responseCounts = $this->surveyRepo->getCoResponseCounts($offeringId);
+            $pivotResponses = $this->surveyRepo->getPivotResponses($offeringId);
 
             $coResults = [];
             for ($co = 1; $co <= 6; $co++) {
@@ -128,6 +129,19 @@ class SurveyController
                 ];
             }
 
+            $rawResponses = [];
+            foreach ($pivotResponses as $row) {
+                $ratings = [];
+                for ($co = 1; $co <= 6; $co++) {
+                    $key = 'co' . $co;
+                    $ratings['CO' . $co] = isset($row[$key]) ? (int)$row[$key] : null;
+                }
+                $rawResponses[] = [
+                    'student_rollno' => $row['student_rollno'],
+                    'ratings' => $ratings,
+                ];
+            }
+
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -135,6 +149,7 @@ class SurveyController
                     'offering_id' => $offeringId,
                     'has_data' => !empty($averages),
                     'co_results' => $coResults,
+                    'raw_responses' => $rawResponses,
                 ],
             ]);
         } catch (Exception $e) {
@@ -239,6 +254,8 @@ class SurveyController
                     'po_name' => $poName,
                     'likert_rating' => $rating,
                     'respondent_identifier' => trim($row['respondent_identifier'] ?? '') ?: null,
+                    'respondent_name' => trim($row['respondent_name'] ?? '') ?: null,
+                    'qualification' => trim($row['qualification'] ?? '') ?: null,
                 ];
             }
 
@@ -278,6 +295,7 @@ class SurveyController
             $averages = $this->stakeholderRepo->getPoAverages($programmeId, $batchYear, $stakeholderType);
             $byType = $this->stakeholderRepo->getPoAveragesByType($programmeId, $batchYear);
             $types = $this->stakeholderRepo->getDistinctTypes($programmeId, $batchYear);
+            $individual = $this->stakeholderRepo->getByProgrammeBatchGrouped($programmeId, $batchYear, $stakeholderType);
 
             $results = [];
             foreach ($averages as $avg) {
@@ -290,6 +308,16 @@ class SurveyController
                 ];
             }
 
+            $byTypeFormatted = [];
+            foreach ($byType as $row) {
+                $byTypeFormatted[] = [
+                    'stakeholder_type' => $row['stakeholder_type'],
+                    'po_name' => $row['po_name'],
+                    'average_rating' => (float)$row['average_rating'],
+                    'respondent_count' => (int)$row['respondent_count'],
+                ];
+            }
+
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -299,7 +327,8 @@ class SurveyController
                     'has_data' => !empty($averages),
                     'stakeholder_types' => $types,
                     'averages' => $results,
-                    'by_type' => $byType,
+                    'by_type' => $byTypeFormatted,
+                    'individual' => $individual,
                 ],
             ]);
         } catch (Exception $e) {

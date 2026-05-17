@@ -22,6 +22,26 @@ const PO_PATTERNS = [
 	/^PSO\s*(\d+)$/i,
 ];
 
+const LIKERT_TEXT_MAP: Record<string, number> = {
+	"strongly agree": 5,
+	agree: 4,
+	neutral: 3,
+	disagree: 2,
+	"strongly disagree": 1,
+};
+
+function parseLikertValue(raw: unknown): number | null {
+	if (raw === undefined || raw === null) return null;
+	if (typeof raw === "number" && raw >= 1 && raw <= 5) return raw;
+	const s = String(raw).trim().toLowerCase();
+	if (s === "") return null;
+	const n = parseInt(s, 10);
+	if (!isNaN(n) && n >= 1 && n <= 5) return n;
+	const mapped = LIKERT_TEXT_MAP[s];
+	if (mapped !== undefined) return mapped;
+	return null;
+}
+
 function detectPoName(header: string): string | null {
 	const trimmed = header.trim();
 	for (const pat of PO_PATTERNS) {
@@ -31,6 +51,13 @@ function detectPoName(header: string): string | null {
 			return `${prefix}${m[1]}`;
 		}
 	}
+	return null;
+}
+
+function detectMetaColumn(header: string): "name" | "qualification" | null {
+	const lower = header.trim().toLowerCase();
+	if (lower === "name" || lower === "respondent name" || lower === "respondent_name") return "name";
+	if (lower === "qualification" || lower === "designation" || lower === "position") return "qualification";
 	return null;
 }
 
@@ -48,6 +75,9 @@ export function StakeholderSurveyImport({
 	const [stakeholderType, setStakeholderType] = useState("");
 	const [columnMapping, setColumnMapping] = useState<
 		Record<string, string | null>
+	>({});
+	const [metaMapping, setMetaMapping] = useState<
+		Record<string, "name" | "qualification" | null>
 	>({});
 	const [parsedData, setParsedData] = useState<any[] | null>(null);
 	const [headers, setHeaders] = useState<string[]>([]);
@@ -69,11 +99,23 @@ export function StakeholderSurveyImport({
 				setParsedData(data);
 
 				const mapping: Record<string, string | null> = {};
+				const meta: Record<string, "name" | "qualification" | null> = {};
 				for (const col of cols) {
 					const po = detectPoName(col);
-					mapping[col] = po;
+					if (po) {
+						mapping[col] = po;
+					} else {
+						const metaType = detectMetaColumn(col);
+						if (metaType) {
+							meta[col] = metaType;
+							mapping[col] = null;
+						} else {
+							mapping[col] = null;
+						}
+					}
 				}
 				setColumnMapping(mapping);
+				setMetaMapping(meta);
 			},
 		});
 	};
@@ -84,6 +126,11 @@ export function StakeholderSurveyImport({
 			[column]: value || null,
 		}));
 	};
+
+	const getPoColumns = () =>
+		Object.entries(columnMapping).filter(
+			([col, v]) => v !== null && !metaMapping[col],
+		);
 
 	const handleImport = async () => {
 		if (!parsedData || !columnMapping) return;
@@ -97,29 +144,59 @@ export function StakeholderSurveyImport({
 			return;
 		}
 
+		const usedPoColumns = getPoColumns();
+		if (usedPoColumns.length === 0) {
+			toast.error("No PO/PSO columns mapped");
+			return;
+		}
+
 		const responses: Array<{
 			po_name: string;
 			likert_rating: number;
 			respondent_identifier: string | null;
+			respondent_name: string | null;
+			qualification: string | null;
 		}> = [];
 
-		for (const row of parsedData) {
+		for (let ri = 0; ri < parsedData.length; ri++) {
+			const row = parsedData[ri];
+			const respondentId = `ROW_${ri}`;
+			const respondentName = metaMapping
+				? (Object.entries(metaMapping).find(
+						([, v]) => v === "name",
+					)?.[0] ?? null)
+				: null;
+			const qualificationCol = metaMapping
+				? (Object.entries(metaMapping).find(
+						([, v]) => v === "qualification",
+					)?.[0] ?? null)
+				: null;
+
+			const nameVal = respondentName
+				? String(row[respondentName] ?? "").trim() || null
+				: null;
+			const qualVal = qualificationCol
+				? String(row[qualificationCol] ?? "").trim() || null
+				: null;
+
 			for (const [col, poName] of Object.entries(columnMapping)) {
 				if (!poName) continue;
-				const raw = row[col];
-				const rating = parseInt(raw, 10);
-				if (isNaN(rating) || rating < 1 || rating > 5) continue;
+				if (metaMapping[col]) continue;
+				const rating = parseLikertValue(row[col]);
+				if (rating === null) continue;
 
 				responses.push({
 					po_name: poName,
 					likert_rating: rating,
-					respondent_identifier: null,
+					respondent_identifier: respondentId,
+					respondent_name: nameVal,
+					qualification: qualVal,
 				});
 			}
 		}
 
 		if (responses.length === 0) {
-			toast.error("No valid Likert ratings (1-5) found in mapped columns");
+			toast.error("No valid Likert ratings found in mapped columns");
 			return;
 		}
 
@@ -160,6 +237,10 @@ export function StakeholderSurveyImport({
 		}
 	};
 
+	const renderingColumns = headers.filter(
+		(col) => !metaMapping[col],
+	);
+
 	return (
 		<Card>
 			<CardHeader>
@@ -170,7 +251,9 @@ export function StakeholderSurveyImport({
 			<CardContent className="space-y-4">
 				<p className="text-sm text-muted-foreground">
 					Upload a CSV export from Google Forms. PO/PSO columns (e.g. "PO1",
-					"PSO1") are auto-detected. Each row = one respondent.
+					"PSO1") are auto-detected. "Name" and "Qualification" columns
+					are also auto-detected. Supports Likert text ("Strongly Agree"→5)
+					or numeric values.
 				</p>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -228,7 +311,7 @@ export function StakeholderSurveyImport({
 					<div className="space-y-2">
 						<h4 className="text-sm font-medium">Column Mapping</h4>
 						<div className="grid grid-cols-[1fr_auto] gap-2 text-sm">
-							{headers.map((col) => (
+							{renderingColumns.map((col) => (
 								<div key={col} className="contents">
 									<span className="truncate py-1">{col}</span>
 									<select
@@ -239,49 +322,33 @@ export function StakeholderSurveyImport({
 										}
 									>
 										<option value="">Skip</option>
-										{Array.from(
-											new Set(
-												Object.values(columnMapping).filter(
-													(v): v is string => v !== null,
-												),
-											),
-										).length === 0 ||
-										!columnMapping[col] ? (
-											<>
-												{[...Array(12)].map((_, i) => (
-													<option key={`PO${i + 1}`} value={`PO${i + 1}`}>
-														PO{i + 1}
-													</option>
-												))}
-												{[...Array(3)].map((_, i) => (
-													<option
-														key={`PSO${i + 1}`}
-														value={`PSO${i + 1}`}
-													>
-														PSO{i + 1}
-													</option>
-												))}
-											</>
-										) : (
-											<>
-												{[...Array(12)].map((_, i) => (
-													<option key={`PO${i + 1}`} value={`PO${i + 1}`}>
-														PO{i + 1}
-													</option>
-												))}
-												{[...Array(3)].map((_, i) => (
-													<option
-														key={`PSO${i + 1}`}
-														value={`PSO${i + 1}`}
-													>
-														PSO{i + 1}
-													</option>
-												))}
-											</>
-										)}
+										{[...Array(12)].map((_, i) => (
+											<option key={`PO${i + 1}`} value={`PO${i + 1}`}>
+												PO{i + 1}
+											</option>
+										))}
+										{[...Array(3)].map((_, i) => (
+											<option
+												key={`PSO${i + 1}`}
+												value={`PSO${i + 1}`}
+											>
+												PSO{i + 1}
+											</option>
+										))}
 									</select>
 								</div>
 							))}
+						</div>
+
+						<div className="text-xs text-muted-foreground">
+							{Object.entries(metaMapping).length > 0 && (
+								<p>
+									Auto-detected:{" "}
+									{Object.entries(metaMapping)
+										.map(([col, type]) => `${col} → ${type}`)
+										.join(", ")}
+								</p>
+							)}
 						</div>
 
 						<div className="flex gap-2 pt-2">
@@ -291,9 +358,7 @@ export function StakeholderSurveyImport({
 									importing ||
 									!batchYear ||
 									!stakeholderType ||
-									!Object.values(columnMapping).some(
-										(v) => v !== null,
-									)
+									getPoColumns().length === 0
 								}
 							>
 								{importing ? "Importing..." : "Import Responses"}
