@@ -2,6 +2,7 @@ export { FacultyStatsCards } from "./FacultyStatsCards";
 export { FacultyQuickAccess } from "./FacultyQuickAccess";
 export { FacultyOverview } from "./FacultyOverview";
 export { FacultyAssessments } from "./FacultyAssessments";
+export { FacultyCourseSurvey } from "./FacultyCourseSurvey";
 export { FacultyMarks } from "./FacultyMarks";
 export { FacultyCOPO } from "./FacultyCOPO";
 export { FacultyStudents } from "./FacultyStudents";
@@ -11,4 +12,5 @@ export type FacultyPage =
 	| "assessments"
 	| "marks"
 	| "copo"
+	| "survey"
 	| "students";

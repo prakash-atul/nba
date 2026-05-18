@@ -14,6 +14,7 @@ class CorsMiddleware
     {
         // Handle preflight OPTIONS request
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->log('INFO', 'CorsMiddleware', 'Preflight OPTIONS request handled'); }
             $this->setCorsHeaders();
             http_response_code(200);
             exit;

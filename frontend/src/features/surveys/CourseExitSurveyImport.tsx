@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, Trash2 } from "lucide-react";
+import { Upload } from "lucide-react";
 import { surveyApi } from "@/services/api/surveys";
 import { useCSVParser } from "@/features/shared/useCSVParser";
 import { debugLogger } from "@/lib/debugLogger";
-import type { CourseExitSurveyRow } from "@/services/api";
+import type { CourseExitSurveyRow, CourseExitSurveyConfig } from "@/services/api";
 
 interface CourseExitSurveyImportProps {
 	offeringId: number;
@@ -26,21 +26,11 @@ function parseLikertValue(raw: unknown): number | null {
 	if (typeof raw === "number" && raw >= 1 && raw <= 5) return raw;
 	const s = String(raw).trim().toLowerCase();
 	if (s === "") return null;
-	// Try numeric first
 	const n = parseInt(s, 10);
 	if (!isNaN(n) && n >= 1 && n <= 5) return n;
-	// Try text map
 	const mapped = LIKERT_TEXT_MAP[s];
 	if (mapped !== undefined) return mapped;
 	return null;
-}
-
-/* Auto‑detect CO column by looking for "CO1:", "CO2:", etc. in the header. */
-function detectCoColumn(
-	header: string,
-): number | null {
-	const m = header.match(/^CO([1-6])[:.\s]/i);
-	return m ? parseInt(m[1], 10) : null;
 }
 
 export function CourseExitSurveyImport({
@@ -48,21 +38,39 @@ export function CourseExitSurveyImport({
 	onImportComplete,
 }: CourseExitSurveyImportProps) {
 	const { parseCSV, isParsing, error } = useCSVParser<any>();
-	const [columnMapping, setColumnMapping] = useState<
-		Record<string, number | null>
-	>({});
+	const [config, setConfig] = useState<CourseExitSurveyConfig | null>(null);
+	const [loadingConfig, setLoadingConfig] = useState(true);
+	
+	const [columnMapping, setColumnMapping] = useState<Record<string, number | null>>({});
 	const [parsedData, setParsedData] = useState<any[] | null>(null);
 	const [headers, setHeaders] = useState<string[]>([]);
 	const [importing, setImporting] = useState(false);
-	const [hasData, setHasData] = useState(false);
+
+	useEffect(() => {
+		loadConfig();
+	}, [offeringId]);
+
+	const loadConfig = async () => {
+		setLoadingConfig(true);
+		try {
+			const data = await surveyApi.getCourseExitSurvey(offeringId);
+			setConfig(data);
+		} catch (err) {
+			debugLogger.error("CourseExitSurveyImport", "Failed to load config", err);
+		} finally {
+			setLoadingConfig(false);
+		}
+	};
 
 	const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (!file) return;
-		debugLogger.info("CourseExitSurveyImport", "CSV file selected", {
-			name: file.name,
-			size: file.size,
-		});
+		
+		if (!config || !config.questions || config.questions.length === 0) {
+			toast.error("Please configure survey questions first.");
+			return;
+		}
+
 		parseCSV(file, {
 			requiredHeaders: [],
 			onParseComplete: (data: any[]) => {
@@ -73,35 +81,25 @@ export function CourseExitSurveyImport({
 				const cols = Object.keys(data[0]);
 				setHeaders(cols);
 				setParsedData(data);
-				debugLogger.info("CourseExitSurveyImport", "CSV parsed", {
-					rowCount: data.length,
-					detectedHeaders: cols,
-					firstRow: data[0],
-				});
-
-				// Auto-detect column mapping
+				
+				// Auto-map chronologically. Skip rollno column, then map questions 1..N
 				const mapping: Record<string, number | null> = {};
 				let foundRollNo = false;
+				let qIdx = 0;
+				
 				for (const col of cols) {
 					const lower = col.toLowerCase();
-					if (
-						!foundRollNo &&
-						(lower.includes("roll") ||
-							lower.includes("student") ||
-							lower.includes("id"))
-					) {
-						mapping[col] = 0; // 0 = student_rollno
+					if (!foundRollNo && (lower.includes("roll") || lower.includes("student") || lower.includes("id"))) {
+						mapping[col] = 0; // 0 = rollno
 						foundRollNo = true;
+					} else if (qIdx < config.questions.length && lower !== 'timestamp') {
+						mapping[col] = config.questions[qIdx].question_id!; // mapping value is question_id
+						qIdx++;
 					} else {
-						const co = detectCoColumn(col);
-						mapping[col] = co;
+						mapping[col] = null;
 					}
 				}
-				debugLogger.info("CourseExitSurveyImport", "Auto-detected column mapping", {
-					mapping,
-					rollNoColumn: Object.entries(mapping).find(([, v]) => v === 0)?.[0],
-					coColumns: Object.entries(mapping).filter(([, v]) => v !== null && v !== 0).length,
-				});
+				
 				setColumnMapping(mapping);
 			},
 		});
@@ -115,10 +113,7 @@ export function CourseExitSurveyImport({
 	const handleImport = async () => {
 		if (!parsedData || !columnMapping) return;
 
-		// Find which column maps to rollno (value = 0)
-		const rollnoCol = Object.entries(columnMapping).find(
-			([, v]) => v === 0,
-		)?.[0];
+		const rollnoCol = Object.entries(columnMapping).find(([, v]) => v === 0)?.[0];
 		if (!rollnoCol) {
 			toast.error("Please map a column to Student Roll No");
 			return;
@@ -130,14 +125,14 @@ export function CourseExitSurveyImport({
 			const rollno = String(row[rollnoCol] ?? "").trim();
 			if (!rollno) continue;
 
-			for (const [col, coNum] of Object.entries(columnMapping)) {
-				if (coNum === null || coNum === 0) continue; // skip rollno col & unmapped
+			for (const [col, questionId] of Object.entries(columnMapping)) {
+				if (questionId === null || questionId === 0) continue;
 				const rating = parseLikertValue(row[col]);
 				if (rating === null) continue;
 
 				responses.push({
 					student_rollno: rollno,
-					co_number: coNum,
+					question_id: questionId,
 					likert_rating: rating,
 				});
 			}
@@ -148,145 +143,62 @@ export function CourseExitSurveyImport({
 			return;
 		}
 
-		debugLogger.info("CourseExitSurveyImport", "Preparing to import survey responses", {
-			offeringId,
-			totalResponses: responses.length,
-			uniqueStudents: [...new Set(responses.map((r) => r.student_rollno))].length,
-			coDistribution: Object.fromEntries(
-				[1, 2, 3, 4, 5, 6].map((n) => [
-					`CO${n}`,
-					responses.filter((r) => r.co_number === n).length,
-				]),
-			),
-			sampleRow: responses[0],
-		});
-
 		setImporting(true);
 		try {
-			const result = await surveyApi.importCourseExitCsv(offeringId, {
-				responses,
-			});
-			debugLogger.info("CourseExitSurveyImport", "Import completed", {
-				imported: result.imported_count,
-				errors: result.error_count,
-				errorDetails: result.errors,
-			});
-			toast.success(
-				`Imported ${result.imported_count} responses` +
-					(result.error_count > 0
-						? ` (${result.error_count} errors)`
-						: ""),
-			);
-			setHasData(true);
+			const result = await surveyApi.importCourseExitCsv(offeringId, { responses });
+			toast.success(`Imported ${result.imported_count} responses`);
+			setParsedData(null);
 			onImportComplete?.();
 		} catch (err) {
-			debugLogger.error("CourseExitSurveyImport", "Import failed", err);
 			toast.error("Failed to import survey responses");
 		} finally {
 			setImporting(false);
 		}
 	};
 
-	const handleClear = async () => {
-		debugLogger.info("CourseExitSurveyImport", "Clearing survey data", { offeringId });
-		if (!confirm("Clear all course exit survey data for this offering?"))
-			return;
-		try {
-			await surveyApi.clearCourseExit(offeringId);
-			debugLogger.info("CourseExitSurveyImport", "Survey data cleared", { offeringId });
-			toast.success("Survey data cleared");
-			setHasData(false);
-			setParsedData(null);
-			onImportComplete?.();
-		} catch {
-			debugLogger.error("CourseExitSurveyImport", "Failed to clear survey data");
-			toast.error("Failed to clear survey data");
-		}
-	};
+	const rollnoCol = Object.entries(columnMapping).find(([, v]) => v === 0)?.[0];
 
-	const rollnoCol = Object.entries(columnMapping).find(
-		([, v]) => v === 0,
-	)?.[0];
+	if (loadingConfig) return null;
 
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="text-base">
-					Course Exit Survey — Import
-				</CardTitle>
+				<CardTitle className="text-base">Import CSV Responses</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<p className="text-sm text-muted-foreground">
-					Upload a Google Forms CSV export. Columns with CO headers
-					(e.g. "CO1: ...") are auto-detected. Supports Likert text
-					("Strongly Agree"→5) or numeric values.
+					Upload a Google Forms CSV export. Columns will be auto-mapped chronologically to the questions configured above.
 				</p>
 
-				{/* File upload */}
 				<div>
-					<input
-						type="file"
-						accept=".csv"
-						onChange={handleFileSelected}
-						className="hidden"
-						id="survey-csv-input"
-					/>
-					<Button
-						variant="outline"
-						disabled={isParsing}
-						onClick={() =>
-							document
-								.getElementById("survey-csv-input")
-								?.click()
-						}
-					>
+					<input type="file" accept=".csv" onChange={handleFileSelected} className="hidden" id="survey-csv-input" />
+					<Button variant="outline" disabled={isParsing || !config || !config.questions} onClick={() => document.getElementById("survey-csv-input")?.click()}>
 						<Upload className="w-4 h-4 mr-2" />
 						{isParsing ? "Parsing..." : "Upload CSV"}
 					</Button>
-					{error && (
-						<p className="text-sm text-red-500 mt-1">{error}</p>
+					{(!config || !config.questions || config.questions.length === 0) && (
+						<p className="text-sm text-amber-600 mt-2">Configure questions first before importing.</p>
 					)}
+					{error && <p className="text-sm text-red-500 mt-1">{error}</p>}
 				</div>
 
-				{/* Column mapping */}
-				{headers.length > 0 && (
+				{headers.length > 0 && config && (
 					<div className="space-y-2">
-						<h4 className="text-sm font-medium">
-							Column Mapping
-						</h4>
+						<h4 className="text-sm font-medium">Column Mapping Verification</h4>
 						<div className="grid grid-cols-[1fr_auto] gap-2 text-sm">
 							{headers.map((col) => (
-								<div
-									key={col}
-									className="contents"
-								>
-									<span className="truncate py-1">
-										{col}
-									</span>
+								<div key={col} className="contents">
+									<span className="truncate py-1">{col}</span>
 									<select
-										className="h-8 rounded border px-2 text-xs"
-										value={
-											columnMapping[col] !== undefined
-												? String(columnMapping[col])
-												: ""
-										}
-										onChange={(e) =>
-											handleMappingChange(
-												col,
-												e.target.value,
-											)
-										}
+										className="h-8 rounded border px-2 text-xs max-w-[200px] truncate"
+										value={columnMapping[col] !== undefined && columnMapping[col] !== null ? String(columnMapping[col]) : ""}
+										onChange={(e) => handleMappingChange(col, e.target.value)}
 									>
 										<option value="">Skip</option>
-										<option value="0">
-											Student Roll No
-										</option>
-										{[1, 2, 3, 4, 5, 6].map((n) => (
-											<option
-												key={n}
-												value={String(n)}
-											>
-												CO{n}
+										<option value="0">Student Roll No</option>
+										{config.questions.map((q) => (
+											<option key={q.question_id} value={String(q.question_id)}>
+												Q{q.question_number}: {q.question_text.substring(0, 30)}... (CO{q.co_number})
 											</option>
 										))}
 									</select>
@@ -295,24 +207,9 @@ export function CourseExitSurveyImport({
 						</div>
 
 						<div className="flex gap-2 pt-2">
-							<Button
-								onClick={handleImport}
-								disabled={importing || !rollnoCol}
-							>
-								{importing
-									? "Importing..."
-									: "Import Responses"}
+							<Button onClick={handleImport} disabled={importing || !rollnoCol}>
+								{importing ? "Importing..." : "Import Responses"}
 							</Button>
-							{hasData && (
-								<Button
-									variant="destructive"
-									size="sm"
-									onClick={handleClear}
-								>
-									<Trash2 className="w-4 h-4 mr-1" />
-									Clear
-								</Button>
-							)}
 						</div>
 					</div>
 				)}

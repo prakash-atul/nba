@@ -459,6 +459,8 @@ class AttainmentController
                     'course_id' => $course->getCourseId(),
                     'co_threshold' => (float)$offering->getCoThreshold(),
                     'passing_threshold' => (float)$offering->getPassingThreshold(),
+                    'direct_weightage' => (float)($offering->getDirectWeightage() ?? 80.0),
+                    'indirect_weightage' => (float)($offering->getIndirectWeightage() ?? 20.0),
                     'attainment_thresholds' => array_map(function ($scale) {
                         return [
                             'id' => $scale->id,
@@ -495,6 +497,8 @@ class AttainmentController
 
         $coThreshold = $input['co_threshold'] ?? null;
         $passingThreshold = $input['passing_threshold'] ?? null;
+        $directWeightage = $input['direct_weightage'] ?? null;
+        $indirectWeightage = $input['indirect_weightage'] ?? null;
         $attainmentThresholds = $input['attainment_thresholds'] ?? [];
 
         if ($coThreshold !== null && ($coThreshold < 0 || $coThreshold > 100)) {
@@ -529,6 +533,21 @@ class AttainmentController
             }
         }
 
+        if ($directWeightage !== null || $indirectWeightage !== null) {
+            $dw = (float)($directWeightage ?? 80.0);
+            $iw = (float)($indirectWeightage ?? 20.0);
+            if ($dw < 0 || $dw > 100 || $iw < 0 || $iw > 100) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Weightage values must be between 0 and 100']);
+                return;
+            }
+            if (abs(($dw + $iw) - 100) > 0.01) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Direct and indirect weightage must sum to 100']);
+                return;
+            }
+        }
+
         try {
             $resolved = $this->resolveOffering($offeringId);
             if (!$resolved) {
@@ -538,6 +557,14 @@ class AttainmentController
             }
 
             $this->offeringRepo->updateThresholds($offeringId, $coThreshold, $passingThreshold);
+
+            if ($directWeightage !== null || $indirectWeightage !== null) {
+                $this->offeringRepo->updateWeightage(
+                    $offeringId,
+                    (float)($directWeightage ?? 80.0),
+                    (float)($indirectWeightage ?? 20.0)
+                );
+            }
 
             usort($attainmentThresholds, function ($a, $b) {
                 return $b['percentage'] <=> $a['percentage'];
@@ -570,6 +597,8 @@ class AttainmentController
                     'course_id' => $resolved['course']->getCourseId(),
                     'co_threshold' => $coThreshold,
                     'passing_threshold' => $passingThreshold,
+                    'direct_weightage' => (float)($directWeightage ?? 80.0),
+                    'indirect_weightage' => (float)($indirectWeightage ?? 20.0),
                     'attainment_thresholds_saved' => count($scaleData),
                 ],
             ]);

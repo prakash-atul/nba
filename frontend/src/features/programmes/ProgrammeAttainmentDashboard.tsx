@@ -38,6 +38,7 @@ import {
 	BarChart3,
 } from "lucide-react";
 import { StakeholderSurveyImport } from "@/features/surveys/StakeholderSurveyImport";
+import { StakeholderSurveyConfig } from "@/features/surveys/StakeholderSurveyConfig";
 import { StakeholderSurveyResults } from "@/features/surveys/StakeholderSurveyResults";
 import { SetTargetsDialog } from "@/features/programmes/SetTargetsDialog";
 import { ActionPlansSection } from "@/features/programmes/ActionPlansSection";
@@ -69,6 +70,8 @@ export function ProgrammeAttainmentDashboard() {
 	const [surveyOpen, setSurveyOpen] = useState(false);
 	const [chartsOpen, setChartsOpen] = useState(false);
 	const [stakeholderRefresh, setStakeholderRefresh] = useState(0);
+	const [stakeholderBatchYear, setStakeholderBatchYear] = useState("");
+	const [stakeholderType, setStakeholderType] = useState("");
 
 	const loadAttainment = useCallback(async () => {
 		if (!selectedProgrammeId) return;
@@ -519,6 +522,9 @@ export function ProgrammeAttainmentDashboard() {
 									<TabsTrigger value="import">
 										Import CSV
 									</TabsTrigger>
+									<TabsTrigger value="config">
+										Question Config
+									</TabsTrigger>
 									<TabsTrigger value="results">
 										Results
 									</TabsTrigger>
@@ -527,6 +533,24 @@ export function ProgrammeAttainmentDashboard() {
 									<StakeholderSurveyImport
 										programmeId={selectedProgrammeId}
 										onImportComplete={() =>
+											setStakeholderRefresh((n) => n + 1)
+										}
+										batchYear={stakeholderBatchYear}
+										stakeholderType={stakeholderType}
+										onBatchYearChange={
+											setStakeholderBatchYear
+										}
+										onStakeholderTypeChange={
+											setStakeholderType
+										}
+									/>
+								</TabsContent>
+								<TabsContent value="config" className="pt-4">
+									<StakeholderSurveyConfig
+										programmeId={selectedProgrammeId}
+										batchYear={stakeholderBatchYear}
+										stakeholderType={stakeholderType}
+										onConfigSaved={() =>
 											setStakeholderRefresh((n) => n + 1)
 										}
 									/>

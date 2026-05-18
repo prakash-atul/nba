@@ -103,6 +103,20 @@ class CourseOfferingRepository
         }
     }
 
+    public function updateWeightage($offeringId, $directWeightage, $indirectWeightage)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE course_offerings 
+                SET direct_weightage = ?, indirect_weightage = ? 
+                WHERE offering_id = ?
+            ");
+            return $stmt->execute([$directWeightage, $indirectWeightage, $offeringId]);
+        } catch (PDOException $e) {
+            throw new Exception("Database error: " . $e->getMessage());
+        }
+    }
+
     /**
      * Find offerings by course ID
      */

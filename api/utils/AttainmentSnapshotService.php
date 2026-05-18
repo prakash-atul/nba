@@ -4,7 +4,7 @@ require_once __DIR__ . '/../models/AttainmentSnapshotRepository.php';
 require_once __DIR__ . '/../models/AttainmentScaleRepository.php';
 require_once __DIR__ . '/../models/CoPoRepository.php';
 require_once __DIR__ . '/../models/CourseOfferingRepository.php';
-require_once __DIR__ . '/../models/CourseExitSurveyRepository.php';
+require_once __DIR__ . '/../models/CourseSurveyRepository.php';
 
 class AttainmentSnapshotService
 {
@@ -13,7 +13,7 @@ class AttainmentSnapshotService
     private $scaleRepository;
     private $coPoRepository;
     private $offeringRepository;
-    private ?CourseExitSurveyRepository $surveyRepository;
+    private ?CourseSurveyRepository $surveyRepository;
 
     public function __construct(
         $db,
@@ -21,7 +21,7 @@ class AttainmentSnapshotService
         AttainmentScaleRepository $scaleRepository,
         CoPoRepository $coPoRepository,
         CourseOfferingRepository $offeringRepository,
-        ?CourseExitSurveyRepository $surveyRepository = null
+        ?CourseSurveyRepository $surveyRepository = null
     ) {
         $this->db = $db;
         $this->snapshotRepository = $snapshotRepository;
@@ -425,13 +425,14 @@ class AttainmentSnapshotService
 
         // 3. Get stakeholder survey indirect (PO-level Likert averages)
         $stakeholderStmt = $this->db->prepare(
-            "SELECT
-                po_name,
-                ROUND(AVG(likert_rating), 2) AS average_rating
-             FROM stakeholder_survey_responses
-             WHERE programme_id = ? AND batch_year = ?
-             GROUP BY po_name
-             ORDER BY po_name ASC"
+            "SELECT 
+                 q.po_name, 
+                 SUM(r.likert_rating * q.mapping_weight) / SUM(q.mapping_weight) as average_rating
+             FROM stakeholder_survey_responses_v2 r
+             JOIN stakeholder_survey_questions q ON r.question_id = q.question_id
+             JOIN stakeholder_surveys s ON r.survey_id = s.survey_id
+             WHERE s.programme_id = ? AND s.batch_year = ?
+             GROUP BY q.po_name"
         );
         $stakeholderStmt->execute([$programmeId, $batchYear]);
         $stakeholderRows = $stakeholderStmt->fetchAll(PDO::FETCH_ASSOC);

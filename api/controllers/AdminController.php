@@ -71,12 +71,7 @@ class AdminController
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
-                'data' => [
-                    'success_count' => count($success),
-                    'failure_count' => count($failed),
-                    'successful' => $success,
-                    'failed' => $failed,
-                ],
+                'data' => $stats,
             ]);
         } catch (Exception $e) {
             if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('AdminController', 'getStats prompt', ['error' => $e->getMessage()]); }
@@ -351,7 +346,7 @@ class AdminController
 
                 http_response_code(201);
                 
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            $auditPayload = $input ?? null;
             if (isset($this->auditService)) {
                 $this->auditService->log('CREATE', 'School', null, null, $auditPayload);
             }
@@ -411,7 +406,7 @@ class AdminController
             if ($this->schoolRepository->update($existingSchool)) {
                 http_response_code(200);
                 
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            $auditPayload = $input ?? null;
             if (isset($this->auditService)) {
                 $this->auditService->log('UPDATE', 'School', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
             }
@@ -427,7 +422,7 @@ class AdminController
                 // If no rows updated, it might mean no changes were made, but distinct from failure
                 http_response_code(200);
                  
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            $auditPayload = $input ?? null;
             if (isset($this->auditService)) {
                 $this->auditService->log('UPDATE', 'School', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
             }
@@ -484,7 +479,7 @@ class AdminController
 
                 http_response_code(200);
                 
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            $auditPayload = $input ?? null;
             if (isset($this->auditService)) {
                 $this->auditService->log('DELETE', 'School', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
             }
@@ -598,7 +593,7 @@ class AdminController
                 http_response_code(201);
                 header('Content-Type: application/json');
                 
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            $auditPayload = $input ?? null;
             if (isset($this->auditService)) {
                 $this->auditService->log('CREATE', 'Department', null, null, $auditPayload);
             }
@@ -711,7 +706,7 @@ class AdminController
                 http_response_code(200);
                 header('Content-Type: application/json');
                 
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            $auditPayload = $input ?? null;
             if (isset($this->auditService)) {
                 $this->auditService->log('UPDATE', 'Department', null, ($GLOBALS['audit_old_state'] ?? null), $auditPayload);
             }
@@ -785,7 +780,7 @@ class AdminController
                 http_response_code(200);
                 header('Content-Type: application/json');
                 
-            $auditPayload = isset($input) ? $input : (isset($data) ? $data : null);
+            $auditPayload = $input ?? null;
             if (isset($this->auditService)) {
                 $this->auditService->log('DELETE', 'Department', null, ($GLOBALS['audit_old_state'] ?? $auditPayload), null);
             }

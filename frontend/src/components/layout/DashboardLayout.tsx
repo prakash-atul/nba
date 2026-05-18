@@ -17,6 +17,7 @@ import {
 	UserCog,
 	BarChart3,
 	History,
+	FileText,
 } from "lucide-react";
 
 export function DashboardLayout() {
@@ -77,8 +78,16 @@ export function DashboardLayout() {
 					{ id: "users", label: "Users", icon: Users },
 					{ id: "courses", label: "Courses", icon: BookOpen },
 					{ id: "schools", label: "Schools", icon: ShieldCheck },
-					{ id: "departments", label: "Departments", icon: Building2 },
-					{ id: "programmes", label: "Programmes", icon: GraduationCap },
+					{
+						id: "departments",
+						label: "Departments",
+						icon: Building2,
+					},
+					{
+						id: "programmes",
+						label: "Programmes",
+						icon: GraduationCap,
+					},
 					{ id: "logs", label: "Audit Logs", icon: History },
 				];
 			case "hod":
@@ -86,7 +95,11 @@ export function DashboardLayout() {
 					...common,
 					{ id: "faculty", label: "Faculty", icon: Users },
 					{ id: "students", label: "Students", icon: GraduationCap },
-					{ id: "programmes", label: "Programmes", icon: GraduationCap },
+					{
+						id: "programmes",
+						label: "Programmes",
+						icon: GraduationCap,
+					},
 					{
 						id: "programme-attainment",
 						label: "Programme Attainment",
@@ -105,6 +118,11 @@ export function DashboardLayout() {
 					},
 					{ id: "students", label: "Students", icon: GraduationCap },
 					{ id: "marks", label: "Marks Entry", icon: FileCheck },
+					{
+						id: "survey",
+						label: "Course Survey",
+						icon: FileText,
+					},
 					{ id: "copo", label: "CO-PO Mapping", icon: Network },
 					{ id: "logs", label: "Audit Logs", icon: History },
 				];

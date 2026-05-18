@@ -20,6 +20,7 @@ import { HODProgrammeAttainment } from "./pages/hod/HODProgrammeAttainment";
 import { HODLogs } from "./pages/hod/HODLogs";
 import { FacultyHome } from "./pages/faculty/FacultyHome";
 import { FacultyAssessments } from "./pages/faculty/FacultyAssessments";
+import { FacultySurvey } from "./pages/faculty/FacultySurvey";
 import { FacultyStudents } from "./pages/faculty/FacultyStudents";
 import { FacultyMarks } from "./pages/faculty/FacultyMarks";
 import { FacultyCOPO } from "./pages/faculty/FacultyCOPO";
@@ -93,6 +94,7 @@ function App() {
 						element={<FacultyStudents />}
 					/>
 					<Route path="/faculty/marks" element={<FacultyMarks />} />
+					<Route path="/faculty/survey" element={<FacultySurvey />} />
 					<Route path="/faculty/copo" element={<FacultyCOPO />} />
 
 					{/* Role Routes (Legacy Compatibility for now) */}

@@ -64,15 +64,27 @@ function detectMetaColumn(header: string): "name" | "qualification" | null {
 interface StakeholderSurveyImportProps {
 	programmeId: number;
 	onImportComplete?: () => void;
+	batchYear?: string;
+	stakeholderType?: string;
+	onBatchYearChange?: (val: string) => void;
+	onStakeholderTypeChange?: (val: string) => void;
 }
 
 export function StakeholderSurveyImport({
 	programmeId,
 	onImportComplete,
+	batchYear: controlledBatch,
+	stakeholderType: controlledType,
+	onBatchYearChange,
+	onStakeholderTypeChange,
 }: StakeholderSurveyImportProps) {
 	const { parseCSV, isParsing, error } = useCSVParser<any>();
-	const [batchYear, setBatchYear] = useState("");
-	const [stakeholderType, setStakeholderType] = useState("");
+	const [localBatchYear, setLocalBatchYear] = useState("");
+	const [localStakeholderType, setLocalStakeholderType] = useState("");
+	const batchYear = controlledBatch ?? localBatchYear;
+	const stakeholderType = controlledType ?? localStakeholderType;
+	const setBatchYear = onBatchYearChange ?? setLocalBatchYear;
+	const setStakeholderType = onStakeholderTypeChange ?? setLocalStakeholderType;
 	const [columnMapping, setColumnMapping] = useState<
 		Record<string, string | null>
 	>({});
@@ -202,6 +214,29 @@ export function StakeholderSurveyImport({
 
 		setImporting(true);
 		try {
+			const existing = await surveyApi.getStakeholderSurvey(
+				programmeId,
+				year,
+				stakeholderType,
+			);
+			if (!existing || !existing.questions?.length) {
+				const usedPos = getPoColumns();
+				const uniquePos = [...new Set(usedPos.map(([, v]) => v))];
+				const autoQuestions = uniquePos
+					.filter((po): po is string => po !== null)
+					.map((po, i) => ({
+						question_number: i + 1,
+						question_text: `Rate ${po}`,
+						po_name: po,
+						mapping_weight: 1.0,
+					}));
+				await surveyApi.saveStakeholderQuestions(
+					programmeId,
+					year,
+					stakeholderType,
+					autoQuestions,
+				);
+			}
 			const result = await surveyApi.importStakeholderCsv(programmeId, {
 				batch_year: year,
 				stakeholder_type: stakeholderType,

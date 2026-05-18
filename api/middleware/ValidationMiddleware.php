@@ -24,6 +24,10 @@ class ValidationMiddleware
             $errors[] = "Password is required";
         }
 
+        if (!empty($errors) && isset($GLOBALS['fileLogger'])) {
+            $GLOBALS['fileLogger']->warn('ValidationMiddleware', 'Login validation failed', ['errors' => $errors]);
+        }
+
         return $errors;
     }
 

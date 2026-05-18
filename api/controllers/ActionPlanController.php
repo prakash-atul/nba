@@ -38,6 +38,7 @@ class ActionPlanController
                 'data' => $plans,
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('ActionPlanController', 'listByProgramme error', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -64,6 +65,7 @@ class ActionPlanController
 
             $plan = $this->repo->findById($id);
 
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->log('INFO', 'ActionPlanController', 'CREATE operation successful'); }
             http_response_code(201);
             echo json_encode([
                 'success' => true,
@@ -71,6 +73,7 @@ class ActionPlanController
                 'message' => 'Action plan created',
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('ActionPlanController', 'action error', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -94,6 +97,7 @@ class ActionPlanController
             $this->repo->update($id, $input);
 
             $plan = $this->repo->findById($id);
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->log('INFO', 'ActionPlanController', 'UPDATE operation successful'); }
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -101,6 +105,7 @@ class ActionPlanController
                 'message' => 'Action plan updated',
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('ActionPlanController', 'action error', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -122,12 +127,14 @@ class ActionPlanController
 
             $this->repo->delete($id);
 
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->log('INFO', 'ActionPlanController', 'DELETE operation successful'); }
             http_response_code(200);
             echo json_encode([
                 'success' => true,
                 'message' => 'Action plan deleted',
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('ActionPlanController', 'action error', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -158,6 +165,7 @@ class ActionPlanController
                 'message' => 'Targets saved successfully',
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('ActionPlanController', 'action error', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -192,6 +200,7 @@ class ActionPlanController
                 ],
             ]);
         } catch (Exception $e) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->error('ActionPlanController', 'action error', ['error' => $e->getMessage()]); }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }

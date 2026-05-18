@@ -77,6 +77,8 @@ export function useCOPOMappingData({
 	]);
 	const [coThreshold, setCoThreshold] = useState(40);
 	const [passingThreshold, setPassingThreshold] = useState(60);
+	const [directWeightage, setDirectWeightage] = useState(80);
+	const [indirectWeightage, setIndirectWeightage] = useState(20);
 
 	const [copoMatrix, setCopoMatrix] = useState<COPOMatrixState>({
 		CO1: {
@@ -225,6 +227,8 @@ export function useCOPOMappingData({
 
 			setCoThreshold(config.co_threshold);
 			setPassingThreshold(config.passing_threshold);
+			setDirectWeightage(config.direct_weightage ?? 80);
+			setIndirectWeightage(config.indirect_weightage ?? 20);
 
 			if (
 				config.attainment_thresholds &&
@@ -576,10 +580,12 @@ export function useCOPOMappingData({
 		}
 
 		try {
-			await apiService.saveAttainmentConfig({
+		await apiService.saveAttainmentConfig({
 				offering_id: courseId,
 				co_threshold: coThreshold,
 				passing_threshold: passingThreshold,
+				direct_weightage: directWeightage,
+				indirect_weightage: indirectWeightage,
 				attainment_thresholds: attainmentThresholds.map((t) => ({
 					id: t.id,
 					percentage: t.percentage,

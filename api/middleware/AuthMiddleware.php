@@ -79,6 +79,7 @@ class AuthMiddleware
         $user = $this->authenticate($token);
 
         if (!$user) {
+            if (isset($GLOBALS['fileLogger'])) { $GLOBALS['fileLogger']->warn('AuthMiddleware', 'Unauthorized access attempt'); }
             $this->sendUnauthorizedResponse();
             exit;
         }

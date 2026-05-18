@@ -396,6 +396,8 @@ export interface AttainmentConfig {
 	course_id?: number;
 	co_threshold: number;
 	passing_threshold: number;
+	direct_weightage: number;
+	indirect_weightage: number;
 	attainment_thresholds: Array<{
 		id: number;
 		level: number;
@@ -407,6 +409,8 @@ export interface SaveAttainmentConfigRequest {
 	offering_id: number;
 	co_threshold: number;
 	passing_threshold: number;
+	direct_weightage: number;
+	indirect_weightage: number;
 	attainment_thresholds: Array<{
 		id: number;
 		percentage: number;
@@ -478,9 +482,24 @@ export interface SaveCoPoMatrixRequest {
 }
 
 // Survey types
+export interface CourseSurveyQuestion {
+	question_id?: number;
+	question_number: number;
+	question_text: string;
+	co_number: number;
+	mapping_weight: number;
+}
+
+export interface CourseExitSurveyConfig {
+	survey_id: number;
+	offering_id: number;
+	title: string;
+	questions: CourseSurveyQuestion[];
+}
+
 export interface CourseExitSurveyRow {
 	student_rollno: string;
-	co_number: number;
+	question_id: number;
 	likert_rating: number;
 }
 
@@ -503,6 +522,19 @@ export interface CourseExitSurveyCoResult {
 	co_number: number;
 	co_name: string;
 	average_rating: number | null;
+	normalized_rating: number | null;
+	respondent_count: number;
+}
+
+export interface CourseExitSurveyQuestionAnalysis {
+	question_id: number;
+	question_number: number;
+	question_text: string;
+	co_number: number;
+	mapping_weight: number;
+	average_rating: string | null;
+	normalized_rating: number | null;
+	rating_variance: string | null;
 	respondent_count: number;
 }
 
@@ -510,7 +542,25 @@ export interface CourseExitSurveyResultsResponse {
 	offering_id: number;
 	has_data: boolean;
 	co_results: CourseExitSurveyCoResult[];
+	question_analysis?: CourseExitSurveyQuestionAnalysis[];
 	raw_responses: CourseExitSurveyRawRow[];
+}
+
+export interface SurveyEnrollment {
+	roll_no: string;
+	student_name: string;
+	responses: Record<string, number>; // question_id -> likert_rating
+}
+
+export interface CourseExitEnrollmentsResponse {
+	enrollments: SurveyEnrollment[];
+	questions: CourseSurveyQuestion[];
+}
+
+export interface ManualEntryResponse {
+	student_rollno: string;
+	question_id: number;
+	likert_rating: number;
 }
 
 // Stakeholder Survey Types
@@ -563,6 +613,23 @@ export interface StakeholderSurveyResultsResponse {
 	averages: StakeholderPOAverage[];
 	by_type: StakeholderByTypeRow[];
 	individual: StakeholderIndividualResponse[];
+}
+
+export interface StakeholderSurveyQuestion {
+	question_id?: number;
+	question_number: number;
+	question_text: string;
+	po_name: string;
+	mapping_weight: number;
+}
+
+export interface StakeholderSurveyConfigResponse {
+	survey_id: number;
+	programme_id: number;
+	batch_year: number;
+	stakeholder_type: string;
+	title: string;
+	questions: StakeholderSurveyQuestion[];
 }
 
 // Action Plan Types

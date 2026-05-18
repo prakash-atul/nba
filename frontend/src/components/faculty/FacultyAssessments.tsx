@@ -8,17 +8,13 @@ import {
 	ClipboardList,
 	TrendingUp,
 	GraduationCap,
-	FileText,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { CreateAssessmentForm } from "@/features/assessments/CreateAssessmentForm";
 import { TestsList } from "@/features/assessments/TestsList";
 import { EnrollStudentsDialog } from "@/features/assessments/EnrollStudentsDialog";
-import { CourseExitSurveyImport } from "@/features/surveys/CourseExitSurveyImport";
-import { CourseExitSurveyResults } from "@/features/surveys/CourseExitSurveyResults";
 import { apiService } from "@/services/api";
 import type { Course, Test, CourseStats } from "@/services/api";
-import { debugLogger } from "@/lib/debugLogger";
 
 interface FacultyAssessmentsProps {
 	selectedCourse: Course | null;
@@ -30,7 +26,6 @@ export function FacultyAssessments({
 	const [showCreateForm, setShowCreateForm] = useState(false);
 	const [showEnrollDialog, setShowEnrollDialog] = useState(false);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
-	const [surveyRefreshTrigger, setSurveyRefreshTrigger] = useState(0);
 	const [testsCount, setTestsCount] = useState(0);
 	const [courseStats, setCourseStats] = useState<CourseStats | null>(null);
 	const [statsLoading, setStatsLoading] = useState(false);
@@ -103,17 +98,6 @@ export function FacultyAssessments({
 	const handleGoToMarks = (_test: Test) => {
 		// Navigate to marks entry — parent handles this via nav
 	};
-
-	useEffect(() => {
-		if (selectedCourse?.offering_id) {
-			debugLogger.info("FacultyAssessments", "Selected course context", {
-				offeringId: selectedCourse.offering_id,
-				courseCode: selectedCourse.course_code,
-				isActive: selectedCourse.is_active,
-				surveyRefreshTrigger,
-			});
-		}
-	}, [selectedCourse?.offering_id, surveyRefreshTrigger]);
 
 	return (
 		<div className="h-full flex flex-col">
@@ -254,70 +238,16 @@ export function FacultyAssessments({
 						}
 					/>
 				) : (
-					<Tabs
-						defaultValue="assessments"
-						className="h-full flex flex-col"
-					>
-						<div className="px-6 pt-3 border-b shrink-0">
-							<TabsList>
-								<TabsTrigger value="assessments">
-									<ClipboardList className="w-4 h-4 mr-2" />
-									Assessments
-								</TabsTrigger>
-								<TabsTrigger
-									value="survey"
-									disabled={!selectedCourse}
-								>
-									<FileText className="w-4 h-4 mr-2" />
-									Course Exit Survey
-								</TabsTrigger>
-							</TabsList>
+					<ScrollArea className="h-full">
+						<div className="p-6">
+							<TestsList
+								course={selectedCourse}
+								refreshTrigger={refreshTrigger}
+								onGoToMarks={handleGoToMarks}
+								onCountChange={setTestsCount}
+							/>
 						</div>
-
-						<TabsContent
-							value="assessments"
-							className="flex-1 overflow-hidden m-0"
-						>
-							<ScrollArea className="h-full">
-								<div className="p-6">
-									<TestsList
-										course={selectedCourse}
-										refreshTrigger={refreshTrigger}
-										onGoToMarks={handleGoToMarks}
-										onCountChange={setTestsCount}
-									/>
-								</div>
-							</ScrollArea>
-						</TabsContent>
-
-						<TabsContent
-							value="survey"
-							className="flex-1 overflow-y-auto m-0 p-6 space-y-4"
-						>
-							{selectedCourse?.offering_id && (
-								<>
-									<CourseExitSurveyResults
-										offeringId={
-											selectedCourse.offering_id
-										}
-										refreshTrigger={
-											surveyRefreshTrigger
-										}
-									/>
-									<CourseExitSurveyImport
-										offeringId={
-											selectedCourse.offering_id
-										}
-										onImportComplete={() =>
-											setSurveyRefreshTrigger(
-												(p) => p + 1,
-											)
-										}
-									/>
-								</>
-							)}
-						</TabsContent>
-					</Tabs>
+					</ScrollArea>
 				)}
 			</div>
 
